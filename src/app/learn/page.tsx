@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { HIRAGANA_BASIC, HIRAGANA_DAKUTEN, HIRAGANA_COMBINATIONS } from '@/data/learning/characters';
+import { KATAKANA_BASIC } from '@/data/learning/characters';
 
 const colors = {
   background: '#0a1519',
@@ -19,44 +21,31 @@ const colors = {
   navBg: '#162125',
 };
 
-type Question = {
-  question: string;
-  options: string[];
-  correct: number;
-  hint: string;
-};
-
-const questions: Question[] = [
-  { question: 'Apa romaji dari "あ"?', options: ['a', 'i', 'u', 'e'], correct: 0, hint: 'Huruf pertama di hiragana' },
-  { question: 'Apa romaji dari "い"?', options: ['a', 'i', 'u', 'e'], correct: 1, hint: 'Huruf kedua di hiragana' },
-  { question: 'Apa romaji dari "う"?', options: ['a', 'i', 'u', 'e'], correct: 2, hint: 'Huruf ketiga di hiragana' },
-  { question: 'Apa romaji dari "え"?', options: ['a', 'i', 'u', 'e'], correct: 3, hint: 'Huruf keempat di hiragana' },
-  { question: 'Apa romaji dari "お"?', options: ['a', 'i', 'u', 'o'], correct: 3, hint: 'Huruf kelima di hiragana' },
-];
-
-const studyCards = [
-  { char: 'あ', romaji: 'a', indonesian: 'a (vokal)', element: 'NORMAL', type: 'Hiragana' },
-  { char: 'い', romaji: 'i', indonesian: 'i (vokal)', element: 'NORMAL', type: 'Hiragana' },
-  { char: 'う', romaji: 'u', indonesian: 'u (vokal)', element: 'NORMAL', type: 'Hiragana' },
-  { char: 'え', romaji: 'e', indonesian: 'e (vokal)', element: 'NORMAL', type: 'Hiragana' },
-  { char: 'お', romaji: 'o', indonesian: 'o (vokal)', element: 'NORMAL', type: 'Hiragana' },
-];
-
 // TopAppBar
-function TopAppBar() {
+function TopAppBar({ title = 'Belajar', showBack = false, onBack }: { title?: string; showBack?: boolean; onBack?: () => void }) {
   const router = useRouter();
   
   return (
     <div className="sticky top-0 z-40 px-4 h-16 flex items-center justify-between" style={{ backgroundColor: colors.navBg }}>
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: colors.brand }}>
-          T
-        </div>
-        <span className="text-base font-medium text-[#c6bfff]">Belajar</span>
+        {showBack ? (
+          <button onClick={onBack} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.inputBg }}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#c8c4d7" strokeWidth="2">
+              <path d="M10 4L6 8l4 4" />
+            </svg>
+          </button>
+        ) : (
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: colors.brand }}>
+            T
+          </div>
+        )}
+        <span className="text-base font-medium text-[#c6bfff]">{title}</span>
       </div>
-      <button onClick={() => router.push('/')} className="text-sm px-3 py-1.5 rounded-lg" style={{ backgroundColor: colors.inputBg, color: colors.darkText }}>
-        ← Home
-      </button>
+      {!showBack && (
+        <button onClick={() => router.push('/')} className="text-sm px-3 py-1.5 rounded-lg" style={{ backgroundColor: colors.inputBg, color: colors.darkText }}>
+          ← Home
+        </button>
+      )}
     </div>
   );
 }
@@ -91,12 +80,40 @@ function BottomNav() {
   );
 }
 
+// Progress Ring
+function ProgressRing({ level, progress }: { level: number; progress: number }) {
+  const circumference = 2 * Math.PI * 34;
+  const offset = circumference - (progress / 100) * circumference;
+  
+  return (
+    <div className="relative">
+      <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ backgroundColor: '#051013' }}>
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="34" fill="none" stroke="#212c30" strokeWidth="6" />
+          <circle
+            cx="40" cy="40" r="34" fill="none"
+            stroke="#4bddb7" strokeWidth="6"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            transform="rotate(-90 40 40)"
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-sm font-bold text-[#4bddb7]">Lv</span>
+          <span className="text-lg font-bold text-white">{level}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Module Card
 function ModuleCard({ 
-  title, subtitle, icon, status, progress, badge, badgeColor, onClick, index 
+  title, subtitle, icon, status, progress, learned, total, badge, badgeColor, onClick, index 
 }: { 
   title: string; subtitle: string; icon: string; status: 'completed' | 'learning' | 'locked';
-  progress: number; badge?: string; badgeColor?: string; onClick?: () => void; index: number;
+  progress: number; learned: number; total: number; badge?: string; badgeColor?: string; onClick?: () => void; index: number;
 }) {
   const isClickable = status !== 'locked';
   
@@ -109,9 +126,7 @@ function ModuleCard({
       className={`p-4 rounded-2xl flex items-center gap-4 transition-all ${
         isClickable ? 'cursor-pointer hover:opacity-90 active:scale-[0.98]' : 'opacity-50 cursor-not-allowed'
       }`}
-      style={{ 
-        backgroundColor: colors.cardBg,
-      }}
+      style={{ backgroundColor: colors.cardBg }}
     >
       <div
         className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
@@ -142,41 +157,205 @@ function ModuleCard({
           )}
         </div>
         <p className="text-sm text-[#c8c4d7] mb-2">{subtitle}</p>
-        <div className="h-2 rounded-full bg-[#212c30] overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all"
-            style={{
-              width: `${progress}%`,
-              backgroundColor: status === 'completed' ? colors.teal : 
-                              status === 'learning' ? colors.brand : colors.darkGray,
-            }}
-          />
+        <div className="flex items-center gap-2">
+          <div className="flex-1 h-2 rounded-full bg-[#212c30] overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{
+                width: `${progress}%`,
+                backgroundColor: status === 'completed' ? colors.teal : 
+                                status === 'learning' ? colors.brand : colors.darkGray,
+              }}
+            />
+          </div>
+          <span className="text-xs text-[#c8c4d7]">{learned}/{total}</span>
         </div>
       </div>
     </motion.div>
   );
 }
 
-// Quiz Modal
-function QuizModal({ 
-  isOpen, onClose, currentQuestion, selectedAnswer, onAnswer, onNext, score, total, isComplete, onContinue 
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  currentQuestion: number;
-  selectedAnswer: number | null;
-  onAnswer: (index: number) => void;
-  onNext: () => void;
-  score: number;
-  total: number;
-  isComplete: boolean;
-  onContinue: () => void;
+// Character Grid (for Hiragana/Katakana learning)
+function CharacterGrid({ characters, onCharClick }: { 
+  characters: Array<{ char: string; romaji: string; example?: string; exampleMeaning?: string }>;
+  onCharClick?: (char: string) => void;
 }) {
+  return (
+    <div className="grid grid-cols-5 gap-2">
+      {characters.map((item, i) => (
+        <motion.button
+          key={i}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: i * 0.01 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => onCharClick?.(item.char)}
+          className="aspect-square rounded-xl flex flex-col items-center justify-center transition-all hover:opacity-80"
+          style={{ backgroundColor: colors.cardBg }}
+        >
+          <span className="text-2xl font-bold text-white">{item.char}</span>
+          <span className="text-xs text-[#c8c4d7]">{item.romaji}</span>
+        </motion.button>
+      ))}
+    </div>
+  );
+}
+
+// Character Detail Modal
+function CharDetailModal({ char, romaji, example, exampleMeaning, onClose }: {
+  char: string; romaji: string; example?: string; exampleMeaning?: string; onClose: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.8 }}
+        animate={{ scale: 1 }}
+        exit={{ scale: 0.8 }}
+        className="w-64 rounded-2xl p-6 text-center"
+        style={{ backgroundColor: colors.cardBg }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="w-24 h-24 mx-auto rounded-2xl flex items-center justify-center text-5xl font-bold mb-4" style={{ backgroundColor: `${colors.brand}20` }}>
+          {char}
+        </div>
+        <h3 className="text-2xl font-bold text-[#d8e4ea] mb-2">{romaji}</h3>
+        {example && (
+          <p className="text-sm text-[#c8c4d7] mb-1">Contoh: {example}</p>
+        )}
+        {exampleMeaning && (
+          <p className="text-sm text-[#4bddb7]">Arti: {exampleMeaning}</p>
+        )}
+        <button
+          onClick={onClose}
+          className="mt-4 w-full py-2 rounded-xl font-bold text-white"
+          style={{ backgroundColor: colors.brand }}
+        >
+          Tutup
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// Quiz for Hiragana
+function QuizModal({ isOpen, onClose, moduleType }: {
+  isOpen: boolean; onClose: () => void; moduleType: 'hiragana' | 'katakana';
+}) {
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [score, setScore] = useState(0);
+  const [isComplete, setIsComplete] = useState(false);
+  const [showResult, setShowResult] = useState(false);
+
+  // Generate questions from actual character data
+  const allChars = moduleType === 'hiragana' 
+    ? Object.entries(HIRAGANA_BASIC).map(([char, data]) => ({ char, romaji: data.romaji, example: data.example, exampleMeaning: data.exampleMeaning }))
+    : Object.entries(KATAKANA_BASIC).map(([char, data]) => ({ char, romaji: data.romaji, example: data.example, exampleMeaning: data.exampleMeaning }));
+
+  // Shuffle and pick 10 questions
+  const questions = allChars
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 10)
+    .map(char => {
+      const correctAnswer = char.romaji;
+      // Generate wrong answers from other romaji
+      const wrongAnswers = allChars
+        .filter(c => c.romaji !== correctAnswer)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 3)
+        .map(c => c.romaji);
+      
+      const options = [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5);
+      
+      return {
+        char: char.char,
+        question: `Apa romaji dari "${char.char}"?`,
+        options,
+        correct: options.indexOf(correctAnswer),
+        example: char.example,
+        exampleMeaning: char.exampleMeaning,
+      };
+    });
+
   if (!isOpen) return null;
-  
+
   const q = questions[currentQuestion];
-  const progress = ((currentQuestion + 1) / total) * 100;
-  
+
+  const handleAnswer = (index: number) => {
+    if (selectedAnswer !== null) return;
+    setSelectedAnswer(index);
+    if (index === q.correct) {
+      setScore(s => s + 1);
+    }
+    setTimeout(() => setShowResult(true), 500);
+  };
+
+  const handleNext = () => {
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion(c => c + 1);
+      setSelectedAnswer(null);
+      setShowResult(false);
+    } else {
+      setIsComplete(true);
+    }
+  };
+
+  const handleRetry = () => {
+    setCurrentQuestion(0);
+    setSelectedAnswer(null);
+    setScore(0);
+    setIsComplete(false);
+    setShowResult(false);
+  };
+
+  // Complete screen
+  if (isComplete) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
+      >
+        <div className="text-center p-8 rounded-2xl" style={{ backgroundColor: colors.cardBg }}>
+          <div className="text-5xl mb-3">{score >= 8 ? '🏆' : score >= 6 ? '👍' : '📚'}</div>
+          <h2 className="text-2xl font-bold text-[#d8e4ea] mb-2">
+            {score >= 8 ? 'Luar Biasa!' : score >= 6 ? 'Bagus!' : 'Tetap Semangat!'}
+          </h2>
+          <p className="text-4xl font-bold mb-2" style={{ color: score >= 6 ? colors.teal : colors.brand }}>
+            {score}/{questions.length}
+          </p>
+          <p className="text-sm text-[#c8c4d7] mb-6">
+            {score >= 8 ? 'Kamu sudah menguasai modul ini!' : 'Terus latihan untuk meningkatkan.'}
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={handleRetry}
+              className="px-6 py-3 rounded-xl font-bold text-white"
+              style={{ backgroundColor: colors.inputBg }}
+            >
+              🔄 Ulangi
+            </button>
+            <button
+              onClick={onClose}
+              className="px-6 py-3 rounded-xl font-bold text-white"
+              style={{ backgroundColor: colors.brand }}
+            >
+              ✓ Selesai
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -193,14 +372,16 @@ function QuizModal({
         className="w-full max-w-md rounded-t-3xl overflow-hidden"
         style={{ backgroundColor: colors.cardBg }}
       >
-        {/* Timer Bar */}
+        {/* Progress */}
         <div className="px-4 pt-4">
-          <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: colors.darkGray }}>
-            <motion.div
-              initial={{ width: '100%' }}
-              animate={{ width: `${100 - progress}%` }}
-              className="h-full rounded-full"
-              style={{ backgroundColor: colors.coral }}
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-[#c8c4d7]">{currentQuestion + 1}/{questions.length}</span>
+            <span className="text-sm font-bold" style={{ color: colors.teal }}>Skor: {score}</span>
+          </div>
+          <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.darkGray }}>
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${((currentQuestion + 1) / questions.length) * 100}%`, backgroundColor: colors.brand }}
             />
           </div>
         </div>
@@ -208,46 +389,30 @@ function QuizModal({
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3">
           <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: colors.brand, color: 'white' }}>
-            LATIHAN
+            KUIS {moduleType === 'hiragana' ? 'HIRAGANA' : 'KATAKANA'}
           </span>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-[#c8c4d7]">{currentQuestion + 1}/{total}</span>
-            <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.inputBg }}>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#c8c4d7" strokeWidth="2">
-                <path d="M2 2l8 8M10 2l-8 8" />
-              </svg>
-            </button>
-          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.inputBg }}>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#c8c4d7" strokeWidth="2">
+              <path d="M2 2l8 8M10 2l-8 8" />
+            </svg>
+          </button>
         </div>
 
-        {/* Question */}
-        <div className="px-4 pb-4 space-y-4">
-          <div className="p-4 rounded-xl" style={{ backgroundColor: colors.inputBg }}>
-            <p className="text-lg font-bold text-[#d8e4ea] mb-2">{q.question}</p>
-            <p className="text-xs text-[#c8c4d7]">💡 {q.hint}</p>
+        {/* Content */}
+        <div className="px-4 pb-6 space-y-4">
+          {/* Character Display */}
+          <div className="p-6 rounded-xl text-center" style={{ backgroundColor: colors.inputBg }}>
+            <div className="text-6xl font-bold text-white mb-2">{q.char}</div>
+            {q.example && (
+              <p className="text-sm text-[#c8c4d7]">Contoh: {q.example} ({q.exampleMeaning})</p>
+            )}
           </div>
 
-          {/* Study Card Preview */}
-          <div className="flex justify-center">
-            <div className="w-36 rounded-2xl overflow-hidden" style={{ backgroundColor: colors.cardBg }}>
-              <div className="h-24 flex items-center justify-center" style={{ backgroundColor: `${colors.brand}20` }}>
-                <div className="text-center">
-                  <div className="text-4xl font-bold text-white">{studyCards[currentQuestion].char}</div>
-                  <div className="text-xs text-[#c8c4d7]">{studyCards[currentQuestion].romaji}</div>
-                </div>
-              </div>
-              <div className="p-2 text-center">
-                <span className="text-xs text-[#d8e4ea]">{studyCards[currentQuestion].indonesian}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Answer Options */}
+          {/* Options */}
           <div className="space-y-2">
             {q.options.map((option, i) => {
               const isSelected = selectedAnswer === i;
               const isCorrect = i === q.correct;
-              const showResult = selectedAnswer !== null;
               
               let bgColor = colors.inputBg;
               let borderColor = 'transparent';
@@ -258,7 +423,7 @@ function QuizModal({
                   bgColor = `${colors.teal}20`;
                   borderColor = colors.teal;
                   textColor = colors.teal;
-                } else if (isSelected && !isCorrect) {
+                } else if (isSelected) {
                   bgColor = `${colors.coral}20`;
                   borderColor = colors.coral;
                   textColor = colors.coral;
@@ -268,20 +433,22 @@ function QuizModal({
               return (
                 <motion.button
                   key={i}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => showResult ? null : onAnswer(i)}
+                  whileTap={!showResult ? { scale: 0.98 } : {}}
+                  onClick={() => !showResult && handleAnswer(i)}
                   disabled={showResult}
                   className="w-full p-3 rounded-xl text-left flex items-center gap-3 transition-all"
                   style={{
                     backgroundColor: bgColor,
                     borderWidth: '2px',
                     borderColor: borderColor,
-                    opacity: showResult && !isSelected && !isCorrect ? 0.5 : 1,
+                    opacity: showResult && !isSelected && !isCorrect ? 0.4 : 1,
                   }}
                 >
                   <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold"
                     style={{
-                      backgroundColor: showResult ? (isCorrect ? colors.teal : isSelected ? colors.coral : colors.darkGray) : colors.cardBg,
+                      backgroundColor: showResult 
+                        ? (isCorrect ? colors.teal : isSelected ? colors.coral : colors.darkGray)
+                        : colors.cardBg,
                       color: showResult ? 'white' : colors.darkText,
                     }}
                   >
@@ -296,107 +463,235 @@ function QuizModal({
           </div>
 
           {/* Next Button */}
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={onNext}
+          <button
+            onClick={handleNext}
             disabled={selectedAnswer === null}
-            className="w-full py-4 rounded-xl font-bold text-white text-base transition-all flex items-center justify-center gap-2"
+            className="w-full py-4 rounded-xl font-bold text-white transition-all"
             style={{
               backgroundColor: selectedAnswer === null ? colors.darkGray : colors.brand,
               opacity: selectedAnswer === null ? 0.5 : 1,
             }}
           >
-            {selectedAnswer === null ? (
-              'Pilih Jawaban'
-            ) : currentQuestion < total - 1 ? (
-              <>Soal Berikutnya <span>→</span></>
-            ) : (
-              'Lihat Hasil'
-            )}
-          </motion.button>
+            {selectedAnswer === null 
+              ? 'Pilih Jawaban' 
+              : currentQuestion < questions.length - 1 
+                ? 'Soal Berikutnya →' 
+                : 'Lihat Hasil'}
+          </button>
         </div>
-
-        {/* Quiz Complete */}
-        <AnimatePresence>
-          {isComplete && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="absolute inset-0 flex items-center justify-center"
-              style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
-            >
-              <div className="text-center p-8 rounded-2xl" style={{ backgroundColor: colors.cardBg }}>
-                <div className="text-5xl mb-3">{score >= 4 ? '🏆' : '📚'}</div>
-                <h2 className="text-2xl font-bold text-[#d8e4ea] mb-2">
-                  {score >= 4 ? 'Luar Biasa!' : 'Tetap Semangat!'}
-                </h2>
-                <p className="text-4xl font-bold mb-2" style={{ color: score >= 4 ? colors.teal : colors.brand }}>
-                  {score}/{total}
-                </p>
-                <p className="text-sm text-[#c8c4d7] mb-6">
-                  {score >= 4 ? 'Kamu sudah menguasai materi ini!' : 'Coba lagi untuk meningkatkan.'}
-                </p>
-                <button
-                  onClick={onContinue}
-                  className="px-8 py-3 rounded-xl font-bold text-white"
-                  style={{ backgroundColor: colors.brand }}
-                >
-                  Lanjutkan
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.div>
     </motion.div>
   );
 }
 
-export default function LearnPage() {
-  const [isQuizOpen, setIsQuizOpen] = useState(false);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [score, setScore] = useState(0);
-  const [isComplete, setIsComplete] = useState(false);
-  const router = useRouter();
+// Module Detail View (Hiragana/Katakana)
+function ModuleDetailView({ 
+  moduleId, onBack 
+}: { 
+  moduleId: string; onBack: () => void;
+}) {
+  const [activeTab, setActiveTab] = useState<'basic' | 'dakuten' | 'combinations'>('basic');
+  const [quizOpen, setQuizOpen] = useState(false);
+  const [selectedChar, setSelectedChar] = useState<{char: string; romaji: string; example?: string; exampleMeaning?: string} | null>(null);
 
-  const modules = [
-    { id: 'hiragana', title: 'Hiragana', subtitle: 'Aksara dasar Jepang', icon: 'あ', status: 'completed' as const, progress: 100 },
-    { id: 'katakana', title: 'Katakana', subtitle: 'Aksara dasar Jepang', icon: 'ア', status: 'learning' as const, progress: 65, badge: 'Sedang Belajar', badgeColor: colors.brand },
-    { id: 'kanji', title: 'Kanji N5', subtitle: '103 Kanji JLPT N5', icon: '漢', status: 'locked' as const, progress: 0 },
-    { id: 'vocabulary', title: 'Kosakata', subtitle: '241 kata dasar N5', icon: '📝', status: 'locked' as const, progress: 0 },
-    { id: 'grammar', title: 'Tata Bahasa', subtitle: '20 pola kalimat N5', icon: '📖', status: 'locked' as const, progress: 0 },
+  const isHiragana = moduleId === 'hiragana';
+  
+  // Get data based on module type
+  const basicData = isHiragana ? HIRAGANA_BASIC : KATAKANA_BASIC;
+  const dakutenData = isHiragana ? HIRAGANA_DAKUTEN : null;
+  const comboData = isHiragana ? HIRAGANA_COMBINATIONS : null;
+
+  const basicChars = Object.entries(basicData).map(([char, data]) => ({
+    char,
+    romaji: data.romaji,
+    example: data.example,
+    exampleMeaning: data.exampleMeaning,
+  }));
+
+  const dakutenChars = dakutenData 
+    ? Object.entries(dakutenData).map(([char, data]) => ({
+        char,
+        romaji: data.romaji,
+        example: undefined as string | undefined,
+        exampleMeaning: undefined as string | undefined,
+      }))
+    : [];
+
+  const comboChars = comboData
+    ? Object.entries(comboData).map(([char, data]) => ({
+        char,
+        romaji: data.romaji,
+        example: undefined as string | undefined,
+        exampleMeaning: undefined as string | undefined,
+      }))
+    : [];
+
+  const tabs = [
+    { id: 'basic' as const, label: 'Dasar', count: basicChars.length },
+    ...(dakutenChars.length > 0 ? [{ id: 'dakuten' as const, label: 'Dakuten', count: dakutenChars.length }] : []),
+    ...(comboChars.length > 0 ? [{ id: 'combinations' as const, label: 'Kombinasi', count: comboChars.length }] : []),
   ];
 
-  const handleStartQuiz = () => {
-    setIsQuizOpen(true);
-    setCurrentQuestion(0);
-    setSelectedAnswer(null);
-    setScore(0);
-    setIsComplete(false);
+  const currentChars = activeTab === 'basic' ? basicChars 
+    : activeTab === 'dakuten' ? dakutenChars 
+    : comboChars;
+
+  const moduleName = isHiragana ? 'Hiragana' : 'Katakana';
+  const moduleIcon = isHiragana ? 'あ' : 'ア';
+
+  return (
+    <div className="min-h-screen pb-24" style={{ backgroundColor: colors.background }}>
+      <TopAppBar title={moduleName} showBack onBack={onBack} />
+      
+      <main className="max-w-md mx-auto px-4 pt-4 space-y-4">
+        {/* Module Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-2xl text-center"
+          style={{ backgroundColor: colors.cardBg }}
+        >
+          <div className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-4xl mb-2" style={{ backgroundColor: `${colors.brand}20` }}>
+            {moduleIcon}
+          </div>
+          <h2 className="text-xl font-bold text-[#d8e4ea]">{moduleName}</h2>
+          <p className="text-sm text-[#c8c4d7]">
+            {basicChars.length + dakutenChars.length + comboChars.length} karakter
+          </p>
+          <button
+            onClick={() => setQuizOpen(true)}
+            className="mt-3 px-6 py-2 rounded-xl font-bold text-white"
+            style={{ backgroundColor: colors.brand }}
+          >
+            📝 Mulai Kuis
+          </button>
+        </motion.div>
+
+        {/* Tabs */}
+        <div className="flex gap-2">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="flex-1 py-2 rounded-xl text-sm font-medium transition-all"
+              style={{
+                backgroundColor: activeTab === tab.id ? colors.brand : colors.cardBg,
+                color: activeTab === tab.id ? 'white' : colors.darkText,
+              }}
+            >
+              {tab.label} ({tab.count})
+            </button>
+          ))}
+        </div>
+
+        {/* Character Grid */}
+        <CharacterGrid characters={currentChars} onCharClick={(char) => {
+          const item = currentChars.find(c => c.char === char);
+          if (item) setSelectedChar(item);
+        }} />
+
+        {/* Stats */}
+        <div className="text-center text-xs text-[#c8c4d7]">
+          Tap karakter untuk melihat detail
+        </div>
+      </main>
+
+      <BottomNav />
+
+      {/* Quiz Modal */}
+      <QuizModal 
+        isOpen={quizOpen} 
+        onClose={() => setQuizOpen(false)} 
+        moduleType={isHiragana ? 'hiragana' : 'katakana'} 
+      />
+
+      {/* Character Detail Modal */}
+      <AnimatePresence>
+        {selectedChar && (
+          <CharDetailModal
+            char={selectedChar.char}
+            romaji={selectedChar.romaji}
+            example={selectedChar.example}
+            exampleMeaning={selectedChar.exampleMeaning}
+            onClose={() => setSelectedChar(null)}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// Main Learn Page
+export default function LearnPage() {
+  const [activeModule, setActiveModule] = useState<string | null>(null);
+
+  const modules = [
+    { 
+      id: 'hiragana', 
+      title: 'Hiragana', 
+      subtitle: 'Aksara dasar Jepang', 
+      icon: 'あ', 
+      status: 'learning' as const, 
+      progress: 65, 
+      learned: 30, 
+      total: 104,
+      badge: 'Sedang Belajar', 
+      badgeColor: colors.brand 
+    },
+    { 
+      id: 'katakana', 
+      title: 'Katakana', 
+      subtitle: 'Aksara dasar Jepang', 
+      icon: 'ア', 
+      status: 'locked' as const, 
+      progress: 0, 
+      learned: 0, 
+      total: 104,
+    },
+    { 
+      id: 'kanji', 
+      title: 'Kanji N5', 
+      subtitle: '103 Kanji JLPT N5', 
+      icon: '漢', 
+      status: 'locked' as const, 
+      progress: 0, 
+      learned: 0, 
+      total: 103,
+    },
+    { 
+      id: 'vocabulary', 
+      title: 'Kosakata', 
+      subtitle: '241 kata dasar N5', 
+      icon: '📝', 
+      status: 'locked' as const, 
+      progress: 0, 
+      learned: 0, 
+      total: 241,
+    },
+    { 
+      id: 'grammar', 
+      title: 'Tata Bahasa', 
+      subtitle: '20 pola kalimat N5', 
+      icon: '📖', 
+      status: 'locked' as const, 
+      progress: 0, 
+      learned: 0, 
+      total: 20,
+    },
+  ];
+
+  const handleModuleClick = (moduleId: string) => {
+    setActiveModule(moduleId);
   };
 
-  const handleAnswer = (index: number) => {
-    if (selectedAnswer !== null) return;
-    setSelectedAnswer(index);
-    if (index === questions[currentQuestion].correct) {
-      setScore(s => s + 1);
-    }
-  };
-
-  const handleNext = () => {
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(c => c + 1);
-      setSelectedAnswer(null);
-    } else {
-      setIsComplete(true);
-    }
-  };
-
-  const handleContinue = () => {
-    setIsQuizOpen(false);
-    setIsComplete(false);
-  };
+  if (activeModule) {
+    return (
+      <ModuleDetailView 
+        moduleId={activeModule} 
+        onBack={() => setActiveModule(null)} 
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: colors.background }}>
@@ -419,24 +714,7 @@ export default function LearnPage() {
                 Lanjutkan perjalanan belajarmu
               </p>
             </div>
-            <div className="relative">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ backgroundColor: '#051013' }}>
-                <svg width="80" height="80" viewBox="0 0 80 80">
-                  <circle cx="40" cy="40" r="34" fill="none" stroke="#212c30" strokeWidth="6" />
-                  <circle
-                    cx="40" cy="40" r="34" fill="none"
-                    stroke="#4bddb7" strokeWidth="6"
-                    strokeDasharray="213 214"
-                    strokeLinecap="round"
-                    transform="rotate(-90 40 40)"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-sm font-bold text-[#4bddb7]">Lv</span>
-                  <span className="text-lg font-bold text-white">7</span>
-                </div>
-              </div>
-            </div>
+            <ProgressRing level={7} progress={65} />
           </div>
         </motion.div>
 
@@ -445,16 +723,16 @@ export default function LearnPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
-          onClick={handleStartQuiz}
+          onClick={() => setActiveModule('hiragana')}
           className="p-4 rounded-2xl cursor-pointer"
           style={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.inputBg}` }}
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-[#c8c4d7]">Review Terakhir</span>
-            <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: `${colors.teal}20`, color: colors.teal }}>Lihat Detail</span>
+            <span className="text-sm font-medium text-[#c8c4d7]">Lanjutkan Belajar</span>
+            <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: `${colors.brand}20`, color: colors.brand }}>Lanjutkan</span>
           </div>
-          <p className="text-lg font-bold text-[#d8e4ea]">Hiragana - Dasar (46 karakter)</p>
-          <p className="text-sm text-[#c8c4d7] mt-1">✓ Selesai • Skor: 8/10</p>
+          <p className="text-lg font-bold text-[#d8e4ea]">Hiragana - Dasar ({Object.keys(HIRAGANA_BASIC).length} karakter)</p>
+          <p className="text-sm text-[#c8c4d7] mt-1">● Sedang Belajar • 30/46 karakter</p>
         </motion.div>
 
         {/* Modules */}
@@ -471,9 +749,11 @@ export default function LearnPage() {
                 icon={mod.icon}
                 status={mod.status}
                 progress={mod.progress}
+                learned={mod.learned}
+                total={mod.total}
                 badge={mod.badge}
                 badgeColor={mod.badgeColor}
-                onClick={mod.status === 'learning' ? handleStartQuiz : undefined}
+                onClick={() => handleModuleClick(mod.id)}
                 index={i}
               />
             ))}
@@ -482,20 +762,6 @@ export default function LearnPage() {
       </main>
 
       <BottomNav />
-
-      {/* Quiz Modal */}
-      <QuizModal
-        isOpen={isQuizOpen}
-        onClose={() => setIsQuizOpen(false)}
-        currentQuestion={currentQuestion}
-        selectedAnswer={selectedAnswer}
-        onAnswer={handleAnswer}
-        onNext={handleNext}
-        score={score}
-        total={questions.length}
-        isComplete={isComplete}
-        onContinue={handleContinue}
-      />
     </div>
   );
 }
