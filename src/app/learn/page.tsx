@@ -187,7 +187,7 @@ export default function LearnPage() {
             <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-[#6C5CE7] to-[#A29BFE] bg-clip-text text-transparent">
               KanjiMon
             </Link>
-            <span className="text-[#636E72]">/ Learn</span>
+            <span className="text-[#636E72]">/ Belajar</span>
           </div>
           <Link href="/" className="text-sm text-[#B2BEC3] hover:text-white">
             ← Home
@@ -202,7 +202,7 @@ export default function LearnPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
-          <h1 className="text-2xl font-bold text-white mb-2">📖 Learn Japanese</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">📖 Belajar Jepang</h1>
           <p className="text-[#636E72]">Pelajari hiragana, katakana, kanji, kosakata, dan tata bahasa N5</p>
         </motion.div>
 
@@ -227,7 +227,7 @@ export default function LearnPage() {
             >
               <div className="text-3xl mb-2">{mod.icon}</div>
               <h3 className="font-bold text-white text-sm">{mod.title}</h3>
-              <p className="text-xs text-[#636E72]">{mod.totalItems} items</p>
+              <p className="text-xs text-[#636E72]">{mod.totalItems} item</p>
             </motion.button>
           ))}
         </div>
@@ -267,7 +267,7 @@ export default function LearnPage() {
                   onClick={startPractice}
                   className="px-6 py-3 bg-gradient-to-r from-[#6C5CE7] to-[#A29BFE] rounded-xl font-bold hover:opacity-90 transition-opacity"
                 >
-                  🎯 Practice Quiz (10 questions)
+                  🎯 Latihan Kuis (10 soal)
                 </button>
               </div>
 
@@ -296,12 +296,12 @@ export default function LearnPage() {
                   onClick={() => setPracticeMode(false)}
                   className="text-sm text-[#B2BEC3] hover:text-white"
                 >
-                  ← Back to learning
+                  ← Kembali ke pembelajaran
                 </button>
                 <div className="flex items-center gap-4">
-                  <span className="text-sm text-[#636E72]">Question {questionIndex + 1}/10</span>
+                  <span className="text-sm text-[#636E72]">Soal {questionIndex + 1}/10</span>
                   <span className="px-3 py-1 bg-[#00B894]/20 text-[#00B894] rounded-full text-sm font-bold">
-                    Score: {score}
+                    Skor: {score}
                   </span>
                 </div>
               </div>
@@ -354,7 +354,7 @@ export default function LearnPage() {
                         onClick={nextQuestion}
                         className="px-8 py-3 bg-gradient-to-r from-[#6C5CE7] to-[#A29BFE] rounded-xl font-bold hover:opacity-90 transition-opacity"
                       >
-                        {questionIndex < 9 ? 'Next Question →' : 'See Results'}
+                        {questionIndex < 9 ? 'Soal Berikutnya →' : 'Lihat Hasil'}
                       </button>
                     </div>
                   )}
@@ -365,7 +365,7 @@ export default function LearnPage() {
               {questionIndex >= 9 && !practiceMode && (
                 <div className="mt-8 text-center p-8 bg-[#1A1A2E] rounded-2xl border border-[#2D2D44]">
                   <div className="text-6xl mb-4">🏆</div>
-                  <h2 className="text-2xl font-bold text-white mb-2">Quiz Complete!</h2>
+                  <h2 className="text-2xl font-bold text-white mb-2">Kuis Selesai!</h2>
                   <p className="text-4xl font-bold text-[#6C5CE7] mb-2">{score}/10</p>
                   <p className="text-[#636E72]">
                     {score >= 8 ? 'Luar biasa! Kamu Master!' :
@@ -423,7 +423,7 @@ function KanjiGrid({ data }: { data: any[] }) {
         >
           <div className="text-5xl font-bold text-white text-center mb-2">{kanji}</div>
           <div className="text-xs text-[#636E72] text-center mb-2">
-            <span className="text-[#00B894]">{info.strokeCount} stroke</span>
+            <span className="text-[#00B894]">{info.strokeCount} goresan</span>
           </div>
           <div className="text-sm text-[#B2BEC3] text-center mb-1">{info.meaning}</div>
           <div className="flex justify-center gap-1 text-xs">
@@ -482,17 +482,17 @@ function GrammarGrid({ data }: { data: any[] }) {
               </button>
             </div>
             <div className="mb-4">
-              <h4 className="text-sm font-bold text-[#636E72] mb-2">Formation</h4>
+              <h4 className="text-sm font-bold text-[#636E72] mb-2">Format</h4>
               <p className="text-white bg-[#2D2D44] p-3 rounded-lg">{selectedGrammar.formation}</p>
             </div>
             {selectedGrammar.notes && (
               <div className="mb-4">
-                <h4 className="text-sm font-bold text-[#636E72] mb-2">Notes</h4>
+                <h4 className="text-sm font-bold text-[#636E72] mb-2">Catatan</h4>
                 <p className="text-sm text-[#B2BEC3]">{selectedGrammar.notes}</p>
               </div>
             )}
             <div>
-              <h4 className="text-sm font-bold text-[#636E72] mb-2">Examples</h4>
+              <h4 className="text-sm font-bold text-[#636E72] mb-2">Contoh</h4>
               <div className="space-y-2">
                 {selectedGrammar.examples.map((ex: { japanese: string; translation: string }, i: number) => (
                   <div key={i} className="p-3 bg-[#2D2D44] rounded-lg">
