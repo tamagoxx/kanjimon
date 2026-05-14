@@ -98,17 +98,19 @@ function ModuleCard({
   title: string; subtitle: string; icon: string; status: 'completed' | 'learning' | 'locked';
   progress: number; badge?: string; badgeColor?: string; onClick?: () => void; index: number;
 }) {
+  const isClickable = status !== 'locked';
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
-      onClick={status !== 'locked' ? onClick : undefined}
-      className="p-4 rounded-2xl flex items-center gap-4 cursor-pointer transition-all"
+      onClick={isClickable ? onClick : undefined}
+      className={`p-4 rounded-2xl flex items-center gap-4 transition-all ${
+        isClickable ? 'cursor-pointer hover:opacity-90 active:scale-[0.98]' : 'opacity-50 cursor-not-allowed'
+      }`}
       style={{ 
         backgroundColor: colors.cardBg,
-        opacity: status === 'locked' ? 0.5 : 1,
-        cursor: status === 'locked' ? 'not-allowed' : 'pointer',
       }}
     >
       <div
