@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { UserProfile, UserProgress, Badge } from '@/types';
+import type { UserProfile, UserProgress, Badge } from '../types';
 
 interface AuthState {
   user: UserProfile | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   // Actions
+  login: (userData: { username: string; email: string }) => void;
+  register: (userData: { username: string; email: string }) => void;
   setUser: (user: UserProfile | null) => void;
   addXP: (amount: number) => void;
   addBadge: (badge: Badge) => void;
@@ -20,6 +22,40 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       isLoading: true,
+
+      login: (userData) => {
+        const newUser: UserProfile = {
+          id: crypto.randomUUID(),
+          username: userData.username,
+          email: userData.email,
+          level: 1,
+          xp: 0,
+          badges: [],
+          createdAt: new Date().toISOString(),
+        };
+        set({
+          user: newUser,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+      },
+
+      register: (userData) => {
+        const newUser: UserProfile = {
+          id: crypto.randomUUID(),
+          username: userData.username,
+          email: userData.email,
+          level: 1,
+          xp: 0,
+          badges: [],
+          createdAt: new Date().toISOString(),
+        };
+        set({
+          user: newUser,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+      },
 
       setUser: (user) =>
         set({
