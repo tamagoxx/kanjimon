@@ -1,370 +1,328 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link';
-import { useCollectionStore } from '@/store/collectionStore';
-import { Card } from '@/components/card/Card';
-import type { JapaneseCard } from '@/types';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
-const MIN_DECK_SIZE = 20;
-const MAX_DECK_SIZE = 30;
-const MAX_SAME_CARD = 2;
+const colors = {
+  background: '#0a1519',
+  cardBg: '#1a1a2e',
+  inputBg: '#212c30',
+  darkText: '#c8c4d7',
+  lightText: '#d8e4ea',
+  brand: '#6c5ce7',
+  teal: '#4bddb7',
+  gold: '#f0bf63',
+  coral: '#ffb4ab',
+  lightPurple: '#c6bfff',
+  darkGray: '#2b363b',
+};
 
-export default function DeckBuilderPage() {
-  const { ownedCards, decks, createDeck, updateDeck, deleteDeck } = useCollectionStore();
-  const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
-  const [deckName, setDeckName] = useState('');
-  const [deckCardIds, setDeckCardIds] = useState<string[]>([]);
-  const [isCreating, setIsCreating] = useState(false);
+// Top App Bar
+function TopAppBar() {
+  const router = useRouter();
+  
+  return (
+    <div className="sticky top-0 z-40 px-4 h-[89px] flex items-center justify-between" style={{ backgroundColor: '#0a1519' }}>
+      <div className="flex items-center gap-3">
+        <button onClick={() => router.push('/')} className="w-10 h-10 flex items-center justify-center">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#c6bfff" strokeWidth="2">
+            <path d="M10 12L6 8l4-4" />
+          </svg>
+        </button>
+        <span className="text-base font-medium text-[#c6bfff]">Deck Builder</span>
+      </div>
+      
+      <div className="flex items-center gap-3">
+        <div className="px-3 py-2 rounded-xl text-sm font-medium" style={{ backgroundColor: colors.darkGray, color: colors.darkText }}>
+          Auto Save
+        </div>
+        <button className="px-4 py-2 rounded-xl font-bold text-white text-sm" style={{ backgroundColor: colors.brand }}>
+          Simpan
+        </button>
+      </div>
+    </div>
+  );
+}
 
-  // Full card objects
-  const ownedCardObjects = useMemo(() => {
-    return ownedCards.map(oc => oc.card).filter(Boolean) as JapaneseCard[];
-  }, [ownedCards]);
+// Validation Bar (Figma: #02b894 green bar)
+function ValidationBar() {
+  return (
+    <div className="px-4 py-2 flex items-center gap-2" style={{ backgroundColor: '#02b894' }}>
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <path d="M10 3L4.5 8.5L2 6" stroke="#004233" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <span className="text-sm font-medium" style={{ color: '#004233' }}>
+        Deck valid • 20 kartu • 3 element
+      </span>
+    </div>
+  );
+}
 
-  // Get current deck
-  const currentDeck = useMemo(() => {
-    if (selectedDeckId) {
-      return decks.find(d => d.id === selectedDeckId);
-    }
-    return null;
-  }, [selectedDeckId, decks]);
-
-  // Load deck into editor
-  useMemo(() => {
-    if (currentDeck) {
-      setDeckName(currentDeck.name);
-      setDeckCardIds(currentDeck.cardIds);
-    } else if (!isCreating) {
-      setDeckCardIds([]);
-      setDeckName('');
-    }
-  }, [currentDeck, isCreating]);
-
-  const addCard = useCallback((cardId: string) => {
-    if (deckCardIds.length >= MAX_DECK_SIZE) return;
-    const count = deckCardIds.filter(id => id === cardId).length;
-    if (count >= MAX_SAME_CARD) return;
-    setDeckCardIds(prev => [...prev, cardId]);
-  }, [deckCardIds]);
-
-  const removeCard = useCallback((index: number) => {
-    setDeckCardIds(prev => prev.filter((_, i) => i !== index));
-  }, []);
-
-  const deckCards = useMemo(() => {
-    return deckCardIds
-      .map(id => ownedCardObjects.find(c => c.id === id))
-      .filter(Boolean) as JapaneseCard[];
-  }, [deckCardIds, ownedCardObjects]);
-
-  // Deck stats
-  const deckStats = useMemo(() => ({
-    total: deckCards.length,
-    hp: deckCards.reduce((s, c) => s + c.hp, 0),
-    attack: deckCards.reduce((s, c) => s + c.attackPower, 0),
-    defense: deckCards.reduce((s, c) => s + c.defenseRating, 0),
-    byElement: {
-      FIRE: deckCards.filter(c => c.element === 'FIRE').length,
-      WATER: deckCards.filter(c => c.element === 'WATER').length,
-      GRASS: deckCards.filter(c => c.element === 'GRASS').length,
-      ELECTRIC: deckCards.filter(c => c.element === 'ELECTRIC').length,
-      PSYCHIC: deckCards.filter(c => c.element === 'PSYCHIC').length,
-      NORMAL: deckCards.filter(c => c.element === 'NORMAL').length,
-    },
-    byType: {
-      VERB: deckCards.filter(c => c.type === 'VERB').length,
-      NOUN: deckCards.filter(c => c.type === 'NOUN').length,
-      ADJECTIVE: deckCards.filter(c => c.type === 'ADJECTIVE').length,
-      PARTICLE: deckCards.filter(c => c.type === 'PARTICLE').length,
-    },
-  }), [deckCards]);
-
-  const handleSaveDeck = () => {
-    if (deckCardIds.length < MIN_DECK_SIZE) return;
-
-    if (currentDeck) {
-      updateDeck(currentDeck.id, deckCardIds);
-    } else if (deckName.trim()) {
-      createDeck(deckName.trim(), deckCardIds);
-    }
-
-    setIsCreating(false);
-    setSelectedDeckId(null);
-    setDeckCardIds([]);
-    setDeckName('');
+// Mini Card Component
+function MiniCard({ name, element, index, isSelected = false }: { name: string; element: string; index: number; isSelected?: boolean }) {
+  const elementColors: Record<string, string> = {
+    FIRE: '#ffb4ab',
+    WATER: '#6c5ce7',
+    GRASS: '#4bddb7',
+    ELECTRIC: '#f0bf63',
+    PSYCHIC: '#c6bfff',
+    NORMAL: '#c8c4d7',
   };
-
-  const handleDeleteDeck = (deckId: string) => {
-    deleteDeck(deckId);
-    if (selectedDeckId === deckId) {
-      setSelectedDeckId(null);
-      setDeckCardIds([]);
-    }
+  
+  const elementIcons: Record<string, string> = {
+    FIRE: '🔥',
+    WATER: '💧',
+    GRASS: '🌱',
+    ELECTRIC: '⚡',
+    PSYCHIC: '🔮',
+    NORMAL: '📝',
   };
+  
+  const col = elementColors[element] || colors.darkText;
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.05 }}
+      className={`w-16 h-[90px] rounded-lg p-2 flex flex-col items-center justify-center ${
+        isSelected ? 'ring-2 ring-white' : ''
+      }`}
+      style={{ backgroundColor: isSelected ? colors.cardBg : `${colors.cardBg}99` }}
+    >
+      <div className="text-2xl font-bold text-white mb-1">{elementIcons[element]}</div>
+      <span className="text-xs text-[#c8c4d7] truncate w-full text-center">{name}</span>
+      <div className="w-2 h-2 rounded-full mt-1" style={{ backgroundColor: col }} />
+    </motion.div>
+  );
+}
+
+// Collection Card Component
+function CollectionCard({ name, element, rarity, index, inDeck = false }: {
+  name: string; element: string; rarity: string; index: number; inDeck?: boolean;
+}) {
+  const elementColors: Record<string, string> = {
+    FIRE: '#ffb4ab',
+    WATER: '#6c5ce7',
+    GRASS: '#4bddb7',
+    ELECTRIC: '#f0bf63',
+    PSYCHIC: '#c6bfff',
+    NORMAL: '#c8c4d7',
+  };
+  
+  const elementIcons: Record<string, string> = {
+    FIRE: '🔥',
+    WATER: '💧',
+    GRASS: '🌱',
+    ELECTRIC: '⚡',
+    PSYCHIC: '🔮',
+    NORMAL: '📝',
+  };
+  
+  const rarityColors: Record<string, string> = {
+    COMMON: '#c8c4d7',
+    UNCOMMON: '#4bddb7',
+    RARE: '#6c5ce7',
+    ULTRA_RARE: '#f0bf63',
+  };
+  
+  const col = elementColors[element] || colors.darkText;
+  const rcol = rarityColors[rarity] || colors.darkText;
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: inDeck ? 0.5 : 1, scale: 1 }}
+      transition={{ delay: index * 0.03 }}
+      className={`rounded-xl overflow-hidden ${inDeck ? 'opacity-50' : ''}`}
+      style={{ backgroundColor: colors.cardBg }}
+    >
+      {/* Card Visual */}
+      <div className="h-24 flex items-center justify-center relative" style={{ backgroundColor: `${col}15` }}>
+        <span className="text-3xl font-bold text-white">{elementIcons[element]}</span>
+        
+        {/* Rarity indicator */}
+        <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-xs font-bold" style={{ backgroundColor: `${rcol}30`, color: rcol }}>
+          {rarity.replace('_', ' ')}
+        </div>
+        
+        {/* In deck indicator */}
+        {inDeck && (
+          <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-xs font-bold bg-[#4bddb7] text-white">
+            ✓
+          </div>
+        )}
+      </div>
+      
+      {/* Card Info */}
+      <div className="p-2">
+        <span className="text-xs text-[#d8e4ea]">{name}</span>
+      </div>
+    </motion.div>
+  );
+}
+
+// Deck Info Bar
+function DeckInfoBar() {
+  return (
+    <div className="p-4 rounded-xl" style={{ backgroundColor: colors.cardBg }}>
+      <div className="flex items-center gap-3 mb-3">
+        <input
+          type="text"
+          placeholder="Nama Deck..."
+          className="flex-1 bg-transparent outline-none text-[#d8e4ea] font-bold text-lg"
+        />
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#c8c4d7" strokeWidth="2">
+          <circle cx="9" cy="9" r="6" />
+          <path d="M12 12l3 3" />
+        </svg>
+      </div>
+      
+      {/* Deck Stats */}
+      <div className="flex gap-3 mb-3">
+        <div className="px-3 py-2 rounded-xl text-center" style={{ backgroundColor: '#162125' }}>
+          <span className="text-lg font-bold text-[#d8e4ea]">20</span>
+          <span className="text-xs text-[#c8c4d7] block">Kartu</span>
+        </div>
+        <div className="px-3 py-2 rounded-xl text-center" style={{ backgroundColor: '#162125' }}>
+          <span className="text-lg font-bold text-[#ffb4ab]">8</span>
+          <span className="text-xs text-[#c8c4d7] block">Api</span>
+        </div>
+        <div className="px-3 py-2 rounded-xl text-center" style={{ backgroundColor: '#162125' }}>
+          <span className="text-lg font-bold text-[#c6bfff]">6</span>
+          <span className="text-xs text-[#c8c4d7] block">Psi</span>
+        </div>
+        <div className="px-3 py-2 rounded-xl text-center" style={{ backgroundColor: '#162125' }}>
+          <span className="text-lg font-bold text-[#4bddb7]">6</span>
+          <span className="text-xs text-[#c8c4d7] block">Air</span>
+        </div>
+      </div>
+      
+      {/* Element Balance Bar */}
+      <div className="h-2 rounded-full overflow-hidden flex">
+        <div className="h-full bg-[#ffb4ab]" style={{ width: '40%' }} />
+        <div className="h-full bg-[#c6bfff]" style={{ width: '30%' }} />
+        <div className="h-full bg-[#4bddb7]" style={{ width: '30%' }} />
+      </div>
+    </div>
+  );
+}
+
+// Bottom Navigation
+function BottomNav() {
+  const router = useRouter();
+  
+  const navItems = [
+    { icon: '🏠', label: 'Home', route: '/' },
+    { icon: '📚', label: 'Belajar', route: '/learn' },
+    { icon: '⚔️', label: 'Battle', route: '/battle', active: true },
+    { icon: '🃏', label: 'Kartu', route: '/collection' },
+    { icon: '👤', label: 'Profile', route: '/profile' },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#0F0F1A]">
-      {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-[#0F0F1A]/80 border-b border-[#2D2D44]">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-[#6C5CE7] to-[#A29BFE] bg-clip-text text-transparent">
-              KanjiMon
-            </Link>
-            <span className="text-[#636E72]">/ Deck Builder</span>
-          </div>
-          <Link href="/" className="text-sm text-[#B2BEC3] hover:text-white">
-            ← Home
-          </Link>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
+    <div className="fixed bottom-0 left-0 right-0 h-20 flex items-center justify-around px-4 z-50" style={{ backgroundColor: '#162125' }}>
+      {navItems.map((item, i) => (
+        <button
+          key={i}
+          onClick={() => router.push(item.route)}
+          className={`flex flex-col items-center gap-1 ${item.active ? 'opacity-100' : 'opacity-60'} transition-opacity`}
         >
-          <h1 className="text-2xl font-bold text-white mb-2">📚 Deck Builder</h1>
-          <p className="text-[#636E72]">Build your battle deck with 20-30 cards</p>
-        </motion.div>
+          <span className="text-2xl">{item.icon}</span>
+          <span className="text-xs" style={{ color: item.active ? colors.teal : colors.darkText }}>{item.label}</span>
+          {item.active && <div className="w-1 h-1 rounded-full mt-0.5" style={{ backgroundColor: colors.teal }} />}
+        </button>
+      ))}
+    </div>
+  );
+}
 
-        {/* Saved Decks */}
-        {decks.length > 0 && (
-          <div className="mb-6 p-4 rounded-xl bg-[#1A1A2E] border border-[#2D2D44]">
-            <h2 className="text-lg font-bold text-white mb-3">Your Decks</h2>
-            <div className="flex flex-wrap gap-3">
-              {decks.map(deck => (
-                <div
-                  key={deck.id}
-                  className={`flex items-center gap-3 px-4 py-2 rounded-lg cursor-pointer transition-all ${
-                    selectedDeckId === deck.id
-                      ? 'bg-[#6C5CE7] text-white'
-                      : 'bg-[#2D2D44] text-[#B2BEC3] hover:bg-[#3D3D54]'
-                  }`}
-                >
-                  <button
-                    onClick={() => {
-                      setSelectedDeckId(deck.id);
-                      setIsCreating(false);
-                    }}
-                    className="font-medium"
-                  >
-                    {deck.name} ({deck.cardIds.length})
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteDeck(deck.id);
-                    }}
-                    className="text-red-400 hover:text-red-300 text-sm"
-                  >
-                    ✕
-                  </button>
-                </div>
+export default function DeckBuilderPage() {
+  // Sample deck cards
+  const deckCards = [
+    { name: 'Mizu', element: 'WATER' },
+    { name: 'Hi', element: 'FIRE' },
+    { name: 'Ki', element: 'GRASS' },
+    { name: 'Kaze', element: 'WIND' },
+    { name: 'Hikari', element: 'LIGHT' },
+  ];
+  
+  // Sample collection cards
+  const collectionCards = [
+    { name: 'Mizu', element: 'WATER', rarity: 'RARE', inDeck: true },
+    { name: 'Hi', element: 'FIRE', rarity: 'UNCOMMON', inDeck: true },
+    { name: 'Ki', element: 'GRASS', rarity: 'COMMON', inDeck: true },
+    { name: 'Kaze', element: 'WIND', rarity: 'RARE', inDeck: false },
+    { name: 'Hikari', element: 'LIGHT', rarity: 'ULTRA_RARE', inDeck: false },
+    { name: 'Yami', element: 'DARK', rarity: 'RARE', inDeck: false },
+    { name: 'Tsuchi', element: 'EARTH', rarity: 'UNCOMMON', inDeck: false },
+    { name: 'Mizu', element: 'WATER', rarity: 'COMMON', inDeck: true },
+  ];
+
+  return (
+    <div className="min-h-screen pb-32" style={{ backgroundColor: colors.background }}>
+      <TopAppBar />
+      <ValidationBar />
+
+      <main className="max-w-md mx-auto px-4 pt-4 space-y-4">
+        {/* Deck Info Bar */}
+        <DeckInfoBar />
+        
+        {/* Current Deck Section */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-[#c8c4d7]">DECK SAAT INI (5/20)</h3>
+            <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: colors.teal, color: '#004233' }}>Auto Save ON</span>
+          </div>
+          
+          <div className="p-4 rounded-xl" style={{ backgroundColor: colors.cardBg }}>
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {deckCards.map((card, i) => (
+                <MiniCard key={i} name={card.name} element={card.element} index={i} />
               ))}
-              <button
-                onClick={() => {
-                  setSelectedDeckId(null);
-                  setIsCreating(true);
-                  setDeckCardIds([]);
-                  setDeckName('New Deck');
-                }}
-                className="px-4 py-2 bg-[#6C5CE7]/20 text-[#6C5CE7] rounded-lg hover:bg-[#6C5CE7]/30 transition-colors"
+              {/* Add button slot */}
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="w-16 h-[90px] rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer"
+                style={{ borderColor: colors.darkGray }}
               >
-                + New Deck
-              </button>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#c8c4d7" strokeWidth="2">
+                  <path d="M10 4v12M4 10h12" />
+                </svg>
+              </motion.div>
             </div>
           </div>
-        )}
-
-        {/* Deck Editor */}
-        {(isCreating || currentDeck || selectedDeckId) && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Card Selection */}
-            <div className="lg:col-span-2">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-white">Select Cards</h2>
-                <div className="text-sm text-[#636E72]">
-                  {deckCardIds.length}/{MAX_DECK_SIZE} cards
-                </div>
-              </div>
-
-              {/* Available cards */}
-              <div className="bg-[#1A1A2E] rounded-xl border border-[#2D2D44] p-4">
-                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-[500px] overflow-y-auto">
-                  {ownedCardObjects.map(card => {
-                    const countInDeck = deckCardIds.filter(id => id === card.id).length;
-                    const isMaxed = countInDeck >= MAX_SAME_CARD;
-
-                    return (
-                      <motion.div
-                        key={card.id}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => !isMaxed && addCard(card.id)}
-                        className={`
-                          relative cursor-pointer rounded-lg overflow-hidden
-                          ${isMaxed ? 'opacity-40 cursor-not-allowed' : 'hover:ring-2 hover:ring-[#6C5CE7]'}
-                        `}
-                      >
-                        <div className={`aspect-[3/4] bg-gradient-to-br from-[#1A1A2E] to-[#2D2D44] flex flex-col items-center justify-center p-1 text-center`}>
-                          <div className="text-sm font-bold text-white">{card.japanese}</div>
-                          <div className="text-[8px] text-[#636E72]">{card.reading}</div>
-                        </div>
-                        {countInDeck > 0 && (
-                          <div className="absolute top-0 right-0 bg-[#6C5CE7] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center">
-                            {countInDeck}
-                          </div>
-                        )}
-                      </motion.div>
-                    );
-                  })}
-                </div>
-
-                {ownedCardObjects.length === 0 && (
-                  <div className="text-center py-8">
-                    <div className="text-4xl mb-3">📭</div>
-                    <p className="text-[#636E72]">No cards in collection!</p>
-                    <Link href="/collection" className="text-sm text-[#6C5CE7] hover:underline">
-                      Go to Collection
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Current Deck */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-20">
-                <div className="bg-[#1A1A2E] rounded-xl border border-[#2D2D44] p-4">
-                  <input
-                    type="text"
-                    value={deckName}
-                    onChange={e => setDeckName(e.target.value)}
-                    placeholder="Deck Name"
-                    className="w-full px-3 py-2 mb-4 bg-[#2D2D44] border border-[#3D3D54] rounded-lg text-white placeholder-[#636E72] focus:outline-none focus:border-[#6C5CE7]"
-                  />
-
-                  {/* Deck Stats */}
-                  <div className="grid grid-cols-2 gap-2 mb-4">
-                    <div className="text-center p-2 bg-[#2D2D44] rounded-lg">
-                      <div className="text-lg font-bold text-red-400">{deckStats.total}</div>
-                      <div className="text-xs text-[#636E72]">Cards</div>
-                    </div>
-                    <div className="text-center p-2 bg-[#2D2D44] rounded-lg">
-                      <div className="text-lg font-bold text-green-400">{deckStats.hp}</div>
-                      <div className="text-xs text-[#636E72]">Total HP</div>
-                    </div>
-                    <div className="text-center p-2 bg-[#2D2D44] rounded-lg">
-                      <div className="text-lg font-bold text-orange-400">{deckStats.attack}</div>
-                      <div className="text-xs text-[#636E72]">Total ATK</div>
-                    </div>
-                    <div className="text-center p-2 bg-[#2D2D44] rounded-lg">
-                      <div className="text-lg font-bold text-blue-400">{deckStats.defense}</div>
-                      <div className="text-xs text-[#636E72]">Total DEF</div>
-                    </div>
-                  </div>
-
-                  {/* Element Distribution */}
-                  <div className="mb-4">
-                    <div className="text-xs text-[#636E72] mb-2">Elements</div>
-                    <div className="flex gap-1">
-                      {Object.entries(deckStats.byElement).map(([el, count]) => (
-                        <div
-                          key={el}
-                          className="flex-1 text-center py-1 bg-[#2D2D44] rounded text-xs"
-                          title={`${el}: ${count}`}
-                        >
-                          {count}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Card List */}
-                  <div className="mb-4">
-                    <div className="text-xs text-[#636E72] mb-2">
-                      {deckCardIds.length < MIN_DECK_SIZE
-                        ? `Need ${MIN_DECK_SIZE - deckCardIds.length} more cards`
-                        : 'Deck ready!'}
-                    </div>
-                    <div className="space-y-1 max-h-[200px] overflow-y-auto">
-                      {deckCards.map((card, i) => (
-                        <motion.div
-                          key={`${card.id}-${i}`}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          className="flex items-center gap-2 p-2 bg-[#2D2D44] rounded-lg group"
-                        >
-                          <div className="w-8 text-center font-bold text-white text-sm">{i + 1}</div>
-                          <div className="flex-1">
-                            <div className="text-sm font-bold text-white">{card.japanese}</div>
-                            <div className="text-xs text-[#636E72]">{card.reading}</div>
-                          </div>
-                          <div className="text-xs text-[#636E72]">
-                            <span className="text-red-400">{card.hp}</span>
-                            <span className="mx-1">/</span>
-                            <span className="text-orange-400">{card.attackPower}</span>
-                          </div>
-                          <button
-                            onClick={() => removeCard(i)}
-                            className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            ✕
-                          </button>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleSaveDeck}
-                      disabled={deckCardIds.length < MIN_DECK_SIZE || !deckName.trim()}
-                      className="flex-1 px-4 py-2 bg-gradient-to-r from-[#6C5CE7] to-[#A29BFE] rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
-                    >
-                      {currentDeck ? 'Update Deck' : 'Save Deck'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedDeckId(null);
-                        setIsCreating(false);
-                        setDeckCardIds([]);
-                        setDeckName('');
-                      }}
-                      className="px-4 py-2 bg-[#2D2D44] rounded-lg text-[#B2BEC3] hover:bg-[#3D3D54] transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
+        </section>
+        
+        {/* Collection Picker */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-[#c8c4d7]">PILIH KARTU</h3>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="px-2 py-1 rounded-full" style={{ backgroundColor: '#ff4b4b30', color: '#ff4b4b' }}>Sort: Rarity</span>
+              <span className="px-2 py-1 rounded-full" style={{ backgroundColor: '#162125', color: colors.darkText }}>Filter: All</span>
             </div>
           </div>
-        )}
-
-        {/* Empty State */}
-        {!isCreating && !currentDeck && decks.length === 0 && (
-          <div className="text-center py-16 bg-[#1A1A2E] rounded-xl border border-[#2D2D44]">
-            <div className="text-6xl mb-4">📚</div>
-            <h2 className="text-xl font-bold text-white mb-2">No Decks Yet</h2>
-            <p className="text-[#636E72] mb-6">Create your first battle deck!</p>
-            <button
-              onClick={() => {
-                setIsCreating(true);
-                setDeckName('New Deck');
-              }}
-              className="px-8 py-4 bg-gradient-to-r from-[#6C5CE7] to-[#A29BFE] rounded-xl text-lg font-bold hover:opacity-90 transition-opacity"
-            >
-              + Create New Deck
-            </button>
+          
+          <div className="p-4 rounded-xl" style={{ backgroundColor: '#121d21' }}>
+            <div className="grid grid-cols-3 gap-2">
+              {collectionCards.map((card, i) => (
+                <CollectionCard
+                  key={i}
+                  name={card.name}
+                  element={card.element}
+                  rarity={card.rarity}
+                  index={i}
+                  inDeck={card.inDeck}
+                />
+              ))}
+            </div>
           </div>
-        )}
+        </section>
       </main>
+
+      <BottomNav />
     </div>
   );
 }
