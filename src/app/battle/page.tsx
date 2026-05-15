@@ -264,7 +264,7 @@ function ActiveCard({ card, isPlayer }: { card: BattleCard; isPlayer: boolean })
 // ============================================================
 export default function BattlePage() {
   const router = useRouter();
-  const { ownedPokemon, addCoins, addDiamonds, dailyQuests, updateQuestProgress, completeQuest } = useCollectionStore();
+  const { ownedPokemon, addCoins, addDiamonds, updateQuestProgress, completeQuest } = useCollectionStore();
 
   // Core state
   const [phase, setPhase] = useState<Phase>('select-opponent');
@@ -481,14 +481,19 @@ export default function BattlePage() {
         addLog(`🏆 VICTORY! +${xp} XP +${diamonds} 💎`);
         setPhase('result');
 
-        // Update BATTLE quest progress
-        const battleQuests = dailyQuests.filter(q => q.type === 'BATTLE' && !q.completed);
-        battleQuests.forEach(q => {
-          const newProgress = q.progress + 1;
-          updateQuestProgress(q.id, newProgress);
+        // Update BATTLE quest progress - use getState() to avoid stale closure
+        const battleQuests = useCollectionStore.getState().dailyQuests.filter(q => q.type === 'BATTLE' && !q.completed);
+        battleQuests.forEach(quest => {
+          const newProgress = quest.progress + 1;
+          updateQuestProgress(quest.id, newProgress);
           // Auto-complete & claim if target reached
-          if (newProgress >= q.target) {
-            setTimeout(() => completeQuest(q.id), 1000);
+          if (newProgress >= quest.target) {
+            setTimeout(() => {
+              const latest = useCollectionStore.getState().dailyQuests.find(q => q.id === quest.id);
+              if (latest && !latest.claimed) {
+                completeQuest(quest.id);
+              }
+            }, 1000);
           }
         });
         return;

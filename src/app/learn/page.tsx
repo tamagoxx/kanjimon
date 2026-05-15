@@ -260,6 +260,7 @@ function QuizModal({ isOpen, onClose, moduleType }: {
   const [isComplete, setIsComplete] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [quizKey, setQuizKey] = useState(0); // forces new quiz generation
+  const [isLoading, setIsLoading] = useState(true);
   const questionsRef = useRef<Array<{
     char: string; romaji: string; options: string[]; correct: number;
     example?: string; exampleMeaning?: string;
@@ -267,6 +268,7 @@ function QuizModal({ isOpen, onClose, moduleType }: {
 
   // Generate a fresh set of 10 questions - stable until quizKey or moduleType changes
   useEffect(() => {
+    setIsLoading(true);
     const allChars = moduleType === 'hiragana'
       ? Object.entries(HIRAGANA_BASIC).map(([char, data]) => ({ char, romaji: data.romaji, example: data.example, exampleMeaning: data.exampleMeaning }))
       : Object.entries(KATAKANA_BASIC).map(([char, data]) => ({ char, romaji: data.romaji, example: data.example, exampleMeaning: data.exampleMeaning }));
@@ -290,6 +292,7 @@ function QuizModal({ isOpen, onClose, moduleType }: {
         exampleMeaning: char.exampleMeaning,
       };
     });
+    setIsLoading(false);
   }, [moduleType, quizKey]);
 
   // Reset state when quiz opens
@@ -306,6 +309,25 @@ function QuizModal({ isOpen, onClose, moduleType }: {
   if (!isOpen) return null;
 
   const questions = questionsRef.current;
+
+  // Show loading or empty state while generating questions
+  if (isLoading || questions.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
+      >
+        <div className="text-center">
+          <div className="text-4xl animate-pulse mb-3">📚</div>
+          <p className="text-white/60">Menyiapkan kuis...</p>
+        </div>
+      </motion.div>
+    );
+  }
+
   const q = questions[currentQuestion];
 
   const handleAnswer = (index: number) => {
@@ -370,14 +392,19 @@ function QuizModal({ isOpen, onClose, moduleType }: {
               onClick={() => {
                 const reward = score >= 8 ? 15 : score >= 6 ? 8 : 0;
                 if (reward > 0) addDiamonds(reward);
-                // Update MODULE quest progress
+                // Update MODULE quest progress - use getState() to avoid stale closure
                 if (score >= 6) {
-                  const modQuests = dailyQuests.filter(q => q.type === 'MODULE' && !q.completed);
-                  modQuests.forEach(q => {
-                    const newProgress = q.progress + 1;
-                    updateQuestProgress(q.id, newProgress);
-                    if (newProgress >= q.target) {
-                      setTimeout(() => completeQuest(q.id), 1000);
+                  const moduleQuests = useCollectionStore.getState().dailyQuests.filter(q => q.type === 'MODULE' && !q.completed);
+                  moduleQuests.forEach(quest => {
+                    const newProgress = quest.progress + 1;
+                    updateQuestProgress(quest.id, newProgress);
+                    if (newProgress >= quest.target) {
+                      setTimeout(() => {
+                        const latest = useCollectionStore.getState().dailyQuests.find(q => q.id === quest.id);
+                        if (latest && !latest.claimed) {
+                          completeQuest(quest.id);
+                        }
+                      }, 1000);
                     }
                   });
                 }
