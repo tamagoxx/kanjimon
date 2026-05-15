@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { HIRAGANA_BASIC, HIRAGANA_DAKUTEN, HIRAGANA_COMBINATIONS } from '@/data/learning/characters';
 import { KATAKANA_BASIC } from '@/data/learning/characters';
 import { useCollectionStore } from '@/store/collectionStore';
+import { useLearningProgressStore } from '@/store/learningProgressStore';
 
 const colors = {
   background: '#0a1519',
@@ -118,6 +119,9 @@ function ModuleCard({
 }) {
   const isClickable = status !== 'locked';
   
+  // Determine status dynamically
+  const computedStatus = progress >= 100 ? 'completed' : progress > 0 ? 'learning' : 'locked';
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -132,8 +136,8 @@ function ModuleCard({
       <div
         className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
         style={{
-          backgroundColor: status === 'completed' ? `${colors.teal}20` : 
-                           status === 'learning' ? `${colors.brand}20` : colors.inputBg,
+          backgroundColor: computedStatus === 'completed' ? `${colors.teal}20` : 
+                           computedStatus === 'learning' ? `${colors.brand}20` : colors.inputBg,
         }}
       >
         {icon}
@@ -141,17 +145,17 @@ function ModuleCard({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <span className="text-lg font-bold text-[#d8e4ea]">{title}</span>
-          {status === 'completed' && (
+          {computedStatus === 'completed' && (
             <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${colors.teal}30`, color: colors.teal }}>
               ✓ Selesai
             </span>
           )}
-          {status === 'learning' && badge && (
+          {computedStatus === 'learning' && badge && (
             <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${badgeColor || colors.brand}30`, color: badgeColor || colors.brand }}>
               {badge}
             </span>
           )}
-          {status === 'locked' && (
+          {computedStatus === 'locked' && (
             <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${colors.darkGray}30`, color: colors.darkText }}>
               🔒 Terkunci
             </span>
@@ -164,8 +168,8 @@ function ModuleCard({
               className="h-full rounded-full transition-all"
               style={{
                 width: `${progress}%`,
-                backgroundColor: status === 'completed' ? colors.teal : 
-                                status === 'learning' ? colors.brand : colors.darkGray,
+                backgroundColor: computedStatus === 'completed' ? colors.teal : 
+                                computedStatus === 'learning' ? colors.brand : colors.darkGray,
               }}
             />
           </div>
@@ -254,6 +258,7 @@ function QuizModal({ isOpen, onClose, moduleType }: {
   const updateQuestProgress = useCollectionStore(s => s.updateQuestProgress);
   const completeQuest = useCollectionStore(s => s.completeQuest);
   const dailyQuests = useCollectionStore(s => s.dailyQuests);
+  const markCharLearned = useLearningProgressStore(s => s.markCharLearned);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [score, setScore] = useState(0);
@@ -329,6 +334,23 @@ function QuizModal({ isOpen, onClose, moduleType }: {
   }
 
   const q = questions[currentQuestion];
+  if (!q) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
+      >
+        <div className="text-center">
+          <p className="text-white/60">Terjadi kesalahan pada kuis.</p>
+          <button onClick={onClose} className="mt-4 px-4 py-2 rounded-xl font-bold text-white" style={{ backgroundColor: colors.brand }}>
+            Tutup
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
 
   const handleAnswer = (index: number) => {
     if (selectedAnswer !== null) return;
@@ -392,6 +414,14 @@ function QuizModal({ isOpen, onClose, moduleType }: {
               onClick={() => {
                 const reward = score >= 8 ? 15 : score >= 6 ? 8 : 0;
                 if (reward > 0) addDiamonds(reward);
+                
+                // Mark all characters in this quiz as learned (if passed)
+                if (score >= 6) {
+                  questionsRef.current.forEach(q => {
+                    markCharLearned(moduleType, q.char, q.romaji);
+                  });
+                }
+                
                 // Update MODULE quest progress - use getState() to avoid stale closure
                 if (score >= 6) {
                   const moduleQuests = useCollectionStore.getState().dailyQuests.filter(q => q.type === 'MODULE' && !q.completed);
@@ -689,6 +719,8 @@ function ModuleDetailView({
 // Main Learn Page
 export default function LearnPage() {
   const [activeModule, setActiveModule] = useState<string | null>(null);
+  const hiraganaProgress = useLearningProgressStore(s => s.getModuleProgress)('hiragana');
+  const katakanaProgress = useLearningProgressStore(s => s.getModuleProgress)('katakana');
 
   const modules = [
     { 
@@ -697,9 +729,9 @@ export default function LearnPage() {
       subtitle: 'Aksara dasar Jepang', 
       icon: 'あ', 
       status: 'learning' as const, 
-      progress: 65, 
-      learned: 30, 
-      total: 104,
+      progress: hiraganaProgress.percentage,
+      learned: hiraganaProgress.learned, 
+      total: hiraganaProgress.total,
       badge: 'Sedang Belajar', 
       badgeColor: colors.brand 
     },
@@ -708,10 +740,10 @@ export default function LearnPage() {
       title: 'Katakana', 
       subtitle: 'Aksara dasar Jepang', 
       icon: 'ア', 
-      status: 'locked' as const, 
-      progress: 0, 
-      learned: 0, 
-      total: 104,
+      status: katakanaProgress.learned > 0 ? 'learning' as const : 'locked' as const, 
+      progress: katakanaProgress.percentage, 
+      learned: katakanaProgress.learned, 
+      total: katakanaProgress.total,
     },
     { 
       id: 'kanji', 
@@ -797,7 +829,11 @@ export default function LearnPage() {
             <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: `${colors.brand}20`, color: colors.brand }}>Lanjutkan</span>
           </div>
           <p className="text-lg font-bold text-[#d8e4ea]">Hiragana - Dasar ({Object.keys(HIRAGANA_BASIC).length} karakter)</p>
-          <p className="text-sm text-[#c8c4d7] mt-1">● Sedang Belajar • 30/46 karakter</p>
+          <p className="text-sm text-[#c8c4d7] mt-1">
+            {hiraganaProgress.learned > 0 
+              ? `● Sedang Belajar • ${hiraganaProgress.learned}/${hiraganaProgress.total} karakter` 
+              : '● Tap untuk mulai belajar'}
+          </p>
         </motion.div>
 
         {/* Modules */}
