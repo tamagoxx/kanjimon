@@ -1,18 +1,50 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { OwnedCard, Deck, DailyQuest } from '@/types';
+import type { OwnedCard, Deck, DailyQuest, JapaneseCard } from '@/types';
+
+// Pokemon card type (from PokeAPI)
+export interface PokemonCard {
+  id: string;
+  pokemonId: number;
+  name: string;
+  types: string[];
+  image: string;
+  shinyImage: string;
+  hp: number;
+  attack: number;
+  defense: number;
+  speed: number;
+  height: number;
+  weight: number;
+  ability: string;
+  hiddenAbility?: string;
+  rarity: 'COMMON' | 'UNCOMMON' | 'RARE' | 'ULTRA_RARE';
+  element: string;
+  flavorText: string;
+  color: string;
+}
+
+export type AnyCard = JapaneseCard | PokemonCard;
 
 interface CollectionState {
   ownedCards: OwnedCard[];
+  ownedPokemon: PokemonCard[];
   decks: Deck[];
   dailyQuests: DailyQuest[];
   lastLoginDate: string | null;
   coins: number;
+  scrolls: number;
 
-  // Card actions
+  // Card actions (Japanese)
   addCard: (card: OwnedCard) => void;
   addCards: (cards: OwnedCard[]) => void;
   markCardSeen: (cardId: string) => void;
+
+  // Pokemon actions
+  catchPokemon: (pokemon: PokemonCard) => void;
+  releasePokemon: (pokemonId: number) => void;
+  getPokemonById: (pokemonId: number) => PokemonCard | undefined;
+  isPokemonCaught: (pokemonId: number) => boolean;
 
   // Deck actions
   createDeck: (name: string, cardIds: string[]) => void;
@@ -24,19 +56,36 @@ interface CollectionState {
   completeQuest: (questId: string) => void;
   resetDailyQuests: () => void;
 
+  // Currency
+  addCoins: (amount: number) => void;
+  spendCoins: (amount: number) => boolean;
+  addScrolls: (amount: number) => void;
+  spendScrolls: (amount: number) => boolean;
+
   // Daily login
   checkDailyLogin: () => boolean;
 }
+
+const DEFAULT_QUESTS: DailyQuest[] = [
+  { id: 'q1', type: 'BATTLE', title: 'Juara Pemula', description: 'Menangkan 1 battles', target: 1, progress: 0, xpReward: 50, completed: false },
+  { id: 'q2', type: 'MODULE', title: 'Pelajar Keras', description: 'Selesaikan 1 modul belajar', target: 1, progress: 0, xpReward: 30, completed: false },
+  { id: 'q3', type: 'REVIEW', title: 'Ulang Harian', description: 'Review 10 kartu', target: 10, progress: 0, xpReward: 20, completed: false },
+  { id: 'q4', type: 'MODULE', title: 'Kolektor', description: 'Tangkap 5 Pokemon baru', target: 5, progress: 0, xpReward: 60, completed: false },
+  { id: 'q5', type: 'STREAK', title: 'Streak 3 Hari', description: 'Login 3 hari berturut-turut', target: 3, progress: 0, xpReward: 100, completed: false },
+];
 
 export const useCollectionStore = create<CollectionState>()(
   persist(
     (set, get) => ({
       ownedCards: [],
+      ownedPokemon: [],
       decks: [],
-      dailyQuests: [],
+      dailyQuests: DEFAULT_QUESTS,
       lastLoginDate: null,
-      coins: 0,
+      coins: 500,
+      scrolls: 3,
 
+      // Japanese card actions
       addCard: (card) => {
         set(state => ({
           ownedCards: [...state.ownedCards, card],
@@ -57,6 +106,33 @@ export const useCollectionStore = create<CollectionState>()(
         }));
       },
 
+      // Pokemon actions
+      catchPokemon: (pokemon) => {
+        const { ownedPokemon } = get();
+        // Check if already caught
+        if (ownedPokemon.some(p => p.pokemonId === pokemon.pokemonId)) {
+          return; // Already caught
+        }
+        set(state => ({
+          ownedPokemon: [...state.ownedPokemon, pokemon],
+        }));
+      },
+
+      releasePokemon: (pokemonId) => {
+        set(state => ({
+          ownedPokemon: state.ownedPokemon.filter(p => p.pokemonId !== pokemonId),
+        }));
+      },
+
+      getPokemonById: (pokemonId) => {
+        return get().ownedPokemon.find(p => p.pokemonId === pokemonId);
+      },
+
+      isPokemonCaught: (pokemonId) => {
+        return get().ownedPokemon.some(p => p.pokemonId === pokemonId);
+      },
+
+      // Deck actions
       createDeck: (name, cardIds) => {
         const newDeck: Deck = {
           id: crypto.randomUUID(),
@@ -84,6 +160,7 @@ export const useCollectionStore = create<CollectionState>()(
         }));
       },
 
+      // Quest actions
       updateQuestProgress: (questId, progress) => {
         set(state => ({
           dailyQuests: state.dailyQuests.map(q =>
@@ -95,7 +172,7 @@ export const useCollectionStore = create<CollectionState>()(
       completeQuest: (questId) => {
         const { dailyQuests } = get();
         const quest = dailyQuests.find(q => q.id === questId);
-        if (!quest) return;
+        if (!quest || quest.completed) return;
 
         set(state => ({
           dailyQuests: state.dailyQuests.map(q =>
@@ -106,17 +183,38 @@ export const useCollectionStore = create<CollectionState>()(
       },
 
       resetDailyQuests: () => {
-        // TODO: Implement proper daily reset
-        set({
-          dailyQuests: [],
-        });
+        set({ dailyQuests: DEFAULT_QUESTS });
       },
 
+      // Currency
+      addCoins: (amount) => {
+        set(state => ({ coins: state.coins + amount }));
+      },
+
+      spendCoins: (amount) => {
+        const { coins } = get();
+        if (coins < amount) return false;
+        set(state => ({ coins: state.coins - amount }));
+        return true;
+      },
+
+      addScrolls: (amount) => {
+        set(state => ({ scrolls: state.scrolls + amount }));
+      },
+
+      spendScrolls: (amount) => {
+        const { scrolls } = get();
+        if (scrolls < amount) return false;
+        set(state => ({ scrolls: state.scrolls - amount }));
+        return true;
+      },
+
+      // Daily login
       checkDailyLogin: () => {
         const { lastLoginDate } = get();
         const today = new Date().toDateString();
         if (lastLoginDate !== today) {
-          set({ lastLoginDate: today, coins: get().coins + 10 });
+          set({ lastLoginDate: today, coins: get().coins + 10, scrolls: get().scrolls + 1 });
           return true;
         }
         return false;
