@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
+import { useCollectionStore } from '@/store/collectionStore';
 
 const colors = {
   background: '#0a1519',
@@ -21,6 +22,8 @@ const colors = {
 
 // Top App Bar
 function TopAppBar() {
+  const diamonds = useCollectionStore(s => s.diamonds);
+  
   return (
     <div className="sticky top-0 z-40 px-4 h-16 flex items-center justify-between" style={{ backgroundColor: '#0a1519' }}>
       <div className="flex items-center gap-3">
@@ -38,7 +41,7 @@ function TopAppBar() {
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1 px-3 py-1.5 rounded-full" style={{ backgroundColor: `${colors.gold}20` }}>
           <span className="text-sm">💎</span>
-          <span className="text-sm font-bold text-[#f0bf63]">1,250</span>
+          <span className="text-sm font-bold text-[#f0bf63]">{diamonds.toLocaleString()}</span>
         </div>
         <button className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.inputBg }}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#c6bfff" strokeWidth="2">
@@ -60,6 +63,7 @@ function BottomNav() {
     { icon: '📚', label: 'Belajar', route: '/learn' },
     { icon: '⚔️', label: 'Battle', route: '/battle' },
     { icon: '🃏', label: 'Kartu', route: '/collection' },
+    { icon: '🎰', label: 'Gacha', route: '/gacha' },
     { icon: '🛒', label: 'Toko', route: '/shop' },
   ];
 

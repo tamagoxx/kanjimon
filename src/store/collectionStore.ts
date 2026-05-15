@@ -33,7 +33,9 @@ interface CollectionState {
   dailyQuests: DailyQuest[];
   lastLoginDate: string | null;
   coins: number;
+  diamonds: number;
   scrolls: number;
+  totalDiamondsEarned: number;
 
   // Card actions (Japanese)
   addCard: (card: OwnedCard) => void;
@@ -59,6 +61,8 @@ interface CollectionState {
   // Currency
   addCoins: (amount: number) => void;
   spendCoins: (amount: number) => boolean;
+  addDiamonds: (amount: number) => void;
+  spendDiamonds: (amount: number) => boolean;
   addScrolls: (amount: number) => void;
   spendScrolls: (amount: number) => boolean;
 
@@ -67,11 +71,11 @@ interface CollectionState {
 }
 
 const DEFAULT_QUESTS: DailyQuest[] = [
-  { id: 'q1', type: 'BATTLE', title: 'Juara Pemula', description: 'Menangkan 1 battles', target: 1, progress: 0, xpReward: 50, completed: false },
-  { id: 'q2', type: 'MODULE', title: 'Pelajar Keras', description: 'Selesaikan 1 modul belajar', target: 1, progress: 0, xpReward: 30, completed: false },
-  { id: 'q3', type: 'REVIEW', title: 'Ulang Harian', description: 'Review 10 kartu', target: 10, progress: 0, xpReward: 20, completed: false },
-  { id: 'q4', type: 'MODULE', title: 'Kolektor', description: 'Tangkap 5 Pokemon baru', target: 5, progress: 0, xpReward: 60, completed: false },
-  { id: 'q5', type: 'STREAK', title: 'Streak 3 Hari', description: 'Login 3 hari berturut-turut', target: 3, progress: 0, xpReward: 100, completed: false },
+  { id: 'q1', type: 'BATTLE', title: 'Juara Pemula', description: 'Menangkan 1 battles', target: 1, progress: 0, xpReward: 50, diamondReward: 5, completed: false },
+  { id: 'q2', type: 'MODULE', title: 'Pelajar Keras', description: 'Selesaikan 1 modul belajar', target: 1, progress: 0, xpReward: 30, diamondReward: 3, completed: false },
+  { id: 'q3', type: 'REVIEW', title: 'Ulang Harian', description: 'Review 10 kartu', target: 10, progress: 0, xpReward: 20, diamondReward: 2, completed: false },
+  { id: 'q4', type: 'MODULE', title: 'Kolektor', description: 'Tangkap 3 Pokemon baru', target: 3, progress: 0, xpReward: 60, diamondReward: 8, completed: false },
+  { id: 'q5', type: 'STREAK', title: 'Streak 3 Hari', description: 'Login 3 hari berturut-turut', target: 3, progress: 0, xpReward: 100, diamondReward: 10, completed: false },
 ];
 
 export const useCollectionStore = create<CollectionState>()(
@@ -83,7 +87,9 @@ export const useCollectionStore = create<CollectionState>()(
       dailyQuests: DEFAULT_QUESTS,
       lastLoginDate: null,
       coins: 500,
+      diamonds: 0,
       scrolls: 3,
+      totalDiamondsEarned: 0,
 
       // Japanese card actions
       addCard: (card) => {
@@ -195,6 +201,20 @@ export const useCollectionStore = create<CollectionState>()(
         const { coins } = get();
         if (coins < amount) return false;
         set(state => ({ coins: state.coins - amount }));
+        return true;
+      },
+
+      addDiamonds: (amount) => {
+        set(state => ({ 
+          diamonds: state.diamonds + amount,
+          totalDiamondsEarned: state.totalDiamondsEarned + amount,
+        }));
+      },
+
+      spendDiamonds: (amount) => {
+        const { diamonds } = get();
+        if (diamonds < amount) return false;
+        set(state => ({ diamonds: state.diamonds - amount }));
         return true;
       },
 

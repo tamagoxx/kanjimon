@@ -146,7 +146,7 @@ function OpponentSelectModal({ onSelect, onClose }: { onSelect: any; onClose: ()
   );
 }
 
-function ResultModal({ win, xpGained, onClose }: { win: boolean; xpGained: number; onClose: () => void }) {
+function ResultModal({ win, xpGained, diamondsGained, onClose }: { win: boolean; xpGained: number; diamondsGained?: number; onClose: () => void }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -154,7 +154,14 @@ function ResultModal({ win, xpGained, onClose }: { win: boolean; xpGained: numbe
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1.5 }} transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
           className="text-7xl mb-4">{win ? '🏆' : '💀'}</motion.div>
         <h2 className="text-3xl font-black text-white mb-2">{win ? 'VICTORY!' : 'DEFEAT'}</h2>
-        {win ? <p className="text-white/60 mb-2">+{xpGained} XP earned!</p> : <p className="text-white/60 mb-4">Coba lagi!</p>}
+        {win ? (
+          <div className="space-y-1 mb-4">
+            <p className="text-white/60">+{xpGained} XP earned!</p>
+            {diamondsGained && diamondsGained > 0 && (
+              <p className="text-white/60">+{diamondsGained} 💎 Diamond!</p>
+            )}
+          </div>
+        ) : <p className="text-white/60 mb-4">Coba lagi!</p>}
         <button onClick={onClose} className="mt-4 px-8 py-3 rounded-2xl bg-[#6c5ce7] text-white font-bold active:scale-95">Lanjutkan</button>
       </motion.div>
     </motion.div>
@@ -257,7 +264,7 @@ function ActiveCard({ card, isPlayer }: { card: BattleCard; isPlayer: boolean })
 // ============================================================
 export default function BattlePage() {
   const router = useRouter();
-  const { ownedPokemon, addCoins } = useCollectionStore();
+  const { ownedPokemon, addCoins, addDiamonds } = useCollectionStore();
 
   // Core state
   const [phase, setPhase] = useState<Phase>('select-opponent');
@@ -287,7 +294,7 @@ export default function BattlePage() {
   const [dmgVal, setDmgVal] = useState(0);
   const [showStudy, setShowStudy] = useState(false);
   const [studyQ, setStudyQ] = useState<{ q: string; opts: string[]; ans: string } | null>(null);
-  const [result, setResult] = useState<{ win: boolean; xp: number } | null>(null);
+  const [result, setResult] = useState<{ win: boolean; xp: number; diamonds: number } | null>(null);
   const [autoMode, setAutoMode] = useState(false);
   const [processing, setProcessing] = useState(false);
 
@@ -467,9 +474,11 @@ export default function BattlePage() {
       // Check win
       if (newOppHp <= 0) {
         const xp = 10 + (opponent?.level || 1) * 5;
+        const diamonds = 5 + (opponent?.level || 1) * 2;
         addCoins(xp);
-        setResult({ win: true, xp });
-        addLog(`🏆 VICTORY! +${xp} XP`);
+        addDiamonds(diamonds);
+        setResult({ win: true, xp, diamonds });
+        addLog(`🏆 VICTORY! +${xp} XP +${diamonds} 💎`);
         setPhase('result');
         return;
       }
@@ -600,7 +609,7 @@ export default function BattlePage() {
 
       // Check lose
       if (newPlayerHp <= 0) {
-        setResult({ win: false, xp: 0 });
+        setResult({ win: false, xp: 0, diamonds: 0 });
         addLog(`💀 DEFEAT!`);
         setPhase('result');
         return;
@@ -642,7 +651,7 @@ export default function BattlePage() {
       <AnimatePresence>
         {phase === 'select-opponent' && <OpponentSelectModal onSelect={startBattle} onClose={() => router.push('/')} />}
       </AnimatePresence>
-      <AnimatePresence>{result && <ResultModal win={result.win} xpGained={result.xp} onClose={() => { setResult(null); setPhase('select-opponent'); }} />}</AnimatePresence>
+      <AnimatePresence>{result && <ResultModal win={result.win} xpGained={result.xp} diamondsGained={result.diamonds} onClose={() => { setResult(null); setPhase('select-opponent'); }} />}</AnimatePresence>
       <AnimatePresence>{showStudy && studyQ && <StudyModal question={studyQ} onAnswer={answerStudy} />}</AnimatePresence>
 
       {/* Intro screen */}

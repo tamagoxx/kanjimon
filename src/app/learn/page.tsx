@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { HIRAGANA_BASIC, HIRAGANA_DAKUTEN, HIRAGANA_COMBINATIONS } from '@/data/learning/characters';
 import { KATAKANA_BASIC } from '@/data/learning/characters';
+import { useCollectionStore } from '@/store/collectionStore';
 
 const colors = {
   background: '#0a1519',
@@ -248,6 +249,8 @@ function CharDetailModal({ char, romaji, example, exampleMeaning, onClose }: {
 function QuizModal({ isOpen, onClose, moduleType }: {
   isOpen: boolean; onClose: () => void; moduleType: 'hiragana' | 'katakana';
 }) {
+  const addDiamonds = useCollectionStore(s => s.addDiamonds);
+  const diamonds = useCollectionStore(s => s.diamonds);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [score, setScore] = useState(0);
@@ -342,6 +345,13 @@ function QuizModal({ isOpen, onClose, moduleType }: {
           <p className="text-4xl font-bold mb-2" style={{ color: score >= 6 ? colors.teal : colors.brand }}>
             {score}/{questions.length}
           </p>
+          {score >= 6 && (
+            <div className="mb-4 px-4 py-2 rounded-lg inline-block" style={{ backgroundColor: '#6c5ce720' }}>
+              <p className="text-sm font-bold" style={{ color: '#c6bfff' }}>
+                💎 +{score >= 8 ? 15 : 8} Diamond
+              </p>
+            </div>
+          )}
           <p className="text-sm text-[#c8c4d7] mb-6">
             {score >= 8 ? 'Kamu sudah menguasai modul ini!' : 'Terus latihan untuk meningkatkan.'}
           </p>
@@ -354,7 +364,11 @@ function QuizModal({ isOpen, onClose, moduleType }: {
               🔄 Ulangi
             </button>
             <button
-              onClick={onClose}
+              onClick={() => {
+                const reward = score >= 8 ? 15 : score >= 6 ? 8 : 0;
+                if (reward > 0) addDiamonds(reward);
+                onClose();
+              }}
               className="px-6 py-3 rounded-xl font-bold text-white"
               style={{ backgroundColor: colors.brand }}
             >

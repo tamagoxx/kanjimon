@@ -143,6 +143,7 @@ export interface DailyQuest {
   target: number;
   progress: number;
   xpReward: number;
+  diamondReward?: number;
   cardReward?: number;
   completed: boolean;
 }
