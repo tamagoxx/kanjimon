@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { HIRAGANA_BASIC, HIRAGANA_DAKUTEN, HIRAGANA_COMBINATIONS } from '@/data/learning/characters';
@@ -253,39 +253,53 @@ function QuizModal({ isOpen, onClose, moduleType }: {
   const [score, setScore] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [showResult, setShowResult] = useState(false);
+  const [quizKey, setQuizKey] = useState(0); // forces new quiz generation
+  const questionsRef = useRef<Array<{
+    char: string; romaji: string; options: string[]; correct: number;
+    example?: string; exampleMeaning?: string;
+  }>>([]);
 
-  // Generate questions from actual character data
-  const allChars = moduleType === 'hiragana' 
-    ? Object.entries(HIRAGANA_BASIC).map(([char, data]) => ({ char, romaji: data.romaji, example: data.example, exampleMeaning: data.exampleMeaning }))
-    : Object.entries(KATAKANA_BASIC).map(([char, data]) => ({ char, romaji: data.romaji, example: data.example, exampleMeaning: data.exampleMeaning }));
+  // Generate a fresh set of 10 questions - stable until quizKey or moduleType changes
+  useEffect(() => {
+    const allChars = moduleType === 'hiragana'
+      ? Object.entries(HIRAGANA_BASIC).map(([char, data]) => ({ char, romaji: data.romaji, example: data.example, exampleMeaning: data.exampleMeaning }))
+      : Object.entries(KATAKANA_BASIC).map(([char, data]) => ({ char, romaji: data.romaji, example: data.example, exampleMeaning: data.exampleMeaning }));
 
-  // Shuffle and pick 10 questions
-  const questions = allChars
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 10)
-    .map(char => {
+    // Shuffle and pick 10 - use seed-based shuffle for reproducibility
+    const shuffled = [...allChars].sort(() => Math.random() - 0.5).slice(0, 10);
+    questionsRef.current = shuffled.map(char => {
       const correctAnswer = char.romaji;
-      // Generate wrong answers from other romaji
       const wrongAnswers = allChars
         .filter(c => c.romaji !== correctAnswer)
         .sort(() => Math.random() - 0.5)
         .slice(0, 3)
         .map(c => c.romaji);
-      
       const options = [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5);
-      
       return {
         char: char.char,
-        question: `Apa romaji dari "${char.char}"?`,
+        romaji: char.romaji,
         options,
         correct: options.indexOf(correctAnswer),
         example: char.example,
         exampleMeaning: char.exampleMeaning,
       };
     });
+  }, [moduleType, quizKey]);
+
+  // Reset state when quiz opens
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentQuestion(0);
+      setSelectedAnswer(null);
+      setScore(0);
+      setIsComplete(false);
+      setShowResult(false);
+    }
+  }, [isOpen, quizKey]);
 
   if (!isOpen) return null;
 
+  const questions = questionsRef.current;
   const q = questions[currentQuestion];
 
   const handleAnswer = (index: number) => {
@@ -308,11 +322,7 @@ function QuizModal({ isOpen, onClose, moduleType }: {
   };
 
   const handleRetry = () => {
-    setCurrentQuestion(0);
-    setSelectedAnswer(null);
-    setScore(0);
-    setIsComplete(false);
-    setShowResult(false);
+    setQuizKey(k => k + 1);
   };
 
   // Complete screen
