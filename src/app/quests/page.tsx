@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useCollectionStore } from '@/store/collectionStore';
 
 const colors = {
   background: '#0a1519',
@@ -19,60 +20,42 @@ const colors = {
   navBg: '#162125',
 };
 
-type QuestType = 'BATTLE' | 'LEARN' | 'COLLECTION' | 'STUDY' | 'STREAK';
-
-interface Quest {
-  id: string;
-  type: QuestType;
-  title: string;
-  description: string;
-  target: number;
-  progress: number;
-  xpReward: number;
-  coinReward: number;
-  completed: boolean;
-  claimed: boolean;
-}
-
-const INITIAL_QUESTS: Quest[] = [
-  { id: '1', type: 'BATTLE', title: 'Battle Beginner', description: 'Menangkan 1 battle', target: 1, progress: 0, xpReward: 50, coinReward: 100, completed: false, claimed: false },
-  { id: '2', type: 'LEARN', title: 'Hiragana Master', description: 'Pelajari 5 karakter hiragana', target: 5, progress: 0, xpReward: 30, coinReward: 60, completed: false, claimed: false },
-  { id: '3', type: 'STUDY', title: 'Study Session', description: 'Selesaikan 1 modul belajar', target: 1, progress: 0, xpReward: 40, coinReward: 80, completed: false, claimed: false },
-  { id: '4', type: 'BATTLE', title: 'Battle Champion', description: 'Menangkan 3 battles', target: 3, progress: 0, xpReward: 100, coinReward: 200, completed: false, claimed: false },
-  { id: '5', type: 'COLLECTION', title: 'Card Collector', description: 'Kumpulkan 10 kartu baru', target: 10, progress: 0, xpReward: 60, coinReward: 120, completed: false, claimed: false },
-];
-
-const QUEST_ICONS: Record<QuestType, string> = {
+const QUEST_ICONS: Record<string, string> = {
   BATTLE: '⚔️',
-  LEARN: '📚',
-  COLLECTION: '🃏',
-  STUDY: '🎯',
+  MODULE: '📚',
+  REVIEW: '🔁',
   STREAK: '🔥',
 };
 
-const QUEST_COLORS: Record<QuestType, string> = {
-  BATTLE: '#ffb4ab',
-  LEARN: '#6c5ce7',
-  COLLECTION: '#f0bf63',
-  STUDY: '#4bddb7',
-  STREAK: '#c6bfff',
+const QUEST_COLORS: Record<string, string> = {
+  BATTLE: '#ff6b35',
+  MODULE: '#6c5ce7',
+  REVIEW: '#4bddb7',
+  STREAK: '#f0bf63',
 };
 
 // Top App Bar
 function TopAppBar() {
   const router = useRouter();
-  
+  const diamonds = useCollectionStore(s => s.diamonds);
+
   return (
     <div className="sticky top-0 z-40 px-4 h-16 flex items-center justify-between" style={{ backgroundColor: colors.navBg }}>
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: colors.brand }}>
           T
         </div>
-        <span className="text-base font-medium text-[#c6bfff]">Quests Harian</span>
+        <span className="text-base font-medium text-[#c6bfff]">Quest Harian</span>
       </div>
-      <button onClick={() => router.push('/')} className="text-sm px-3 py-1.5 rounded-lg" style={{ backgroundColor: colors.inputBg, color: colors.darkText }}>
-        ← Home
-      </button>
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 px-2 py-1 rounded-full" style={{ backgroundColor: `${colors.gold}20` }}>
+          <span className="text-sm">💎</span>
+          <span className="text-xs font-bold text-[#f0bf63]">{diamonds}</span>
+        </div>
+        <button onClick={() => router.push('/')} className="text-sm px-3 py-1.5 rounded-lg" style={{ backgroundColor: colors.inputBg, color: colors.darkText }}>
+          ← Home
+        </button>
+      </div>
     </div>
   );
 }
@@ -80,13 +63,13 @@ function TopAppBar() {
 // Bottom Navigation
 function BottomNav() {
   const router = useRouter();
-  
+
   const navItems = [
     { icon: '🏠', label: 'Home', route: '/' },
     { icon: '📚', label: 'Belajar', route: '/learn' },
     { icon: '⚔️', label: 'Battle', route: '/battle' },
     { icon: '🃏', label: 'Kartu', route: '/collection' },
-    { icon: '👤', label: 'Profile', route: '/profile' },
+    { icon: '🎰', label: 'Gacha', route: '/gacha' },
   ];
 
   return (
@@ -106,13 +89,13 @@ function BottomNav() {
 }
 
 // Progress Overview Card
-function ProgressOverview({ quests }: { quests: Quest[] }) {
+function ProgressOverview({ quests }: { quests: any[] }) {
   const completed = quests.filter(q => q.completed).length;
   const total = quests.length;
-  const totalXp = quests.reduce((sum, q) => sum + q.xpReward, 0);
-  const earnedXp = quests.filter(q => q.completed).reduce((sum, q) => sum + q.xpReward, 0);
-  const progressPercent = Math.round((completed / total) * 100);
-  
+  const totalDiamonds = quests.reduce((sum: number, q: any) => sum + (q.diamondReward || 0), 0);
+  const earnedDiamonds = quests.filter((q: any) => q.completed).reduce((sum: number, q: any) => sum + (q.diamondReward || 0), 0);
+  const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -123,14 +106,14 @@ function ProgressOverview({ quests }: { quests: Quest[] }) {
       <div className="flex items-center justify-between mb-3">
         <div>
           <h2 className="text-lg font-bold text-[#d8e4ea]">Quest Harian</h2>
-          <p className="text-sm text-[#c8c4d7]">Selesaikan quest untuk dapat hadiah</p>
+          <p className="text-sm text-[#c8c4d7]">Selesaikan quest untuk hadiah 💎</p>
         </div>
         <div className="text-right">
           <span className="text-2xl font-bold" style={{ color: colors.brand }}>{completed}/{total}</span>
           <p className="text-xs text-[#c8c4d7]">quest selesai</p>
         </div>
       </div>
-      
+
       {/* Progress Bar */}
       <div className="h-3 rounded-full overflow-hidden mb-3" style={{ backgroundColor: colors.inputBg }}>
         <motion.div
@@ -141,18 +124,12 @@ function ProgressOverview({ quests }: { quests: Quest[] }) {
           style={{ backgroundColor: colors.teal }}
         />
       </div>
-      
-      {/* XP and Coins */}
+
+      {/* Diamond rewards summary */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-1">
-          <span className="text-lg">⭐</span>
-          <span className="text-sm font-bold text-[#d8e4ea]">{earnedXp}/{totalXp} XP</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="text-lg">🪙</span>
-          <span className="text-sm font-bold text-[#f0bf63]">
-            {quests.filter(q => q.completed).reduce((sum, q) => sum + q.coinReward, 0)}
-          </span>
+          <span className="text-lg">💎</span>
+          <span className="text-sm font-bold text-[#c6bfff]">{earnedDiamonds}/{totalDiamonds} Diamond</span>
         </div>
         <div className="flex-1" />
         <span className="text-xs text-[#c8c4d7]">⏰ Reset 12:00</span>
@@ -162,17 +139,17 @@ function ProgressOverview({ quests }: { quests: Quest[] }) {
 }
 
 // Quest Card
-function QuestCard({ quest, onProgress, onClaim, index }: {
-  quest: Quest;
-  onProgress: (id: string) => void;
-  onClaim: (id: string) => void;
+function QuestCard({ quest, onClaim, onProgress, index }: {
+  quest: any;
+  onClaim: (quest: any) => void;
+  onProgress: (quest: any) => void;
   index: number;
 }) {
   const color = QUEST_COLORS[quest.type] || colors.brand;
   const icon = QUEST_ICONS[quest.type] || '📌';
   const canClaim = quest.completed && !quest.claimed;
   const progressPercent = Math.min(100, (quest.progress / quest.target) * 100);
-  
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -190,7 +167,7 @@ function QuestCard({ quest, onProgress, onClaim, index }: {
           >
             {icon}
           </div>
-          
+
           {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
@@ -207,7 +184,7 @@ function QuestCard({ quest, onProgress, onClaim, index }: {
               )}
             </div>
             <p className="text-sm text-[#c8c4d7] mb-3">{quest.description}</p>
-            
+
             {/* Progress Bar */}
             <div className="mb-2">
               <div className="flex items-center justify-between text-xs mb-1">
@@ -221,21 +198,25 @@ function QuestCard({ quest, onProgress, onClaim, index }: {
                 />
               </div>
             </div>
-            
+
             {/* Rewards */}
             <div className="flex items-center gap-3">
-              <span className="text-sm" style={{ color: colors.gold }}>⭐ {quest.xpReward} XP</span>
-              <span className="text-sm" style={{ color: colors.gold }}>🪙 {quest.coinReward}</span>
+              {quest.xpReward > 0 && (
+                <span className="text-sm" style={{ color: colors.gold }}>⭐ {quest.xpReward} XP</span>
+              )}
+              {quest.diamondReward > 0 && (
+                <span className="text-sm" style={{ color: colors.lightPurple }}>💎 {quest.diamondReward}</span>
+              )}
             </div>
           </div>
         </div>
       </div>
-      
+
       {/* Action Button */}
       <div className="border-t" style={{ borderColor: colors.inputBg }}>
         {!quest.completed ? (
           <button
-            onClick={() => onProgress(quest.id)}
+            onClick={() => onProgress(quest)}
             className="w-full py-3 text-center text-sm font-bold transition-colors"
             style={{ backgroundColor: `${color}15`, color }}
           >
@@ -244,7 +225,7 @@ function QuestCard({ quest, onProgress, onClaim, index }: {
         ) : !quest.claimed ? (
           <motion.button
             whileTap={{ scale: 0.98 }}
-            onClick={() => onClaim(quest.id)}
+            onClick={() => onClaim(quest)}
             className="w-full py-3 text-center text-sm font-bold text-white"
             style={{ backgroundColor: colors.gold }}
           >
@@ -260,30 +241,60 @@ function QuestCard({ quest, onProgress, onClaim, index }: {
   );
 }
 
-export default function QuestsPage() {
-  const [quests, setQuests] = useState<Quest[]>(INITIAL_QUESTS);
-  const [showRewardModal, setShowRewardModal] = useState(false);
-  const [lastClaimedQuest, setLastClaimedQuest] = useState<Quest | null>(null);
+// How to earn progress section
+function HowToEarn() {
   const router = useRouter();
 
-  const handleProgress = (questId: string) => {
-    setQuests(prev => prev.map(q => {
-      if (q.id === questId && q.progress < q.target) {
-        const newProgress = q.progress + 1;
-        return { ...q, progress: newProgress, completed: newProgress >= q.target };
-      }
-      return q;
-    }));
-  };
+  const ways = [
+    { icon: '⚔️', label: 'Battle', desc: 'Menangkan battle untuk progress', route: '/battle', color: '#ff6b35' },
+    { icon: '📚', label: 'Belajar', desc: 'Selesaikan kuis dengan skor ≥6', route: '/learn', color: '#6c5ce7' },
+    { icon: '🎰', label: 'Gacha', desc: 'Tangkap Pokemon baru', route: '/gacha', color: '#4bddb7' },
+    { icon: '🃏', label: 'Collection', desc: 'Lihat kartu yang dimiliki', route: '/collection', color: '#f0bf63' },
+  ];
 
-  const handleClaim = (questId: string) => {
-    const quest = quests.find(q => q.id === questId);
-    if (!quest || !quest.completed || quest.claimed) return;
-    
-    setQuests(prev => prev.map(q => q.id === questId ? { ...q, claimed: true } : q));
+  return (
+    <div className="space-y-2">
+      <h3 className="text-sm font-bold text-[#c8c4d7] tracking-wider">CARA MENDAPATKAN PROGRESS</h3>
+      <div className="grid grid-cols-2 gap-2">
+        {ways.map((way, i) => (
+          <button
+            key={i}
+            onClick={() => router.push(way.route)}
+            className="p-3 rounded-xl text-left transition-transform active:scale-95"
+            style={{ backgroundColor: colors.cardBg }}
+          >
+            <span className="text-2xl">{way.icon}</span>
+            <p className="text-sm font-bold text-[#d8e4ea] mt-1">{way.label}</p>
+            <p className="text-xs text-[#c8c4d7]">{way.desc}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function QuestsPage() {
+  const { dailyQuests, updateQuestProgress, completeQuest } = useCollectionStore();
+  const [showRewardModal, setShowRewardModal] = useState(false);
+  const [lastClaimedQuest, setLastClaimedQuest] = useState<any>(null);
+  const router = useRouter();
+
+  const handleClaim = (quest: any) => {
+    if (!quest.completed || quest.claimed) return;
+
+    completeQuest(quest.id);
     setLastClaimedQuest(quest);
     setShowRewardModal(true);
   };
+
+  const handleProgress = (quest: any) => {
+    // For manual progress buttons in quest cards
+    updateQuestProgress(quest.id, quest.progress + 1);
+  };
+
+  const completedCount = dailyQuests.filter(q => q.completed).length;
+  const totalCount = dailyQuests.length;
+  const allClaimed = completedCount === totalCount && dailyQuests.every(q => q.claimed);
 
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: colors.background }}>
@@ -291,32 +302,42 @@ export default function QuestsPage() {
 
       <main className="max-w-md mx-auto px-4 pt-4 space-y-4">
         {/* Progress Overview */}
-        <ProgressOverview quests={quests} />
+        <ProgressOverview quests={dailyQuests} />
+
+        {/* How to earn */}
+        <HowToEarn />
 
         {/* Quest List */}
         <section>
-          <h3 className="text-sm font-bold text-[#c8c4d7] mb-3 tracking-wider">QUEST aktif</h3>
+          <h3 className="text-sm font-bold text-[#c8c4d7] mb-3 tracking-wider">QUEST AKTIF</h3>
           <div className="space-y-3">
-            {quests.map((quest, i) => (
+            {dailyQuests.map((quest, i) => (
               <QuestCard
                 key={quest.id}
                 quest={quest}
-                onProgress={handleProgress}
                 onClaim={handleClaim}
+                onProgress={handleProgress}
                 index={i}
               />
             ))}
           </div>
         </section>
 
-        {/* Completed indicator */}
-        {quests.filter(q => q.claimed).length === quests.length && (
+        {/* All done indicator */}
+        {allClaimed && (
           <div className="text-center p-6 rounded-2xl" style={{ backgroundColor: `${colors.teal}20` }}>
             <span className="text-4xl mb-2 block">🏆</span>
             <p className="text-lg font-bold text-[#d8e4ea]">Semua Quest Selesai!</p>
-            <p className="text-sm text-[#c8c4d7]"> Sampai jumpa besok!</p>
+            <p className="text-sm text-[#c8c4d7]"> Sampai jumpa besok! 💎</p>
           </div>
         )}
+
+        {/* Info box */}
+        <div className="p-3 rounded-xl" style={{ backgroundColor: `${colors.brand}15` }}>
+          <p className="text-xs text-[#c8c4d7] text-center">
+            💡 Progress quest di-reset setiap hari jam 12:00. Klaim hadiah sebelum reset!
+          </p>
+        </div>
       </main>
 
       <BottomNav />
@@ -343,20 +364,24 @@ export default function QuestsPage() {
               <div className="text-5xl mb-3">🎉</div>
               <h3 className="text-xl font-bold text-[#d8e4ea] mb-2">Hadiah Diclaim!</h3>
               <p className="text-sm text-[#c8c4d7] mb-4">{lastClaimedQuest.title}</p>
-              
+
               <div className="flex justify-center gap-4 mb-4">
-                <div className="text-center">
-                  <span className="text-2xl">⭐</span>
-                  <p className="text-lg font-bold text-[#d8e4ea]">+{lastClaimedQuest.xpReward}</p>
-                  <p className="text-xs text-[#c8c4d7]">XP</p>
-                </div>
-                <div className="text-center">
-                  <span className="text-2xl">🪙</span>
-                  <p className="text-lg font-bold text-[#f0bf63]">+{lastClaimedQuest.coinReward}</p>
-                  <p className="text-xs text-[#c8c4d7]">Coins</p>
-                </div>
+                {lastClaimedQuest.xpReward > 0 && (
+                  <div className="text-center">
+                    <span className="text-2xl">⭐</span>
+                    <p className="text-lg font-bold text-[#d8e4ea]">+{lastClaimedQuest.xpReward}</p>
+                    <p className="text-xs text-[#c8c4d7]">XP</p>
+                  </div>
+                )}
+                {lastClaimedQuest.diamondReward > 0 && (
+                  <div className="text-center">
+                    <span className="text-2xl">💎</span>
+                    <p className="text-lg font-bold text-[#c6bfff]">+{lastClaimedQuest.diamondReward}</p>
+                    <p className="text-xs text-[#c8c4d7]">Diamond</p>
+                  </div>
+                )}
               </div>
-              
+
               <button
                 onClick={() => setShowRewardModal(false)}
                 className="w-full py-3 rounded-xl font-bold text-white"

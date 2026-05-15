@@ -146,6 +146,7 @@ export interface DailyQuest {
   diamondReward?: number;
   cardReward?: number;
   completed: boolean;
+  claimed?: boolean;
 }
 
 // --- JLPT Simulation ---

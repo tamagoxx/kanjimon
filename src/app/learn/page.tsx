@@ -251,6 +251,9 @@ function QuizModal({ isOpen, onClose, moduleType }: {
 }) {
   const addDiamonds = useCollectionStore(s => s.addDiamonds);
   const diamonds = useCollectionStore(s => s.diamonds);
+  const updateQuestProgress = useCollectionStore(s => s.updateQuestProgress);
+  const completeQuest = useCollectionStore(s => s.completeQuest);
+  const dailyQuests = useCollectionStore(s => s.dailyQuests);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [score, setScore] = useState(0);
@@ -367,6 +370,17 @@ function QuizModal({ isOpen, onClose, moduleType }: {
               onClick={() => {
                 const reward = score >= 8 ? 15 : score >= 6 ? 8 : 0;
                 if (reward > 0) addDiamonds(reward);
+                // Update MODULE quest progress
+                if (score >= 6) {
+                  const modQuests = dailyQuests.filter(q => q.type === 'MODULE' && !q.completed);
+                  modQuests.forEach(q => {
+                    const newProgress = q.progress + 1;
+                    updateQuestProgress(q.id, newProgress);
+                    if (newProgress >= q.target) {
+                      setTimeout(() => completeQuest(q.id), 1000);
+                    }
+                  });
+                }
                 onClose();
               }}
               className="px-6 py-3 rounded-xl font-bold text-white"

@@ -168,23 +168,33 @@ export const useCollectionStore = create<CollectionState>()(
 
       // Quest actions
       updateQuestProgress: (questId, progress) => {
-        set(state => ({
-          dailyQuests: state.dailyQuests.map(q =>
-            q.id === questId ? { ...q, progress } : q
-          ),
-        }));
+        set(state => {
+          const quest = state.dailyQuests.find(q => q.id === questId);
+          if (!quest) return state;
+          const completed = progress >= quest.target;
+          return {
+            dailyQuests: state.dailyQuests.map(q =>
+              q.id === questId ? { ...q, progress, completed } : q
+            ),
+          };
+        });
       },
 
       completeQuest: (questId) => {
-        const { dailyQuests } = get();
+        const { dailyQuests, addCoins, addDiamonds } = get();
         const quest = dailyQuests.find(q => q.id === questId);
         if (!quest || quest.completed) return;
 
+        // Give rewards
+        addCoins(quest.xpReward);
+        if (quest.diamondReward) {
+          addDiamonds(quest.diamondReward);
+        }
+
         set(state => ({
           dailyQuests: state.dailyQuests.map(q =>
-            q.id === questId ? { ...q, completed: true } : q
+            q.id === questId ? { ...q, completed: true, claimed: true } : q
           ),
-          coins: state.coins + quest.xpReward,
         }));
       },
 
