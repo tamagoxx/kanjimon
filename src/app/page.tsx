@@ -6,6 +6,22 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useCollectionStore } from '@/store/collectionStore';
 
+const QUEST_ICONS: Record<string, string> = {
+  BATTLE: '⚔️',
+  MODULE: '📚',
+  REVIEW: '🔁',
+  STREAK: '🔥',
+  COLLECT: '🎰',
+};
+
+const QUEST_COLORS: Record<string, string> = {
+  BATTLE: '#ff6b35',
+  MODULE: '#6c5ce7',
+  REVIEW: '#4bddb7',
+  STREAK: '#f0bf63',
+  COLLECT: '#4facfe',
+};
+
 const colors = {
   background: '#0a1519',
   cardBg: '#1a1a2e',
@@ -20,9 +36,10 @@ const colors = {
   darkGray: '#2b363b',
 };
 
-// Top App Bar
+// TopAppBar must also subscribe to re-render on quest changes
 function TopAppBar() {
   const diamonds = useCollectionStore(s => s.diamonds);
+  const dailyQuests = useCollectionStore(s => s.dailyQuests);
   
   return (
     <div className="sticky top-0 z-40 px-4 h-16 flex items-center justify-between" style={{ backgroundColor: '#0a1519' }}>
@@ -95,19 +112,23 @@ function BottomNav() {
 }
 
 // Daily Quest Card
-function QuestCard({ title, progress, max, reward, emoji }: { title: string; progress: number; max: number; reward: string; emoji: string }) {
-  const percent = (progress / max) * 100;
-  
+function QuestCard({ quest }: { quest: any }) {
+  const progress = quest.progress || 0;
+  const target = quest.target || 1;
+  const percent = Math.min(100, Math.round((progress / target) * 100));
+  const icon = QUEST_ICONS[quest.type] || '📋';
+  const color = QUEST_COLORS[quest.type] || colors.teal;
+
   return (
     <div className="p-3 rounded-xl" style={{ backgroundColor: colors.cardBg }}>
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: `${colors.brand}20` }}>
-          {emoji}
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: `${color}20` }}>
+          {icon}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-sm font-bold text-[#d8e4ea]">{title}</span>
-            <span className="text-xs text-[#f0bf63]">+{reward}</span>
+            <span className="text-sm font-bold text-[#d8e4ea]">{quest.title}</span>
+            <span className="text-xs text-[#f0bf63]">+{quest.xpReward} XP</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
@@ -116,10 +137,10 @@ function QuestCard({ title, progress, max, reward, emoji }: { title: string; pro
                 animate={{ width: `${percent}%` }}
                 transition={{ duration: 0.5 }}
                 className="h-full rounded-full"
-                style={{ backgroundColor: colors.teal }}
+                style={{ backgroundColor: color }}
               />
             </div>
-            <span className="text-xs text-[#c8c4d7] w-12 text-right">{progress}/{max}</span>
+            <span className="text-xs text-[#c8c4d7] w-12 text-right">{progress}/{target}</span>
           </div>
         </div>
       </div>
@@ -209,6 +230,7 @@ function QuickAction({ icon, label, color, route }: { icon: string; label: strin
 
 export default function HomePage() {
   const router = useRouter();
+  const dailyQuests = useCollectionStore(s => s.dailyQuests);
   
   // Sample cards for featured
   const featuredCards = [
@@ -263,30 +285,12 @@ export default function HomePage() {
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-[#c8c4d7] tracking-wider">QUEST HARIAN</h2>
-            <button className="text-xs text-[#4bddb7] font-medium">Lihat Semua →</button>
+            <button onClick={() => router.push('/quests')} className="text-xs text-[#4bddb7] font-medium">Lihat Semua →</button>
           </div>
           <div className="space-y-2">
-            <QuestCard
-              title="Selesaikan Battle"
-              progress={1}
-              max={3}
-              reward="50 XP"
-              emoji="⚔️"
-            />
-            <QuestCard
-              title="Pelajari 10 Kartu Baru"
-              progress={7}
-              max={10}
-              reward="30 XP"
-              emoji="📝"
-            />
-            <QuestCard
-              title="Kumpulkan 5 Kartu"
-              progress={3}
-              max={5}
-              reward="25 XP"
-              emoji="🃏"
-            />
+            {dailyQuests.slice(0, 3).map((quest) => (
+              <QuestCard key={quest.id} quest={quest} />
+            ))}
           </div>
         </div>
 
