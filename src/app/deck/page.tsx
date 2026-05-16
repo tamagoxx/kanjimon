@@ -232,13 +232,12 @@ function TabSelector({ active, onChange }: { active: 'all' | 'japanese' | 'pokem
 
 function BottomNav() {
   const router = useRouter();
-  const navItems = [
+const navItems = [
     { icon: '🏠', label: 'Home', route: '/' },
     { icon: '📚', label: 'Belajar', route: '/learn' },
     { icon: '⚔️', label: 'Battle', route: '/battle' },
     { icon: '🃏', label: 'Kartu', route: '/collection' },
-    { icon: '🔀', label: 'Fusion', route: '/fusion' },
-    { icon: '👤', label: 'Profile', route: '/profile' },
+    { icon: '🛒', label: 'Toko', route: '/shop' },
   ];
 
   return (

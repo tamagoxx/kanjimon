@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { HIRAGANA_BASIC, HIRAGANA_DAKUTEN, HIRAGANA_COMBINATIONS } from '@/data/learning/characters';
 import { KATAKANA_BASIC } from '@/data/learning/characters';
 import { useCollectionStore } from '@/store/collectionStore';
@@ -56,14 +56,16 @@ function TopAppBar({ title = 'Belajar', showBack = false, onBack }: { title?: st
 function BottomNav() {
   const router = useRouter();
   
-  const navItems = [
+const navItems = [
     { icon: '🏠', label: 'Home', route: '/' },
-    { icon: '📚', label: 'Belajar', route: '/learn', active: true },
+    { icon: '📚', label: 'Belajar', route: '/learn' },
     { icon: '⚔️', label: 'Battle', route: '/battle' },
     { icon: '🃏', label: 'Kartu', route: '/collection' },
-    { icon: '🔀', label: 'Fusion', route: '/fusion' },
-    { icon: '👤', label: 'Profile', route: '/profile' },
+    { icon: '🛒', label: 'Toko', route: '/shop' },
   ];
+
+  const currentPath = usePathname();
+  const isActive = (route: string) => currentPath === route;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 h-20 flex items-center justify-around px-4 z-30" style={{ backgroundColor: colors.navBg }}>
@@ -72,11 +74,11 @@ function BottomNav() {
           key={i}
           onClick={() => router.push(item.route)}
           className="flex flex-col items-center gap-1 transition-opacity"
-          style={{ opacity: item.active ? 1 : 0.6 }}
+          style={{ opacity: isActive(item.route) ? 1 : 0.6 }}
         >
           <span className="text-2xl">{item.icon}</span>
-          <span className="text-xs" style={{ color: item.active ? colors.teal : colors.darkText }}>{item.label}</span>
-          {item.active && <div className="w-1 h-1 rounded-full" style={{ backgroundColor: colors.teal }} />}
+          <span className="text-xs" style={{ color: isActive(item.route) ? colors.teal : colors.darkText }}>{item.label}</span>
+          {isActive(item.route) && <div className="w-1 h-1 rounded-full" style={{ backgroundColor: colors.teal }} />}
         </button>
       ))}
     </div>

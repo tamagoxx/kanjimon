@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useCollectionStore, PokemonCard } from '@/store/collectionStore';
 import { useFusionStore } from '@/store/fusionStore';
 import { CARDS_BY_ID } from '@/data/cards';
@@ -428,13 +428,16 @@ function PokemonCardItem({ card, index }: { card: PokemonCard; index: number }) 
 function BottomNav() {
   const router = useRouter();
 
-  const navItems = [
+const navItems = [
     { icon: '🏠', label: 'Home', route: '/' },
     { icon: '📚', label: 'Belajar', route: '/learn' },
     { icon: '⚔️', label: 'Battle', route: '/battle' },
-    { icon: '🃏', label: 'Kartu', route: '/collection', active: true },
-    { icon: '👤', label: 'Profile', route: '/profile' },
+    { icon: '🃏', label: 'Kartu', route: '/collection' },
+    { icon: '🛒', label: 'Toko', route: '/shop' },
   ];
+
+  const currentPath = usePathname();
+  const isActive = (route: string) => currentPath === route;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 h-20 flex items-center justify-around px-4 z-50" style={{ backgroundColor: '#162125' }}>
@@ -442,13 +445,13 @@ function BottomNav() {
         <button
           key={i}
           onClick={() => router.push(item.route)}
-          className={`flex flex-col items-center gap-1 ${item.active ? 'opacity-100' : 'opacity-60'} transition-opacity`}
+          className={`flex flex-col items-center gap-1 ${isActive(item.route) ? 'opacity-100' : 'opacity-60'} transition-opacity`}
         >
           <span className="text-2xl">{item.icon}</span>
-          <span className="text-xs" style={{ color: item.active ? colors.teal : colors.darkText }}>
+          <span className="text-xs" style={{ color: isActive(item.route) ? colors.teal : colors.darkText }}>
             {item.label}
           </span>
-          {item.active && <div className="w-1 h-1 rounded-full mt-0.5" style={{ backgroundColor: colors.teal }} />}
+          {isActive(item.route) && <div className="w-1 h-1 rounded-full mt-0.5" style={{ backgroundColor: colors.teal }} />}
         </button>
       ))}
     </div>
