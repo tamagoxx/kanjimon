@@ -168,34 +168,43 @@ export const useCollectionStore = create<CollectionState>()(
 
       // Quest actions
       updateQuestProgress: (questId, progress) => {
-        set(state => {
-          const quest = state.dailyQuests.find(q => q.id === questId);
-          if (!quest) return state;
-          const completed = progress >= quest.target;
-          return {
-            dailyQuests: state.dailyQuests.map(q =>
-              q.id === questId ? { ...q, progress, completed } : q
-            ),
-          };
-        });
-      },
-
-      completeQuest: (questId) => {
-        const { dailyQuests, addCoins, addDiamonds } = get();
-        const quest = dailyQuests.find(q => q.id === questId);
-        if (!quest || quest.completed) return;
-
-        // Give rewards
-        addCoins(quest.xpReward);
-        if (quest.diamondReward) {
-          addDiamonds(quest.diamondReward);
+        const state = get();
+        const quest = state.dailyQuests.find(q => q.id === questId);
+        if (!quest) {
+          console.warn(`[Quest] Quest not found: ${questId}`);
+          return;
         }
+        const completed = progress >= quest.target;
+        console.log(`[Quest] updateQuestProgress ${questId}: ${quest.progress} → ${progress} (target: ${quest.target}, completed: ${completed})`);
 
         set(state => ({
           dailyQuests: state.dailyQuests.map(q =>
-            q.id === questId ? { ...q, completed: true, claimed: true } : q
+            q.id === questId ? { ...q, progress, completed } : q
           ),
         }));
+      },
+
+      completeQuest: (questId) => {
+        // Read all state at once, inside set() to avoid stale reads
+        set(state => {
+          const quest = state.dailyQuests.find(q => q.id === questId);
+          if (!quest || quest.completed || quest.claimed) {
+            console.warn(`[Quest] Cannot complete quest ${questId}: ${!quest ? 'not found' : quest.completed ? 'already completed' : 'already claimed'}`);
+            return state;
+          }
+
+          console.log(`[Quest] ✓ Completing quest: ${quest.title} (${quest.type}). Claiming reward: ${quest.xpReward} XP + ${quest.diamondReward} 💎`);
+
+          // Return new state with quest completed AND currency added in ONE atomic set
+          return {
+            coins: state.coins + quest.xpReward,
+            diamonds: state.diamonds + (quest.diamondReward || 0),
+            totalDiamondsEarned: state.totalDiamondsEarned + (quest.diamondReward || 0),
+            dailyQuests: state.dailyQuests.map(q =>
+              q.id === questId ? { ...q, completed: true, claimed: true } : q
+            ),
+          };
+        });
       },
 
       resetDailyQuests: () => {
