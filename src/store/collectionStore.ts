@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { OwnedCard, Deck, DailyQuest, JapaneseCard } from '@/types';
+import type { OwnedCard, Deck, DailyQuest, JapaneseCard, FusedPokemon } from '@/types';
 
 // Pokemon card type (from PokeAPI)
 export interface PokemonCard {
@@ -71,6 +71,7 @@ function getTodayString(): string {
 interface CollectionState {
   ownedCards: OwnedCard[];
   ownedPokemon: PokemonCard[];
+  fusedPokemon: FusedPokemon[];
   decks: Deck[];
   dailyQuests: DailyQuest[];
   lastQuestResetDate: string | null;
@@ -93,6 +94,10 @@ interface CollectionState {
   releasePokemon: (pokemonId: number) => void;
   getPokemonById: (pokemonId: number) => PokemonCard | undefined;
   isPokemonCaught: (pokemonId: number) => boolean;
+
+  // Fused Pokemon actions
+  addFusedPokemon: (fused: FusedPokemon) => void;
+  getFusedPokemonById: (id: string) => FusedPokemon | undefined;
 
   // Deck actions
   createDeck: (name: string, cardIds: string[]) => void;
@@ -123,6 +128,7 @@ export const useCollectionStore = create<CollectionState>()(
     (set, get) => ({
       ownedCards: [],
       ownedPokemon: [],
+      fusedPokemon: [],
       decks: [],
       dailyQuests: [],
       lastQuestResetDate: null,
@@ -203,6 +209,17 @@ export const useCollectionStore = create<CollectionState>()(
 
       isPokemonCaught: (pokemonId) => {
         return get().ownedPokemon.some(p => p.pokemonId === pokemonId);
+      },
+
+      // Fused Pokemon actions
+      addFusedPokemon: (fused) => {
+        set(state => ({
+          fusedPokemon: [...state.fusedPokemon, fused],
+        }));
+      },
+
+      getFusedPokemonById: (id) => {
+        return get().fusedPokemon.find(fp => fp.id === id);
       },
 
       // Deck actions

@@ -272,3 +272,56 @@ export const FUSION_RECIPES: Record<Rarity, FusionRecipe> = {
     statBonus: { hp: 10, attack: 5, defense: 0 }, // just refines, no rarity change
   },
 };
+
+// --- Pokemon Fusion ---
+export interface FusedPokemon {
+  id: string;
+  parentPokemonIds: [number, number];
+  name: string;             // combined or evolved name
+  types: string[];
+  baseHp: number;
+  baseAttack: number;
+  baseDefense: number;
+  baseSpeed: number;
+  level: number;
+  exp: number;
+  fusionCount: number;
+  learnedAt: string;
+  element: string;
+  image: string;
+  rarity: Rarity;
+}
+
+export interface PokemonFusionRecipe {
+  resultRarity: Rarity;
+  cost: number;
+  statBonus: {
+    hp: number;
+    attack: number;
+    defense: number;
+    speed: number;
+  };
+}
+
+export const POKEMON_FUSION_RECIPES: Record<Rarity, PokemonFusionRecipe> = {
+  COMMON: {
+    resultRarity: 'UNCOMMON',
+    cost: 10,
+    statBonus: { hp: 20, attack: 12, defense: 2, speed: 5 },
+  },
+  UNCOMMON: {
+    resultRarity: 'RARE',
+    cost: 25,
+    statBonus: { hp: 35, attack: 20, defense: 3, speed: 8 },
+  },
+  RARE: {
+    resultRarity: 'ULTRA_RARE',
+    cost: 50,
+    statBonus: { hp: 50, attack: 30, defense: 5, speed: 12 },
+  },
+  ULTRA_RARE: {
+    resultRarity: 'ULTRA_RARE',
+    cost: 100,
+    statBonus: { hp: 15, attack: 10, defense: 2, speed: 5 },
+  },
+};
