@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useCollectionStore } from '@/store/collectionStore';
-import { Swords, Shield, ArrowLeft, Trophy, Zap, Flame, Droplets, Leaf, Eye, Sparkles, CircleDot } from 'lucide-react';
+import { Swords, Shield, ArrowLeft, Zap, Flame, Droplets, Leaf, Eye, Sparkles, CircleDot } from 'lucide-react';
 
 // ============================================================
 // Types
@@ -209,7 +209,7 @@ function HandCard({ card, idx, sel, onClick, disabled }: { card: BattleCard; idx
       {card.image ? (
         <img src={card.image} alt={card.name} className="w-10 h-10 object-contain" />
       ) : (
-        <span className="text-2xl" style={{ color: col }}>{(ELEMENT_ICONS[card.element] as any) ? '⬡' : '📝'}</span>
+        <span className="text-2xl" style={{ color: col }}>⬡</span>
       )}
       <span className="text-[9px] text-white/60 capitalize mt-0.5 truncate w-full text-center">{card.name}</span>
       <div className="w-full mt-1 h-1 rounded-full bg-black/40 overflow-hidden">
@@ -301,6 +301,10 @@ export default function BattlePage() {
   const logRef = useRef(0);
   const addLog = (txt: string) => setLog(prev => [...prev.slice(-5), `[${logRef.current++}] ${txt}`]);
 
+  // Refs for functions that need current values in callbacks
+  const stateRef = useRef({ phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerEnergy, combo, lastElem, processing });
+  useEffect(() => { stateRef.current = { phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerEnergy, combo, lastElem, processing }; }, [phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerEnergy, combo, lastElem, processing]);
+
   // Initialize hand
   useEffect(() => {
     if (ownedPokemon.length >= 3) {
@@ -317,16 +321,18 @@ export default function BattlePage() {
     }
   }, [ownedPokemon]);
 
-  // Auto attack when in auto mode + player turn + has active card
-  useEffect(() => {
-    if (!autoMode || !isPlayerTurn || phase !== 'battle' || processing) return;
-    if (!playerActive) return;
+  // ============================================================
+  // Battle Logic Functions
+  // ============================================================
 
-    const timer = setTimeout(() => {
-      executePlayerAttack();
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [autoMode, isPlayerTurn, phase, playerActive, processing, turn]);
+  // Generate study question
+  const genQuestion = (card: BattleCard) => {
+    const meanings = ['makan', 'minum', 'pergi', 'lihat', 'dengar', 'belajar', 'bekerja', 'bermain', 'tidur', 'bangun', 'duduk', 'berdiri', 'jatuh', 'naik', 'turun'];
+    const name = card.name.toLowerCase();
+    const wrong = shuffle(meanings.filter(m => m !== name)).slice(0, 3);
+    const opts = shuffle([...wrong, name]);
+    return { q: `Apa arti "${card.name}"?`, opts, ans: name };
+  };
 
   // Start battle
   const startBattle = (opp: any) => {
@@ -360,14 +366,12 @@ export default function BattlePage() {
     const card = playerHand[idx];
     if (!card || card.hp <= 0) return;
 
-    // If already active, just switch
     if (playerActive?.id === card.id) {
       setPlayerActive(null);
       addLog(`❌ Batal memilih ${card.name}`);
       return;
     }
 
-    // Use energy
     if (playerEnergy < card.cost) {
       addLog(`⚡ Tidak cukup energy! Butuh ${card.cost}, punya ${playerEnergy}`);
       return;
@@ -376,24 +380,6 @@ export default function BattlePage() {
     setPlayerEnergy(prev => prev - card.cost);
     setPlayerActive(card);
     addLog(`🃏 Pilih ${card.name} (${card.element}) ⚔️ ATK:${card.attack} 🛡️ DEF:${card.defense}`);
-  };
-
-  // Generate study question
-  const genQuestion = (card: BattleCard) => {
-    const meanings = ['makan', 'minum', 'pergi', 'lihat', 'dengar', 'belajar', 'bekerja', 'bermain', 'tidur', 'bangun', 'duduk', 'berdiri', 'jatuh', 'naik', 'turun'];
-    const name = card.name.toLowerCase();
-    const wrong = shuffle(meanings.filter(m => m !== name)).slice(0, 3);
-    const opts = shuffle([...wrong, name]);
-    return { q: `Apa arti "${card.name}"?`, opts, ans: name };
-  };
-
-  // Player Study action
-  const handleStudy = () => {
-    if (!playerActive || !isPlayerTurn || processing) return;
-    setPlayerEnergy(prev => prev - 1);
-    const q = genQuestion(playerActive);
-    setStudyQ(q);
-    setShowStudy(true);
   };
 
   // Answer study (player)
@@ -407,7 +393,7 @@ export default function BattlePage() {
     } else if (playerActive) {
       addLog(`❌ Salah! Jawabannya: ${studyQ?.ans}`);
     }
-    setTimeout(() => endPlayerTurn(), 600);
+    setTimeout(() => doEndPlayerTurn(), 600);
   };
 
   // Player Defend action
@@ -416,43 +402,195 @@ export default function BattlePage() {
     setPlayerEnergy(0);
     addLog(`🛡️ Kamu bertahan! Defense +50%`);
 
-    // Apply defend status to active card
     if (playerActive) {
       const def: BattleCard = { ...playerActive, status: 'defending' };
       setPlayerActive(def);
       setPlayerHand(prev => prev.map(c => c.id === playerActive.id ? def : c));
     }
 
-    setTimeout(() => endPlayerTurn(), 500);
+    setTimeout(() => doEndPlayerTurn(), 500);
+  };
+
+  // Handle Study
+  const handleStudy = () => {
+    if (!playerActive || !isPlayerTurn || processing) return;
+    setPlayerEnergy(prev => prev - 1);
+    const q = genQuestion(playerActive);
+    setStudyQ(q);
+    setShowStudy(true);
+  };
+
+  // AI Turn logic (called directly, not as callback)
+  const doAITurn = () => {
+    const s = stateRef.current;
+    console.log('[AI] doAITurn called', { phase: s.phase, turn: s.turn, isPlayerTurn: s.isPlayerTurn, oppActive: s.oppActive?.id, oppHp: s.oppHp });
+    if (s.phase !== 'battle') { console.log('[AI] Early return - phase not battle'); return; }
+    addLog(`🤖 ${s.opponent?.name} giliran...`);
+    
+    setOppEnergy(3);
+
+    // Pick opponent active card if none
+    if (!s.oppActive) {
+      const card: BattleCard = {
+        id: `opp-${Date.now()}`, name: s.opponent.name, element: 'NORMAL',
+        attack: s.opponent.atk, defense: s.opponent.def, hp: s.opponent.hp, maxHp: s.opponent.hp,
+        cost: 1, status: 'normal',
+      };
+      setOppActive(card);
+      addLog(`🤖 ${s.opponent.name} kirim ${card.name}!`);
+      // Need to wait for state update, then call doAITurn again
+      setTimeout(() => doAITurnInner(), 1000);
+      return;
+    }
+
+    // Call inner AI logic (after card is set)
+    doAITurnInner();
+  };
+
+  // AI decision and action
+  const doAITurnInner = () => {
+    const s = stateRef.current;
+    if (!s.oppActive || !s.opponent) return;
+
+    const strat = s.opponent.strategy;
+    const rand = Math.random();
+    let action: 'attack' | 'defend' | 'study' = 'attack';
+
+    if (strat === 'aggressive') {
+      action = rand < 0.8 ? 'attack' : rand < 0.9 ? 'study' : 'defend';
+    } else if (strat === 'defensive') {
+      action = rand < 0.3 ? 'attack' : rand < 0.7 ? 'defend' : 'study';
+    } else if (strat === 'smart') {
+      action = !s.playerActive ? 'attack' : rand < 0.4 ? 'defend' : rand < 0.7 ? 'attack' : 'study';
+    } else {
+      action = rand < 0.55 ? 'attack' : rand < 0.75 ? 'defend' : 'study';
+    }
+
+    if (action === 'attack') {
+      doAIAttack();
+    } else if (action === 'defend') {
+      addLog(`🛡️ ${s.opponent.name} bertahan!`);
+      const def: BattleCard = { ...s.oppActive, status: 'defending' };
+      setOppActive(def);
+      setTimeout(() => doEndAITurn(), 800);
+    } else if (action === 'study') {
+      const q = genQuestion(s.oppActive);
+      setStudyQ(q);
+      setShowStudy(true);
+      setTimeout(() => {
+        setShowStudy(false);
+        const correct = Math.random() < 0.7;
+        if (correct && s.oppActive) {
+          const b: BattleCard = { ...s.oppActive, attack: Math.floor(s.oppActive.attack * 1.3), status: 'boosted' };
+          setOppActive(b);
+          addLog(`✨ ${s.opponent.name} jawab benar! +30% ATK!`);
+        } else {
+          addLog(`❌ ${s.opponent.name} salah menjawab!`);
+        }
+        setTimeout(() => doEndAITurn(), 600);
+      }, 800);
+    }
+  };
+
+  // AI Attack
+  const doAIAttack = () => {
+    const s = stateRef.current;
+    if (!s.oppActive) return;
+
+    let damage = s.oppActive.attack;
+    const eff = getElementAdvantage(s.oppActive.element, s.playerActive?.element || 'NORMAL');
+    if (eff > 1) damage = Math.floor(damage * eff);
+    else if (eff < 1) damage = Math.floor(damage * eff);
+
+    if (s.playerActive) {
+      const defReduction = s.playerActive.status === 'defending' ? Math.floor(s.playerActive.defense * 1.5) : s.playerActive.defense;
+      damage = Math.max(5, damage - defReduction);
+    }
+
+    setDmgVal(damage);
+    setShowDmg(true);
+
+    setTimeout(() => {
+      setShowDmg(false);
+
+      if (eff > 1) addLog(`✨ SUPER EFFECTIVE! -${damage}`);
+      else addLog(`💥 ${s.opponent?.name} menyerang! -${damage} damage!`);
+
+      // Damage to player active card
+      if (s.playerActive) {
+        const newHp = Math.max(0, s.playerActive.hp - damage);
+        if (newHp <= 0) {
+          addLog(`💀 ${s.playerActive.name} sudah fainted!`);
+          setPlayerHand(prev => prev.filter(c => c.id !== s.playerActive!.id));
+          setPlayerActive(null);
+        } else {
+          setPlayerActive({ ...s.playerActive, hp: newHp });
+          setPlayerHand(prev => prev.map(c => c.id === s.playerActive!.id ? { ...s.playerActive!, hp: newHp } : c));
+        }
+      }
+
+      // Damage to player overall HP
+      const newPlayerHp = Math.max(0, s.playerHp - Math.floor(damage * 0.3));
+      setPlayerHp(newPlayerHp);
+
+      // Check lose
+      if (newPlayerHp <= 0) {
+        setResult({ win: false, xp: 0, diamonds: 0 });
+        addLog(`💀 DEFEAT!`);
+        setPhase('result');
+        return;
+      }
+
+      setTimeout(() => doEndAITurn(), 500);
+    }, 700);
+  };
+
+  // End AI turn
+  const doEndAITurn = () => {
+    console.log('[AI] endAITurn');
+    setOppActive(null);
+    setIsPlayerTurn(true);
+    addLog(`🎯 Giliran ${stateRef.current.turn + 1} - pilih kartu!`);
+  };
+
+  // End player turn → AI turn
+  const doEndPlayerTurn = () => {
+    console.log('[Battle] endPlayerTurn');
+    setPlayerActive(null);
+    setIsPlayerTurn(false);
+    setTurn(t => t + 1);
+
+    setTimeout(() => {
+      setPlayerEnergy(3);
+      setTimeout(() => doAITurn(), 600);
+    }, 400);
   };
 
   // Execute player attack
   const executePlayerAttack = () => {
-    if (!playerActive || !isPlayerTurn || processing) return;
+    const s = stateRef.current;
+    console.log('[Battle] executePlayerAttack', { playerActive: s.playerActive?.id, isPlayerTurn: s.isPlayerTurn, processing: s.processing, oppActive: s.oppActive?.id, oppHp: s.oppHp });
+    if (!s.playerActive || !s.isPlayerTurn || s.processing) return;
     setProcessing(true);
 
-    let damage = playerActive.attack;
+    let damage = s.playerActive.attack;
     let effectiveness: 'super' | 'weak' | 'normal' = 'normal';
 
-    // Element advantage
-    const eff = getElementAdvantage(playerActive.element, oppActive?.element || 'NORMAL');
+    const eff = getElementAdvantage(s.playerActive.element, s.oppActive?.element || 'NORMAL');
     if (eff > 1) { effectiveness = 'super'; damage = Math.floor(damage * eff); }
     else if (eff < 1) { effectiveness = 'weak'; damage = Math.floor(damage * eff); }
 
-    // Combo bonus
-    if (lastElem === playerActive.element && lastElem !== null) {
-      const bonus = Math.floor(damage * 0.25 * combo);
+    if (s.lastElem === s.playerActive.element && s.lastElem !== null) {
+      const bonus = Math.floor(damage * 0.25 * s.combo);
       damage += bonus;
-      addLog(`🔥 Combo ${combo + 1}x! +${bonus} damage!`);
+      addLog(`🔥 Combo ${s.combo + 1}x! +${bonus} damage!`);
     }
 
-    // Defense reduction
-    if (oppActive) {
-      const defReduction = oppActive.status === 'defending' ? Math.floor(oppActive.defense * 1.5) : oppActive.defense;
+    if (s.oppActive) {
+      const defReduction = s.oppActive.status === 'defending' ? Math.floor(s.oppActive.defense * 1.5) : s.oppActive.defense;
       damage = Math.max(5, damage - defReduction);
     }
 
-    // Apply damage
     setDmgVal(damage);
     setShowDmg(true);
 
@@ -461,32 +599,27 @@ export default function BattlePage() {
       setProcessing(false);
 
       if (effectiveness === 'super') addLog(`✨ SUPER EFFECTIVE! -${damage}`);
-      else addLog(`⚔️ ${playerActive.name} menyerang! -${damage} damage!`);
+      else addLog(`⚔️ ${s.playerActive!.name} menyerang! -${damage} damage!`);
 
-      // Update combo
-      if (lastElem === playerActive.element) setCombo(c => c + 1);
-      else { setCombo(1); setLastElem(playerActive.element); }
+      if (s.lastElem === s.playerActive!.element) setCombo(c => c + 1);
+      else { setCombo(1); setLastElem(s.playerActive!.element); }
 
-      // Apply damage to opponent HP
-      const newOppHp = Math.max(0, oppHp - damage);
+      const newOppHp = Math.max(0, s.oppHp - damage);
       setOppHp(newOppHp);
 
-      // Check win
       if (newOppHp <= 0) {
-        const xp = 10 + (opponent?.level || 1) * 5;
-        const diamonds = 5 + (opponent?.level || 1) * 2;
+        const xp = 10 + (s.opponent?.level || 1) * 5;
+        const diamonds = 5 + (s.opponent?.level || 1) * 2;
         addCoins(xp);
         addDiamonds(diamonds);
         setResult({ win: true, xp, diamonds });
         addLog(`🏆 VICTORY! +${xp} XP +${diamonds} 💎`);
         setPhase('result');
 
-        // Update BATTLE quest progress - use getState() to avoid stale closure
         const battleQuests = useCollectionStore.getState().dailyQuests.filter(q => q.type === 'BATTLE' && !q.completed);
         battleQuests.forEach(quest => {
           const newProgress = quest.progress + 1;
           updateQuestProgress(quest.id, newProgress);
-          // Auto-complete & claim if target reached
           if (newProgress >= quest.target) {
             setTimeout(() => {
               const latest = useCollectionStore.getState().dailyQuests.find(q => q.id === quest.id);
@@ -499,147 +632,8 @@ export default function BattlePage() {
         return;
       }
 
-      // End player turn
-      setTimeout(() => endPlayerTurn(), 400);
+      setTimeout(() => doEndPlayerTurn(), 400);
     }, 700);
-  };
-
-  // End player turn → AI turn
-  const endPlayerTurn = () => {
-    setPlayerActive(null);
-    setIsPlayerTurn(false);
-    setTurn(t => t + 1);
-
-    // Reset player energy
-    setTimeout(() => {
-      setPlayerEnergy(3);
-      // AI turn
-      setTimeout(() => doAITurn(), 600);
-    }, 400);
-  };
-
-  // AI Turn
-  const doAITurn = () => {
-    if (phase !== 'battle') return;
-    addLog(`🤖 ${opponent?.name} giliran...`);
-    
-    setOppEnergy(3);
-
-    // Pick opponent active card if none
-    if (!oppActive) {
-      const card: BattleCard = {
-        id: `opp-${Date.now()}`, name: opponent.name, element: 'NORMAL',
-        attack: opponent.atk, defense: opponent.def, hp: opponent.hp, maxHp: opponent.hp,
-        cost: 1, status: 'normal',
-      };
-      setOppActive(card);
-      addLog(`🤖 ${opponent.name} kirim ${card.name}!`);
-      setTimeout(() => doAITurn(), 1000);
-      return;
-    }
-
-    // AI decision based on strategy
-    const strat = opponent.strategy;
-    const rand = Math.random();
-    let action: 'attack' | 'defend' | 'study' = 'attack';
-
-    if (strat === 'aggressive') {
-      action = rand < 0.8 ? 'attack' : rand < 0.9 ? 'study' : 'defend';
-    } else if (strat === 'defensive') {
-      action = rand < 0.3 ? 'attack' : rand < 0.7 ? 'defend' : 'study';
-    } else if (strat === 'smart') {
-      // Prefer attack if player has no active card, else defend
-      action = !playerActive ? 'attack' : rand < 0.4 ? 'defend' : rand < 0.7 ? 'attack' : 'study';
-    } else {
-      // balanced / boss
-      action = rand < 0.55 ? 'attack' : rand < 0.75 ? 'defend' : 'study';
-    }
-
-    if (action === 'attack') {
-      executeAIAttack();
-    } else if (action === 'defend') {
-      addLog(`🛡️ ${opponent.name} bertahan!`);
-      const def: BattleCard = { ...oppActive, status: 'defending' };
-      setOppActive(def);
-      setTimeout(() => endAITurn(), 800);
-    } else if (action === 'study') {
-      const q = genQuestion(oppActive);
-      setStudyQ(q);
-      setShowStudy(true);
-      // AI auto-answers correctly 70% of time
-      setTimeout(() => {
-        setShowStudy(false);
-        const correct = Math.random() < 0.7;
-        if (correct && oppActive) {
-          const b: BattleCard = { ...oppActive, attack: Math.floor(oppActive.attack * 1.3), status: 'boosted' };
-          setOppActive(b);
-          addLog(`✨ ${opponent.name} jawab benar! +30% ATK!`);
-        } else {
-          addLog(`❌ ${opponent.name} salah menjawab!`);
-        }
-        setTimeout(() => endAITurn(), 600);
-      }, 800);
-    }
-  };
-
-  // AI Attack
-  const executeAIAttack = () => {
-    if (!oppActive) return;
-
-    let damage = oppActive.attack;
-    const eff = getElementAdvantage(oppActive.element, playerActive?.element || 'NORMAL');
-    if (eff > 1) damage = Math.floor(damage * eff);
-    else if (eff < 1) damage = Math.floor(damage * eff);
-
-    // Player defense
-    if (playerActive) {
-      const defReduction = playerActive.status === 'defending' ? Math.floor(playerActive.defense * 1.5) : playerActive.defense;
-      damage = Math.max(5, damage - defReduction);
-    }
-
-    setDmgVal(damage);
-    setShowDmg(true);
-
-    setTimeout(() => {
-      setShowDmg(false);
-
-      if (eff > 1) addLog(`✨ SUPER EFFECTIVE! -${damage}`);
-      else addLog(`💥 ${opponent.name} menyerang! -${damage} damage!`);
-
-      // Damage to player active card
-      if (playerActive) {
-        const newHp = Math.max(0, playerActive.hp - damage);
-        if (newHp <= 0) {
-          addLog(`💀 ${playerActive.name} sudah fainted!`);
-          setPlayerHand(prev => prev.filter(c => c.id !== playerActive.id));
-          setPlayerActive(null);
-        } else {
-          setPlayerActive({ ...playerActive, hp: newHp });
-          setPlayerHand(prev => prev.map(c => c.id === playerActive.id ? { ...playerActive, hp: newHp } : c));
-        }
-      }
-
-      // Damage to player overall HP
-      const newPlayerHp = Math.max(0, playerHp - Math.floor(damage * 0.3));
-      setPlayerHp(newPlayerHp);
-
-      // Check lose
-      if (newPlayerHp <= 0) {
-        setResult({ win: false, xp: 0, diamonds: 0 });
-        addLog(`💀 DEFEAT!`);
-        setPhase('result');
-        return;
-      }
-
-      setTimeout(() => endAITurn(), 500);
-    }, 700);
-  };
-
-  // End AI turn
-  const endAITurn = () => {
-    setOppActive(null);
-    setIsPlayerTurn(true);
-    addLog(`🎯 Giliran ${turn + 1} - pilih kartu!`);
   };
 
   // Back handler
@@ -654,23 +648,28 @@ export default function BattlePage() {
     }
   };
 
+  // Auto attack
+  useEffect(() => {
+    if (!autoMode || !isPlayerTurn || phase !== 'battle' || processing) return;
+    if (!playerActive) return;
+    const timer = setTimeout(() => executePlayerAttack(), 800);
+    return () => clearTimeout(timer);
+  }, [autoMode, isPlayerTurn, phase, processing, playerActive, turn]);
+
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#0d0d1a' }}>
       <div className="absolute inset-0 bg-gradient-to-b from-purple-900/10 via-transparent to-orange-900/10" />
       
-      {/* Back */}
       <button onClick={handleBack} className="absolute top-4 left-4 w-10 h-10 rounded-full flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
         <ArrowLeft className="w-5 h-5 text-white" />
       </button>
 
-      {/* Modals */}
       <AnimatePresence>
         {phase === 'select-opponent' && <OpponentSelectModal onSelect={startBattle} onClose={() => router.push('/')} />}
       </AnimatePresence>
       <AnimatePresence>{result && <ResultModal win={result.win} xpGained={result.xp} diamondsGained={result.diamonds} onClose={() => { setResult(null); setPhase('select-opponent'); }} />}</AnimatePresence>
       <AnimatePresence>{showStudy && studyQ && <StudyModal question={studyQ} onAnswer={answerStudy} />}</AnimatePresence>
 
-      {/* Intro screen */}
       {phase === 'intro' && opponent && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-40 flex items-center justify-center" style={{ backgroundColor: '#0d0d1a' }}>
           <div className="text-center">
@@ -683,7 +682,6 @@ export default function BattlePage() {
       )}
 
       <main className="relative z-10 flex flex-col h-screen">
-        {/* Header */}
         <div className="px-4 py-3 flex items-center justify-between" style={{ backgroundColor: '#162125' }}>
           <div className="flex items-center gap-2">
             <span className="text-lg font-bold text-white">⚔️ Battle</span>
@@ -697,7 +695,6 @@ export default function BattlePage() {
           </div>
         </div>
 
-        {/* Energy Bar */}
         <div className="px-4 py-2 flex items-center gap-3" style={{ backgroundColor: '#1a1a2e' }}>
           <Zap className="w-4 h-4 text-yellow-400" />
           <div className="flex-1 flex gap-1">
@@ -708,7 +705,6 @@ export default function BattlePage() {
           <span className="text-xs font-bold" style={{ color: '#ffd93d' }}>{playerEnergy}/3</span>
           {combo > 1 && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#ff6b35] text-white">🔥 {combo}x</span>}
           
-          {/* Auto mode toggle */}
           <button
             onClick={() => setAutoMode(prev => !prev)}
             className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${autoMode ? 'bg-[#4bddb7] text-black' : 'bg-white/10 text-white/60'}`}
@@ -717,9 +713,7 @@ export default function BattlePage() {
           </button>
         </div>
 
-        {/* Battlefield */}
         <div className="flex-1 px-4 py-3 space-y-2 overflow-hidden">
-          {/* Opponent card */}
           {oppActive && <ActiveCard card={oppActive} isPlayer={false} />}
           {oppActive && <AnimatePresence>{showDmg && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
 
@@ -739,14 +733,11 @@ export default function BattlePage() {
             </div>
           )}
 
-          {/* VS */}
           {opponent && <div className="flex items-center gap-2 py-1"><div className="flex-1 h-px bg-white/10" /><span className="text-xs text-white/30">VS</span><div className="flex-1 h-px bg-white/10" /></div>}
 
-          {/* Player card */}
           {playerActive && <ActiveCard card={playerActive} isPlayer={true} />}
           {playerActive && <AnimatePresence>{showDmg && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
 
-          {/* Player HP */}
           {opponent && (
             <div className="flex items-center justify-between px-4 py-2 rounded-xl" style={{ backgroundColor: '#1a1a2e' }}>
               <div className="flex items-center gap-2">
@@ -765,7 +756,6 @@ export default function BattlePage() {
             </div>
           )}
 
-          {/* Battle log */}
           {log.length > 0 && (
             <div className="mt-1 px-4 py-2 rounded-xl" style={{ backgroundColor: '#1a1a2e' }}>
               <div className="flex gap-2 overflow-x-auto">
@@ -775,7 +765,6 @@ export default function BattlePage() {
           )}
         </div>
 
-        {/* Hand & Actions */}
         {phase === 'battle' && (
           <div className="px-4 pb-4 pt-2" style={{ backgroundColor: '#0f1923' }}>
             <div className="text-xs text-white/40 mb-2">Your Hand ({playerHand.length})</div>
