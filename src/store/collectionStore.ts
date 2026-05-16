@@ -73,6 +73,7 @@ interface CollectionState {
   ownedPokemon: PokemonCard[];
   fusedPokemon: FusedPokemon[];
   decks: Deck[];
+  activeDeckId: string | null;
   dailyQuests: DailyQuest[];
   lastQuestResetDate: string | null;
   questHistory: { date: string; questsCompleted: number; diamondsEarned: number }[];
@@ -103,6 +104,8 @@ interface CollectionState {
   createDeck: (name: string, cardIds: string[]) => void;
   updateDeck: (deckId: string, cardIds: string[]) => void;
   deleteDeck: (deckId: string) => void;
+  setActiveDeck: (deckId: string | null) => void;
+  getActiveDeck: () => Deck | undefined;
 
   // Quest actions
   updateQuestProgress: (questId: string, progress: number) => void;
@@ -130,6 +133,7 @@ export const useCollectionStore = create<CollectionState>()(
       ownedPokemon: [],
       fusedPokemon: [],
       decks: [],
+      activeDeckId: null,
       dailyQuests: [],
       lastQuestResetDate: null,
       questHistory: [],
@@ -247,7 +251,18 @@ export const useCollectionStore = create<CollectionState>()(
       deleteDeck: (deckId) => {
         set(state => ({
           decks: state.decks.filter(d => d.id !== deckId),
+          activeDeckId: state.activeDeckId === deckId ? null : state.activeDeckId,
         }));
+      },
+
+      setActiveDeck: (deckId) => {
+        set({ activeDeckId: deckId });
+      },
+
+      getActiveDeck: () => {
+        const state = get();
+        if (!state.activeDeckId) return undefined;
+        return state.decks.find(d => d.id === state.activeDeckId);
       },
 
       // Quest actions

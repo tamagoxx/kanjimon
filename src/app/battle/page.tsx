@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { useCollectionStore } from '@/store/collectionStore';
+import { useCollectionStore, PokemonCard } from '@/store/collectionStore';
+import { CARDS_BY_ID } from '@/data/cards';
 import { Swords, Shield, ArrowLeft, Zap, Flame, Droplets, Leaf, Eye, Sparkles, CircleDot } from 'lucide-react';
 
 // ============================================================
@@ -68,6 +69,17 @@ function shuffle<T>(arr: T[]): T[] {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+function useDemoDeck(setHand: (cards: BattleCard[]) => void) {
+  const demo = [
+    { id: 'd1', name: 'Mizu', element: 'WATER', attack: 55, defense: 20, hp: 85 },
+    { id: 'd2', name: 'Hi', element: 'FIRE', attack: 70, defense: 15, hp: 75 },
+    { id: 'd3', name: 'Ki', element: 'GRASS', attack: 50, defense: 25, hp: 90 },
+    { id: 'd4', name: 'Kaze', element: 'ELECTRIC', attack: 60, defense: 18, hp: 80 },
+    { id: 'd5', name: 'Hikari', element: 'PSYCHIC', attack: 65, defense: 22, hp: 85 },
+  ];
+  setHand(demo.map(d => createBattleCard(d, true)));
 }
 
 function createBattleCard(card: any, isPlayer: boolean): BattleCard {
@@ -307,19 +319,38 @@ export default function BattlePage() {
 
   // Initialize hand
   useEffect(() => {
-    if (ownedPokemon.length >= 3) {
+    const activeDeck = useCollectionStore.getState().getActiveDeck();
+    
+    if (activeDeck && activeDeck.cardIds.length > 0) {
+      // Use deck cards for battle
+      const battleCards: BattleCard[] = [];
+      for (const cardId of activeDeck.cardIds) {
+        if (cardId.startsWith('poke-')) {
+          const pokemonId = parseInt(cardId.replace('poke-', ''));
+          const poke = useCollectionStore.getState().ownedPokemon.find(p => p.pokemonId === pokemonId);
+          if (poke) battleCards.push(createBattleCard(poke, true));
+        } else if (cardId.startsWith('jp-')) {
+          const jpId = cardId.replace('jp-', '');
+          const jpCard = CARDS_BY_ID.get(jpId);
+          if (jpCard) battleCards.push(createBattleCard(jpCard, true));
+        }
+      }
+      if (battleCards.length >= 3) {
+        setPlayerHand(shuffle(battleCards));
+      } else {
+        // Fallback to owned pokemon if deck doesn't have enough
+        if (ownedPokemon.length >= 3) {
+          setPlayerHand(shuffle(ownedPokemon.slice(0, 5)).map(p => createBattleCard(p, true)));
+        } else {
+          useDemoDeck(setPlayerHand);
+        }
+      }
+    } else if (ownedPokemon.length >= 3) {
       setPlayerHand(shuffle(ownedPokemon.slice(0, 5)).map(p => createBattleCard(p, true)));
     } else {
-      const demo = [
-        { id: 'd1', name: 'Mizu', element: 'WATER', attack: 55, defense: 20, hp: 85 },
-        { id: 'd2', name: 'Hi', element: 'FIRE', attack: 70, defense: 15, hp: 75 },
-        { id: 'd3', name: 'Ki', element: 'GRASS', attack: 50, defense: 25, hp: 90 },
-        { id: 'd4', name: 'Kaze', element: 'ELECTRIC', attack: 60, defense: 18, hp: 80 },
-        { id: 'd5', name: 'Hikari', element: 'PSYCHIC', attack: 65, defense: 22, hp: 85 },
-      ];
-      setPlayerHand(demo.map(d => createBattleCard(d, true)));
+      useDemoDeck(setPlayerHand);
     }
-  }, [ownedPokemon]);
+  }, []);
 
   // ============================================================
   // Battle Logic Functions

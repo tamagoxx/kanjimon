@@ -48,7 +48,7 @@ const rarityColors: Record<string, string> = {
 
 const allJapaneseCards = Object.values(CARDS_BY_ID);
 
-type TabType = 'all' | 'japanese' | 'pokemon' | 'fusion';
+type TabType = 'all' | 'japanese' | 'pokemon' | 'fusion' | 'battle';
 type FilterType = 'all' | 'verbs' | 'nouns' | 'adjectives' | 'particles';
 
 // Top Navigation Bar
@@ -139,6 +139,175 @@ function JapaneseCardItem({ card, index }: { card: any; index: number }) {
         <div className="absolute inset-0 rounded-2xl ring-1 ring-[#6c5ce7]/50" />
       )}
     </motion.div>
+  );
+}
+
+// Battle Tab Content
+function BattleContent() {
+  const router = useRouter();
+  const { ownedPokemon, decks, activeDeckId, setActiveDeck, getActiveDeck } = useCollectionStore();
+  const [showDeckPicker, setShowDeckPicker] = useState(false);
+
+  const activeDeck = getActiveDeck();
+  const hasDeck = activeDeck && activeDeck.cardIds.length >= 5;
+
+  const handleBattle = () => {
+    if (!activeDeck) {
+      if (decks.length === 0) {
+        router.push('/deck');
+      } else {
+        setShowDeckPicker(true);
+      }
+    } else {
+      router.push('/battle');
+    }
+  };
+
+  const handleSelectDeck = (deckId: string) => {
+    setActiveDeck(deckId);
+    setShowDeckPicker(false);
+    router.push('/battle');
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Deck status card */}
+      <div className="p-4 rounded-2xl" style={{ backgroundColor: colors.cardBg }}>
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-3xl">⚔️</span>
+          <div className="flex-1">
+            <p className="font-bold text-white">
+              {activeDeck ? activeDeck.name : 'Belum pilih deck'}
+            </p>
+            <p className="text-xs text-white/40">
+              {activeDeck ? `${activeDeck.cardIds.length} kartu` : 'Pilih deck untuk battle'}
+            </p>
+          </div>
+          {activeDeck && (
+            <span className="px-2 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: '#4bddb733', color: '#4bddb7' }}>
+              ACTIVE
+            </span>
+          )}
+        </div>
+
+        {!hasDeck && (
+          <p className="text-xs text-red-400 mb-3">Deck minimal 5 kartu untuk battle</p>
+        )}
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => router.push('/deck')}
+            className="flex-1 py-2.5 rounded-xl font-bold text-white text-sm"
+            style={{ backgroundColor: '#162125' }}
+          >
+            {decks.length === 0 ? '📝 Buat Deck' : '🔧 Edit Deck'}
+          </button>
+          <button
+            onClick={handleBattle}
+            disabled={!hasDeck && !!activeDeck}
+            className="flex-1 py-2.5 rounded-xl font-bold text-white text-sm disabled:opacity-40"
+            style={{ backgroundColor: hasDeck ? colors.brand : '#2b363b' }}
+          >
+            ⚔️ {hasDeck ? 'Mulai Battle' : 'Pilih Deck Dulu'}
+          </button>
+        </div>
+      </div>
+
+      {/* Deck list */}
+      {decks.length > 0 && (
+        <div>
+          <p className="text-xs text-white/40 mb-2 px-1">Deck tersedia:</p>
+          <div className="space-y-2">
+            {decks.map(deck => (
+              <button
+                key={deck.id}
+                onClick={() => handleSelectDeck(deck.id)}
+                className="w-full p-3 rounded-xl flex items-center gap-3"
+                style={{
+                  backgroundColor: colors.cardBg,
+                  border: activeDeckId === deck.id ? `2px solid ${colors.teal}` : `2px solid transparent`,
+                }}
+              >
+                <span className="text-xl">🃏</span>
+                <div className="flex-1 text-left">
+                  <p className="font-bold text-white text-sm">{deck.name}</p>
+                  <p className="text-xs text-white/40">{deck.cardIds.length} kartu</p>
+                </div>
+                {activeDeckId === deck.id && (
+                  <span className="text-xs font-bold" style={{ color: colors.teal }}>✓</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* No deck message */}
+      {decks.length === 0 && (
+        <div className="text-center py-6 rounded-2xl" style={{ backgroundColor: colors.cardBg }}>
+          <span className="text-4xl">🃏</span>
+          <p className="text-sm text-white/60 mt-2 mb-3">Kamu belum punya deck</p>
+          <button
+            onClick={() => router.push('/deck')}
+            className="px-6 py-2 rounded-xl font-bold text-white text-sm"
+            style={{ backgroundColor: colors.brand }}
+          >
+            Buat Deck Pertama
+          </button>
+        </div>
+      )}
+
+      {/* No pokemon message */}
+      {ownedPokemon.length < 3 && (
+        <div className="text-center py-4 rounded-2xl" style={{ backgroundColor: colors.cardBg }}>
+          <p className="text-xs text-white/40">Minimum 3 Pokemon dibutuhkan untuk battle</p>
+          <button
+            onClick={() => router.push('/shop')}
+            className="mt-2 px-4 py-2 rounded-xl bg-[#4bddb7] text-black text-xs font-bold"
+          >
+            🎯 Tangkap Pokemon
+          </button>
+        </div>
+      )}
+
+      {/* Deck picker modal */}
+      {showDeckPicker && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowDeckPicker(false)}>
+          <div
+            className="w-full max-w-md rounded-t-3xl p-6"
+            style={{ backgroundColor: '#0f1923' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-white mb-4">Pilih Deck untuk Battle</h3>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {decks.map(deck => (
+                <button
+                  key={deck.id}
+                  onClick={() => handleSelectDeck(deck.id)}
+                  className="w-full p-4 rounded-xl flex items-center gap-3"
+                  style={{ backgroundColor: colors.cardBg }}
+                >
+                  <span className="text-2xl">🃏</span>
+                  <div className="flex-1 text-left">
+                    <p className="font-bold text-white">{deck.name}</p>
+                    <p className="text-xs text-white/40">{deck.cardIds.length} kartu</p>
+                  </div>
+                  <span style={{ color: colors.teal }}>›</span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowDeckPicker(false)}
+              className="w-full mt-4 py-3 rounded-xl text-white/40 font-bold text-sm"
+            >
+              Batal
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -500,6 +669,7 @@ export default function CollectionPage() {
               { id: 'japanese' as TabType, label: 'Kartu Jepang', icon: '📜' },
               { id: 'pokemon' as TabType, label: 'Pokemon', icon: '🎮' },
               { id: 'fusion' as TabType, label: 'Fusion', icon: '⚡' },
+              { id: 'battle' as TabType, label: 'Battle', icon: '⚔️' },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -617,6 +787,9 @@ export default function CollectionPage() {
 
           {/* Fusion Tab */}
           {activeTab === 'fusion' && <FusionContent />}
+
+          {/* Battle Tab */}
+          {activeTab === 'battle' && <BattleContent />}
 
           {/* Empty states */}
           {activeTab === 'pokemon' && ownedPokemon.length === 0 && (
