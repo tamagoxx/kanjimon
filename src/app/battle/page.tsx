@@ -264,7 +264,7 @@ function ActiveCard({ card, isPlayer }: { card: BattleCard; isPlayer: boolean })
 // ============================================================
 export default function BattlePage() {
   const router = useRouter();
-  const { ownedPokemon, addCoins, addDiamonds, updateQuestProgress, completeQuest } = useCollectionStore();
+  const { ownedPokemon, addCoins, addDiamonds, trackQuestEvent } = useCollectionStore();
 
   // Core state
   const [phase, setPhase] = useState<Phase>('select-opponent');
@@ -616,19 +616,8 @@ export default function BattlePage() {
         addLog(`🏆 VICTORY! +${xp} XP +${diamonds} 💎`);
         setPhase('result');
 
-        const battleQuests = useCollectionStore.getState().dailyQuests.filter(q => q.type === 'BATTLE' && !q.completed);
-        battleQuests.forEach(quest => {
-          const newProgress = quest.progress + 1;
-          updateQuestProgress(quest.id, newProgress);
-          if (newProgress >= quest.target) {
-            setTimeout(() => {
-              const latest = useCollectionStore.getState().dailyQuests.find(q => q.id === quest.id);
-              if (latest && !latest.claimed) {
-                completeQuest(quest.id);
-              }
-            }, 1000);
-          }
-        });
+        // Update BATTLE quest progress
+        trackQuestEvent('BATTLE');
         return;
       }
 

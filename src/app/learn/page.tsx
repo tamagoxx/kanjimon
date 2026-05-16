@@ -255,8 +255,7 @@ function QuizModal({ isOpen, onClose, moduleType, quizSubset = 'basic' }: {
   quizSubset?: 'basic' | 'dakuten' | 'combinations';
 }) {
   const addDiamonds = useCollectionStore(s => s.addDiamonds);
-  const updateQuestProgress = useCollectionStore(s => s.updateQuestProgress);
-  const completeQuest = useCollectionStore(s => s.completeQuest);
+  const trackQuestEvent = useCollectionStore(s => s.trackQuestEvent);
   const markCharLearned = useLearningProgressStore(s => s.markCharLearned);
   const markBatchLearned = useLearningProgressStore(s => s.markBatchLearned);
   const getModuleProgress = useLearningProgressStore(s => s.getModuleProgress);
@@ -507,35 +506,8 @@ function QuizModal({ isOpen, onClose, moduleType, quizSubset = 'basic' }: {
         const updated = getModuleProgress(moduleType);
         console.log(`[Quiz] ${moduleType} progress: ${updated.learned}/${updated.total} (${updated.percentage}%)`);
 
-        // Update quest progress using fresh state
-        try {
-          const store = useCollectionStore.getState();
-          const moduleQuests = store.dailyQuests.filter(q => q.type === 'MODULE' && !q.completed);
-          moduleQuests.forEach(quest => {
-            try {
-              const newProgress = quest.progress + 1;
-              updateQuestProgress(quest.id, newProgress);
-
-              if (newProgress >= quest.target) {
-                setTimeout(() => {
-                  try {
-                    const currentStore = useCollectionStore.getState();
-                    const currentQuest = currentStore.dailyQuests.find(q => q.id === quest.id);
-                    if (currentQuest && !currentQuest.claimed) {
-                      completeQuest(quest.id);
-                    }
-                  } catch (err) {
-                    console.error('Failed to complete quest:', err);
-                  }
-                }, 500);
-              }
-            } catch (err) {
-              console.error('Failed to update quest progress:', err);
-            }
-          });
-        } catch (err) {
-          console.error('Failed to process quest progress:', err);
-        }
+        // Update MODULE quest progress
+        trackQuestEvent('MODULE');
       }
     } catch (err) {
       console.error('handleComplete error:', err);
