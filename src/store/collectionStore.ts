@@ -74,7 +74,7 @@ const DEFAULT_QUESTS: DailyQuest[] = [
   { id: 'q1', type: 'BATTLE', title: 'Juara Pemula', description: 'Menangkan 1 battles', target: 1, progress: 0, xpReward: 50, diamondReward: 5, completed: false },
   { id: 'q2', type: 'MODULE', title: 'Pelajar Keras', description: 'Selesaikan 1 modul belajar', target: 1, progress: 0, xpReward: 30, diamondReward: 3, completed: false },
   { id: 'q3', type: 'REVIEW', title: 'Ulang Harian', description: 'Review 10 kartu', target: 10, progress: 0, xpReward: 20, diamondReward: 2, completed: false },
-  { id: 'q4', type: 'MODULE', title: 'Kolektor', description: 'Tangkap 3 Pokemon baru', target: 3, progress: 0, xpReward: 60, diamondReward: 8, completed: false },
+  { id: 'q4', type: 'COLLECT', title: 'Kolektor', description: 'Tangkap 3 Pokemon baru', target: 3, progress: 0, xpReward: 60, diamondReward: 8, completed: false },
   { id: 'q5', type: 'STREAK', title: 'Streak 3 Hari', description: 'Login 3 hari berturut-turut', target: 3, progress: 0, xpReward: 100, diamondReward: 10, completed: false },
 ];
 
@@ -119,9 +119,27 @@ export const useCollectionStore = create<CollectionState>()(
         if (ownedPokemon.some(p => p.pokemonId === pokemon.pokemonId)) {
           return; // Already caught
         }
-        set(state => ({
-          ownedPokemon: [...state.ownedPokemon, pokemon],
-        }));
+        set(state => {
+          const newOwnedPokemon = [...state.ownedPokemon, pokemon];
+          // Update COLLECT quest progress
+          const collectQuest = state.dailyQuests.find(q => q.type === 'COLLECT' && !q.completed);
+          let newQuests = state.dailyQuests;
+          if (collectQuest) {
+            const newProgress = collectQuest.progress + 1;
+            const completed = newProgress >= collectQuest.target;
+            console.log(`[Gacha] Pokemon caught: ${pokemon.name}. COLLECT quest: ${newProgress}/${collectQuest.target}`);
+            newQuests = state.dailyQuests.map(q =>
+              q.id === collectQuest.id ? { ...q, progress: newProgress, completed } : q
+            );
+          }
+          return {
+            ownedPokemon: newOwnedPokemon,
+            dailyQuests: newQuests,
+          };
+        });
+        // Give diamond reward for new catch
+        const { addDiamonds: addDiam } = get();
+        addDiam(2);
       },
 
       releasePokemon: (pokemonId) => {

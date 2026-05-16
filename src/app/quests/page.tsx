@@ -25,6 +25,7 @@ const QUEST_ICONS: Record<string, string> = {
   MODULE: '📚',
   REVIEW: '🔁',
   STREAK: '🔥',
+  COLLECT: '🎰',
 };
 
 const QUEST_COLORS: Record<string, string> = {
@@ -32,6 +33,7 @@ const QUEST_COLORS: Record<string, string> = {
   MODULE: '#6c5ce7',
   REVIEW: '#4bddb7',
   STREAK: '#f0bf63',
+  COLLECT: '#4facfe',
 };
 
 // Top App Bar

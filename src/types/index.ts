@@ -133,7 +133,7 @@ export interface AIOpponent {
 }
 
 // --- Daily Quests ---
-export type QuestType = 'LEARN' | 'BATTLE' | 'MODULE' | 'REVIEW' | 'STREAK';
+export type QuestType = 'LEARN' | 'BATTLE' | 'MODULE' | 'REVIEW' | 'STREAK' | 'COLLECT';
 
 export interface DailyQuest {
   id: string;
