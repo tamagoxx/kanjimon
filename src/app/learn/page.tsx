@@ -249,9 +249,10 @@ function CharDetailModal({ char, romaji, example, exampleMeaning, onClose }: {
   );
 }
 
-// Quiz for Hiragana
-function QuizModal({ isOpen, onClose, moduleType }: {
+// Quiz for Hiragana/Katakana (supports basic, dakuten, combinations)
+function QuizModal({ isOpen, onClose, moduleType, quizSubset = 'basic' }: {
   isOpen: boolean; onClose: () => void; moduleType: 'hiragana' | 'katakana';
+  quizSubset?: 'basic' | 'dakuten' | 'combinations';
 }) {
   const addDiamonds = useCollectionStore(s => s.addDiamonds);
   const updateQuestProgress = useCollectionStore(s => s.updateQuestProgress);
@@ -274,6 +275,16 @@ function QuizModal({ isOpen, onClose, moduleType }: {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isClosing, setIsClosing] = useState(false);
+  const [subsetLabel, setSubsetLabel] = useState(
+    quizSubset === 'dakuten' ? 'DAKUTEN' : quizSubset === 'combinations' ? 'KOMBINASI' : moduleType.toUpperCase()
+  );
+
+  // Update label when subset changes
+  useEffect(() => {
+    setSubsetLabel(
+      quizSubset === 'dakuten' ? 'DAKUTEN' : quizSubset === 'combinations' ? 'KOMBINASI' : moduleType.toUpperCase()
+    );
+  }, [quizSubset, moduleType]);
 
   // Generate questions when moduleType or quizKey changes
   useEffect(() => {
@@ -281,9 +292,42 @@ function QuizModal({ isOpen, onClose, moduleType }: {
     setError(null);
 
     try {
-      const allChars = moduleType === 'hiragana'
-        ? Object.entries(HIRAGANA_BASIC).map(([char, data]) => ({ char, romaji: data.romaji, example: data.example, exampleMeaning: data.exampleMeaning }))
-        : Object.entries(KATAKANA_BASIC).map(([char, data]) => ({ char, romaji: data.romaji, example: data.example, exampleMeaning: data.exampleMeaning }));
+      const isHiragana = moduleType === 'hiragana';
+      const basic = isHiragana ? HIRAGANA_BASIC : KATAKANA_BASIC;
+      const dakuten = isHiragana ? HIRAGANA_DAKUTEN : null;
+      const combos = isHiragana ? HIRAGANA_COMBINATIONS : null;
+
+      let allChars: { char: string; romaji: string; example?: string; exampleMeaning?: string }[];
+
+      switch (quizSubset) {
+        case 'dakuten':
+          allChars = dakuten
+            ? Object.entries(dakuten).map(([char, data]) => ({
+                char,
+                romaji: data.romaji,
+                example: `base: ${data.base}`,
+                exampleMeaning: data.base,
+              }))
+            : [];
+          break;
+        case 'combinations':
+          allChars = combos
+            ? Object.entries(combos).map(([char, data]) => ({
+                char,
+                romaji: data.romaji,
+                example: data.combo,
+                exampleMeaning: data.combo,
+              }))
+            : [];
+          break;
+        default: // 'basic'
+          allChars = Object.entries(basic).map(([char, data]) => ({
+            char,
+            romaji: data.romaji,
+            example: data.example,
+            exampleMeaning: data.exampleMeaning,
+          }));
+      }
 
       if (allChars.length === 0) {
         throw new Error('No characters found for module');
@@ -321,7 +365,7 @@ function QuizModal({ isOpen, onClose, moduleType }: {
       setError('Gagal menghasilkan soal');
       setIsLoading(false);
     }
-  }, [moduleType, quizKey]);
+  }, [moduleType, quizKey, quizSubset]);
 
   // Reset when modal opens
   useEffect(() => {
@@ -585,7 +629,7 @@ function QuizModal({ isOpen, onClose, moduleType }: {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3">
           <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: colors.brand, color: 'white' }}>
-            KUIS {moduleType === 'hiragana' ? 'HIRAGANA' : 'KATAKANA'}
+            KUIS {subsetLabel}
           </span>
           <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.inputBg }}>
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#c8c4d7" strokeWidth="2">
@@ -687,7 +731,7 @@ function ModuleDetailView({
   moduleId: string; onBack: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<'basic' | 'dakuten' | 'combinations'>('basic');
-  const [quizOpen, setQuizOpen] = useState(false);
+  const [quizOpen, setQuizOpen] = useState<{ open: boolean; subset: 'basic' | 'dakuten' | 'combinations' }>({ open: false, subset: 'basic' });
   const [selectedChar, setSelectedChar] = useState<{char: string; romaji: string; example?: string; exampleMeaning?: string} | null>(null);
 
   const isHiragana = moduleId === 'hiragana';
@@ -755,7 +799,7 @@ function ModuleDetailView({
             {basicChars.length + dakutenChars.length + comboChars.length} karakter
           </p>
           <button
-            onClick={() => setQuizOpen(true)}
+            onClick={() => setQuizOpen({ open: true, subset: activeTab })}
             className="mt-3 px-6 py-2 rounded-xl font-bold text-white"
             style={{ backgroundColor: colors.brand }}
           >
@@ -796,9 +840,10 @@ function ModuleDetailView({
 
       {/* Quiz Modal */}
       <QuizModal 
-        isOpen={quizOpen} 
-        onClose={() => setQuizOpen(false)} 
-        moduleType={isHiragana ? 'hiragana' : 'katakana'} 
+        isOpen={quizOpen.open} 
+        onClose={() => setQuizOpen(prev => ({ ...prev, open: false }))} 
+        moduleType={isHiragana ? 'hiragana' : 'katakana'}
+        quizSubset={quizOpen.subset}
       />
 
       {/* Character Detail Modal */}
