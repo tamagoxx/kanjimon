@@ -217,6 +217,9 @@ function QuestCard({ quest, onClaim, index }: {
                   style={{ width: `${progressPercent}%`, backgroundColor: color }}
                 />
               </div>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-xs text-[#c8c4d7]/60">State: {quest.completed ? (quest.claimed ? 'claimed' : 'ready-to-claim') : 'in-progress'}</span>
+              </div>
             </div>
 
             {/* Rewards */}
@@ -314,11 +317,24 @@ export default function QuestsPage() {
   }, [checkAndResetDailyQuests]);
 
   const handleClaim = (quest: any) => {
-    if (!quest.completed || quest.claimed) return;
+    console.log(`[Quest] handleClaim called for: ${quest.id}, completed: ${quest.completed}, claimed: ${quest.claimed}`);
+    if (!quest.completed || quest.claimed) {
+      console.log(`[Quest] handleClaim blocked - already completed or claimed`);
+      return;
+    }
 
     completeQuest(quest.id);
-    setLastClaimedQuest(quest);
-    setShowRewardModal(true);
+
+    // Force a re-render by toggling a state key
+    setLastClaimedQuest(null);
+    // Use setTimeout to ensure store update completes first
+    setTimeout(() => {
+      const latestQuests = useCollectionStore.getState().dailyQuests;
+      const updatedQuest = latestQuests.find(q => q.id === quest.id);
+      console.log(`[Quest] After claim - quest state:`, updatedQuest);
+      setLastClaimedQuest(updatedQuest || quest);
+      setShowRewardModal(true);
+    }, 100);
   };
 
   const completedCount = dailyQuests.filter(q => q.claimed).length;
