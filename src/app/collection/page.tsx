@@ -142,11 +142,199 @@ function JapaneseCardItem({ card, index }: { card: any; index: number }) {
   );
 }
 
+// Janken (Rock Paper Scissors) Game
+function JankenGame({ onBack }: { onBack: () => void }) {
+  const { addCoins, addDiamonds, trackQuestEvent } = useCollectionStore();
+  const [playerChoice, setPlayerChoice] = useState<string | null>(null);
+  const [oppChoice, setOppChoice] = useState<string | null>(null);
+  const [result, setResult] = useState<'win' | 'lose' | 'draw' | null>(null);
+  const [score, setScore] = useState({ wins: 0, losses: 0, draws: 0 });
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [round, setRound] = useState(1);
+  const [streak, setStreak] = useState(0);
+
+  const choices = [
+    { id: 'rock', emoji: '✊', label: 'Batu' },
+    { id: 'paper', emoji: '✋', label: 'Kertas' },
+    { id: 'scissors', emoji: '✌️', label: 'Gunting' },
+  ];
+
+  const getResult = (p: string, o: string): 'win' | 'lose' | 'draw' => {
+    if (p === o) return 'draw';
+    if (
+      (p === 'rock' && o === 'scissors') ||
+      (p === 'paper' && o === 'rock') ||
+      (p === 'scissors' && o === 'paper')
+    ) return 'win';
+    return 'lose';
+  };
+
+  const play = (choice: string) => {
+    if (isPlaying) return;
+    setIsPlaying(true);
+    setPlayerChoice(choice);
+
+    const opp = choices[Math.floor(Math.random() * 3)];
+    setOppChoice(opp.id);
+
+    const r = getResult(choice, opp.id);
+    setResult(r);
+
+    setTimeout(() => {
+      setScore(prev => ({
+        ...prev,
+        wins: r === 'win' ? prev.wins + 1 : prev.wins,
+        losses: r === 'lose' ? prev.losses + 1 : prev.losses,
+        draws: r === 'draw' ? prev.draws + 1 : prev.draws,
+      }));
+      if (r === 'win') {
+        setStreak(s => s + 1);
+        const reward = 10 + streak * 2;
+        addCoins(reward);
+        trackQuestEvent('BATTLE');
+        if (streak >= 2) addDiamonds(1);
+      } else {
+        setStreak(0);
+      }
+      setRound(r => r + 1);
+      setIsPlaying(false);
+    }, 800);
+  };
+
+  const reset = () => {
+    setPlayerChoice(null);
+    setOppChoice(null);
+    setResult(null);
+  };
+
+  const getResultText = () => {
+    if (!result) return '';
+    if (result === 'win') return streak > 1 ? `🏆 Menang! +${10 + (streak - 1) * 2} coins +1💎 (${streak}x streak!)` : '🏆 Menang! +10 coins';
+    if (result === 'lose') return '💀 Kalah!';
+    return '🤝 Seri!';
+  };
+
+  return (
+    <div className="space-y-4">
+      <button onClick={onBack} className="flex items-center gap-1 text-xs text-white/40 hover:text-white">
+        ← Pilih Mode
+      </button>
+
+      {/* Score board */}
+      <div className="grid grid-cols-3 gap-2 p-3 rounded-2xl" style={{ backgroundColor: colors.cardBg }}>
+        <div className="text-center">
+          <div className="text-lg font-bold text-green-400">{score.wins}</div>
+          <div className="text-xs text-white/40">Menang</div>
+        </div>
+        <div className="text-center">
+          <div className="text-lg font-bold text-yellow-400">{score.draws}</div>
+          <div className="text-xs text-white/40">Seri</div>
+        </div>
+        <div className="text-center">
+          <div className="text-lg font-bold text-red-400">{score.losses}</div>
+          <div className="text-xs text-white/40">Kalah</div>
+        </div>
+      </div>
+
+      {streak >= 2 && (
+        <div className="text-center py-2 rounded-xl" style={{ backgroundColor: '#f0bf6333' }}>
+          <span className="text-sm font-bold text-yellow-400">🔥 {streak}x Streak! +1 💎</span>
+        </div>
+      )}
+
+      {/* Battle arena */}
+      <div className="flex items-center justify-between py-6 px-4 rounded-2xl" style={{ backgroundColor: colors.cardBg }}>
+        {/* Player */}
+        <div className="flex flex-col items-center gap-2">
+          <div
+            className="w-20 h-20 rounded-2xl flex items-center justify-center text-4xl"
+            style={{ backgroundColor: playerChoice ? '#6c5ce733' : '#162125', border: `2px solid ${playerChoice ? colors.brand : 'transparent'}` }}
+          >
+            {playerChoice ? choices.find(c => c.id === playerChoice)?.emoji : '❓'}
+          </div>
+          <span className="text-xs text-white/60">Kamu</span>
+        </div>
+
+        {/* VS / Result */}
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-2xl font-black text-white/30">VS</span>
+          {result && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="text-center"
+            >
+              <div className="text-2xl">{result === 'win' ? '🏆' : result === 'lose' ? '💀' : '🤝'}</div>
+              <p className="text-xs text-white/80 mt-1 whitespace-nowrap">{getResultText()}</p>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Opponent */}
+        <div className="flex flex-col items-center gap-2">
+          <div
+            className="w-20 h-20 rounded-2xl flex items-center justify-center text-4xl"
+            style={{ backgroundColor: oppChoice ? '#ff6b3533' : '#162125', border: `2px solid ${oppChoice ? '#ff6b35' : 'transparent'}` }}
+          >
+            {oppChoice ? choices.find(c => c.id === oppChoice)?.emoji : '🤖'}
+          </div>
+          <span className="text-xs text-white/60">Bot</span>
+        </div>
+      </div>
+
+      {/* Opponent thinking indicator */}
+      {playerChoice && !oppChoice && (
+        <div className="text-center">
+          <motion.div
+            animate={{ opacity: [0.3, 1, 0.3] }}
+            transition={{ repeat: Infinity, duration: 0.6 }}
+            className="text-sm text-white/40"
+          >
+           🤖 Bot sedang memilih...
+          </motion.div>
+        </div>
+      )}
+
+      {/* Choice buttons */}
+      {!playerChoice || !result ? (
+        <div className="flex justify-center gap-4">
+          {choices.map(c => (
+            <motion.button
+              key={c.id}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => play(c.id)}
+              disabled={isPlaying}
+              className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center gap-1 disabled:opacity-40"
+              style={{ backgroundColor: colors.cardBg, border: `2px solid ${colors.brand}60` }}
+            >
+              <span className="text-3xl">{c.emoji}</span>
+              <span className="text-[10px] text-white/60">{c.label}</span>
+            </motion.button>
+          ))}
+        </div>
+      ) : (
+        <button
+          onClick={reset}
+          className="w-full py-3 rounded-xl font-bold text-white"
+          style={{ backgroundColor: colors.brand }}
+        >
+          ▶️ Main Lagi
+        </button>
+      )}
+
+      {/* Rounds */}
+      <p className="text-center text-xs text-white/30">Ronde {round}</p>
+    </div>
+  );
+}
+
 // Battle Tab Content
 function BattleContent() {
   const router = useRouter();
   const { ownedPokemon, decks, activeDeckId, setActiveDeck, getActiveDeck } = useCollectionStore();
   const [showDeckPicker, setShowDeckPicker] = useState(false);
+  const [battleMode, setBattleMode] = useState<'card' | 'janken' | null>(null);
 
   const activeDeck = getActiveDeck();
   const hasDeck = activeDeck && activeDeck.cardIds.length >= 5;
@@ -169,143 +357,189 @@ function BattleContent() {
     router.push('/battle');
   };
 
+  // Janken (Rock Paper Scissors) inline game
+  if (battleMode === 'janken') {
+    return <JankenGame onBack={() => setBattleMode(null)} />;
+  }
+
   return (
     <div className="space-y-4">
-      {/* Deck status card */}
-      <div className="p-4 rounded-2xl" style={{ backgroundColor: colors.cardBg }}>
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-3xl">⚔️</span>
-          <div className="flex-1">
-            <p className="font-bold text-white">
-              {activeDeck ? activeDeck.name : 'Belum pilih deck'}
-            </p>
-            <p className="text-xs text-white/40">
-              {activeDeck ? `${activeDeck.cardIds.length} kartu` : 'Pilih deck untuk battle'}
-            </p>
+      {/* Mode selector */}
+      {battleMode === null && (
+        <>
+          <div className="text-center mb-2">
+            <p className="text-sm text-white/50">Pilih mode battle</p>
           </div>
-          {activeDeck && (
-            <span className="px-2 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: '#4bddb733', color: '#4bddb7' }}>
-              ACTIVE
-            </span>
-          )}
-        </div>
-
-        {!hasDeck && (
-          <p className="text-xs text-red-400 mb-3">Deck minimal 5 kartu untuk battle</p>
-        )}
-
-        <div className="flex gap-2">
-          <button
-            onClick={() => router.push('/deck')}
-            className="flex-1 py-2.5 rounded-xl font-bold text-white text-sm"
-            style={{ backgroundColor: '#162125' }}
-          >
-            {decks.length === 0 ? '📝 Buat Deck' : '🔧 Edit Deck'}
-          </button>
-          <button
-            onClick={handleBattle}
-            disabled={!hasDeck && !!activeDeck}
-            className="flex-1 py-2.5 rounded-xl font-bold text-white text-sm disabled:opacity-40"
-            style={{ backgroundColor: hasDeck ? colors.brand : '#2b363b' }}
-          >
-            ⚔️ {hasDeck ? 'Mulai Battle' : 'Pilih Deck Dulu'}
-          </button>
-        </div>
-      </div>
-
-      {/* Deck list */}
-      {decks.length > 0 && (
-        <div>
-          <p className="text-xs text-white/40 mb-2 px-1">Deck tersedia:</p>
-          <div className="space-y-2">
-            {decks.map(deck => (
-              <button
-                key={deck.id}
-                onClick={() => handleSelectDeck(deck.id)}
-                className="w-full p-3 rounded-xl flex items-center gap-3"
-                style={{
-                  backgroundColor: colors.cardBg,
-                  border: activeDeckId === deck.id ? `2px solid ${colors.teal}` : `2px solid transparent`,
-                }}
-              >
-                <span className="text-xl">🃏</span>
-                <div className="flex-1 text-left">
-                  <p className="font-bold text-white text-sm">{deck.name}</p>
-                  <p className="text-xs text-white/40">{deck.cardIds.length} kartu</p>
-                </div>
-                {activeDeckId === deck.id && (
-                  <span className="text-xs font-bold" style={{ color: colors.teal }}>✓</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* No deck message */}
-      {decks.length === 0 && (
-        <div className="text-center py-6 rounded-2xl" style={{ backgroundColor: colors.cardBg }}>
-          <span className="text-4xl">🃏</span>
-          <p className="text-sm text-white/60 mt-2 mb-3">Kamu belum punya deck</p>
-          <button
-            onClick={() => router.push('/deck')}
-            className="px-6 py-2 rounded-xl font-bold text-white text-sm"
-            style={{ backgroundColor: colors.brand }}
-          >
-            Buat Deck Pertama
-          </button>
-        </div>
-      )}
-
-      {/* No pokemon message */}
-      {ownedPokemon.length < 3 && (
-        <div className="text-center py-4 rounded-2xl" style={{ backgroundColor: colors.cardBg }}>
-          <p className="text-xs text-white/40">Minimum 3 Pokemon dibutuhkan untuk battle</p>
-          <button
-            onClick={() => router.push('/shop')}
-            className="mt-2 px-4 py-2 rounded-xl bg-[#4bddb7] text-black text-xs font-bold"
-          >
-            🎯 Tangkap Pokemon
-          </button>
-        </div>
-      )}
-
-      {/* Deck picker modal */}
-      {showDeckPicker && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
-          onClick={() => setShowDeckPicker(false)}>
-          <div
-            className="w-full max-w-md rounded-t-3xl p-6"
-            style={{ backgroundColor: '#0f1923' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-white mb-4">Pilih Deck untuk Battle</h3>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {decks.map(deck => (
-                <button
-                  key={deck.id}
-                  onClick={() => handleSelectDeck(deck.id)}
-                  className="w-full p-4 rounded-xl flex items-center gap-3"
-                  style={{ backgroundColor: colors.cardBg }}
-                >
-                  <span className="text-2xl">🃏</span>
-                  <div className="flex-1 text-left">
-                    <p className="font-bold text-white">{deck.name}</p>
-                    <p className="text-xs text-white/40">{deck.cardIds.length} kartu</p>
-                  </div>
-                  <span style={{ color: colors.teal }}>›</span>
-                </button>
-              ))}
-            </div>
+          <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => setShowDeckPicker(false)}
-              className="w-full mt-4 py-3 rounded-xl text-white/40 font-bold text-sm"
+              onClick={() => setBattleMode('card')}
+              className="p-5 rounded-2xl flex flex-col items-center gap-2"
+              style={{ backgroundColor: colors.cardBg, border: `2px solid ${colors.brand}40` }}
             >
-              Batal
+              <span className="text-4xl">🃏</span>
+              <span className="font-bold text-white text-sm">Card Battle</span>
+              <span className="text-xs text-white/40 text-center">Pakai kartu deck untuk menang</span>
+            </button>
+            <button
+              onClick={() => setBattleMode('janken')}
+              className="p-5 rounded-2xl flex flex-col items-center gap-2"
+              style={{ backgroundColor: colors.cardBg, border: `2px solid ${colors.teal}40` }}
+            >
+              <span className="text-4xl">✌️</span>
+              <span className="font-bold text-white text-sm">Janken</span>
+              <span className="text-xs text-white/40 text-center">Batu Gunting Kertas</span>
             </button>
           </div>
-        </div>
+        </>
+      )}
+
+      {/* Card battle UI */}
+      {battleMode === 'card' && (
+        <>
+          <button
+            onClick={() => setBattleMode(null)}
+            className="flex items-center gap-1 text-xs text-white/40 hover:text-white"
+          >
+            ← Pilih Mode
+          </button>
+
+          {/* Deck status card */}
+          <div className="p-4 rounded-2xl" style={{ backgroundColor: colors.cardBg }}>
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-3xl">⚔️</span>
+              <div className="flex-1">
+                <p className="font-bold text-white">
+                  {activeDeck ? activeDeck.name : 'Belum pilih deck'}
+                </p>
+                <p className="text-xs text-white/40">
+                  {activeDeck ? `${activeDeck.cardIds.length} kartu` : 'Pilih deck untuk battle'}
+                </p>
+              </div>
+              {activeDeck && (
+                <span className="px-2 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: '#4bddb733', color: '#4bddb7' }}>
+                  ACTIVE
+                </span>
+              )}
+            </div>
+
+            {!hasDeck && (
+              <p className="text-xs text-red-400 mb-3">Deck minimal 5 kartu untuk battle</p>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => router.push('/deck')}
+                className="flex-1 py-2.5 rounded-xl font-bold text-white text-sm"
+                style={{ backgroundColor: '#162125' }}
+              >
+                {decks.length === 0 ? '📝 Buat Deck' : '🔧 Edit Deck'}
+              </button>
+              <button
+                onClick={handleBattle}
+                disabled={!hasDeck && !!activeDeck}
+                className="flex-1 py-2.5 rounded-xl font-bold text-white text-sm disabled:opacity-40"
+                style={{ backgroundColor: hasDeck ? colors.brand : '#2b363b' }}
+              >
+                ⚔️ {hasDeck ? 'Mulai Battle' : 'Pilih Deck Dulu'}
+              </button>
+            </div>
+          </div>
+
+          {/* Deck list */}
+          {decks.length > 0 && (
+            <div>
+              <p className="text-xs text-white/40 mb-2 px-1">Deck tersedia:</p>
+              <div className="space-y-2">
+                {decks.map(deck => (
+                  <button
+                    key={deck.id}
+                    onClick={() => handleSelectDeck(deck.id)}
+                    className="w-full p-3 rounded-xl flex items-center gap-3"
+                    style={{
+                      backgroundColor: colors.cardBg,
+                      border: activeDeckId === deck.id ? `2px solid ${colors.teal}` : `2px solid transparent`,
+                    }}
+                  >
+                    <span className="text-xl">🃏</span>
+                    <div className="flex-1 text-left">
+                      <p className="font-bold text-white text-sm">{deck.name}</p>
+                      <p className="text-xs text-white/40">{deck.cardIds.length} kartu</p>
+                    </div>
+                    {activeDeckId === deck.id && (
+                      <span className="text-xs font-bold" style={{ color: colors.teal }}>✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* No deck message */}
+          {decks.length === 0 && (
+            <div className="text-center py-6 rounded-2xl" style={{ backgroundColor: colors.cardBg }}>
+              <span className="text-4xl">🃏</span>
+              <p className="text-sm text-white/60 mt-2 mb-3">Kamu belum punya deck</p>
+              <button
+                onClick={() => router.push('/deck')}
+                className="px-6 py-2 rounded-xl font-bold text-white text-sm"
+                style={{ backgroundColor: colors.brand }}
+              >
+                Buat Deck Pertama
+              </button>
+            </div>
+          )}
+
+          {/* No pokemon message */}
+          {ownedPokemon.length < 3 && (
+            <div className="text-center py-4 rounded-2xl" style={{ backgroundColor: colors.cardBg }}>
+              <p className="text-xs text-white/40">Minimum 3 Pokemon dibutuhkan untuk battle</p>
+              <button
+                onClick={() => router.push('/shop')}
+                className="mt-2 px-4 py-2 rounded-xl bg-[#4bddb7] text-black text-xs font-bold"
+              >
+                🎯 Tangkap Pokemon
+              </button>
+            </div>
+          )}
+
+          {/* Deck picker modal */}
+          {showDeckPicker && (
+            <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowDeckPicker(false)}>
+              <div
+                className="w-full max-w-md rounded-t-3xl p-6"
+                style={{ backgroundColor: '#0f1923' }}
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-4" />
+                <h3 className="text-lg font-bold text-white mb-4">Pilih Deck untuk Battle</h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {decks.map(deck => (
+                    <button
+                      key={deck.id}
+                      onClick={() => handleSelectDeck(deck.id)}
+                      className="w-full p-4 rounded-xl flex items-center gap-3"
+                      style={{ backgroundColor: colors.cardBg }}
+                    >
+                      <span className="text-2xl">🃏</span>
+                      <div className="flex-1 text-left">
+                        <p className="font-bold text-white">{deck.name}</p>
+                        <p className="text-xs text-white/40">{deck.cardIds.length} kartu</p>
+                      </div>
+                      <span style={{ color: colors.teal }}>›</span>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setShowDeckPicker(false)}
+                  className="w-full mt-4 py-3 rounded-xl text-white/40 font-bold text-sm"
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
