@@ -257,6 +257,8 @@ function QuizModal({ isOpen, onClose, moduleType }: {
   const updateQuestProgress = useCollectionStore(s => s.updateQuestProgress);
   const completeQuest = useCollectionStore(s => s.completeQuest);
   const markCharLearned = useLearningProgressStore(s => s.markCharLearned);
+  const markBatchLearned = useLearningProgressStore(s => s.markBatchLearned);
+  const getModuleProgress = useLearningProgressStore(s => s.getModuleProgress);
 
   // Controlled state - no refs, no stale closures
   const [questions, setQuestions] = useState<Array<{
@@ -451,15 +453,15 @@ function QuizModal({ isOpen, onClose, moduleType }: {
         addDiamonds(reward);
       }
 
-      // Mark characters as learned if passed
+      // Mark characters as learned if passed - use batch for efficiency
       if (finalScore >= 6 && finalQuestions.length > 0) {
-        finalQuestions.forEach(question => {
-          try {
-            markCharLearned(moduleType, question.char, question.romaji);
-          } catch (err) {
-            console.error('Failed to mark char learned:', err);
-          }
-        });
+        const charsToMark = finalQuestions.map(q => ({ char: q.char, romaji: q.romaji }));
+        const addedCount = markBatchLearned(moduleType, charsToMark);
+        console.log(`[Quiz] Marked ${addedCount} chars as learned for ${moduleType}`);
+
+        // Refresh module progress to update UI
+        const updated = getModuleProgress(moduleType);
+        console.log(`[Quiz] ${moduleType} progress: ${updated.learned}/${updated.total} (${updated.percentage}%)`);
 
         // Update quest progress using fresh state
         try {
