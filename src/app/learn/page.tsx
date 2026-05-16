@@ -257,7 +257,6 @@ function QuizModal({ isOpen, onClose, moduleType }: {
   const diamonds = useCollectionStore(s => s.diamonds);
   const updateQuestProgress = useCollectionStore(s => s.updateQuestProgress);
   const completeQuest = useCollectionStore(s => s.completeQuest);
-  const dailyQuests = useCollectionStore(s => s.dailyQuests);
   const markCharLearned = useLearningProgressStore(s => s.markCharLearned);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -266,6 +265,7 @@ function QuizModal({ isOpen, onClose, moduleType }: {
   const [showResult, setShowResult] = useState(false);
   const [quizKey, setQuizKey] = useState(0); // forces new quiz generation
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const questionsRef = useRef<Array<{
     char: string; romaji: string; options: string[]; correct: number;
     example?: string; exampleMeaning?: string;
@@ -274,30 +274,60 @@ function QuizModal({ isOpen, onClose, moduleType }: {
   // Generate a fresh set of 10 questions - stable until quizKey or moduleType changes
   useEffect(() => {
     setIsLoading(true);
-    const allChars = moduleType === 'hiragana'
-      ? Object.entries(HIRAGANA_BASIC).map(([char, data]) => ({ char, romaji: data.romaji, example: data.example, exampleMeaning: data.exampleMeaning }))
-      : Object.entries(KATAKANA_BASIC).map(([char, data]) => ({ char, romaji: data.romaji, example: data.example, exampleMeaning: data.exampleMeaning }));
+    setError(null);
+    try {
+      const allChars = moduleType === 'hiragana'
+        ? Object.entries(HIRAGANA_BASIC).map(([char, data]) => ({ char, romaji: data.romaji, example: data.example, exampleMeaning: data.exampleMeaning }))
+        : Object.entries(KATAKANA_BASIC).map(([char, data]) => ({ char, romaji: data.romaji, example: data.example, exampleMeaning: data.exampleMeaning }));
 
-    // Shuffle and pick 10 - use seed-based shuffle for reproducibility
-    const shuffled = [...allChars].sort(() => Math.random() - 0.5).slice(0, 10);
-    questionsRef.current = shuffled.map(char => {
-      const correctAnswer = char.romaji;
-      const wrongAnswers = allChars
-        .filter(c => c.romaji !== correctAnswer)
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 3)
-        .map(c => c.romaji);
-      const options = [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5);
-      return {
-        char: char.char,
-        romaji: char.romaji,
-        options,
-        correct: options.indexOf(correctAnswer),
-        example: char.example,
-        exampleMeaning: char.exampleMeaning,
-      };
-    });
-    setIsLoading(false);
+      if (allChars.length === 0) {
+        throw new Error('No characters found for module');
+      }
+
+      // Shuffle and pick 10
+      const shuffled = [...allChars].sort(() => Math.random() - 0.5).slice(0, 10);
+      
+      if (shuffled.length < 10) {
+        console.warn(`Only ${shuffled.length} characters available for quiz`);
+      }
+      
+      questionsRef.current = shuffled.map(char => {
+        const correctAnswer = char.romaji;
+        const wrongAnswers = allChars
+          .filter(c => c.romaji !== correctAnswer)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3)
+          .map(c => c.romaji);
+        
+        if (wrongAnswers.length < 3) {
+          // Fallback if not enough wrong answers
+          const fillers = allChars
+            .filter(c => c.romaji !== correctAnswer && !wrongAnswers.includes(c.romaji))
+            .slice(0, 3 - wrongAnswers.length)
+            .map(c => c.romaji);
+          wrongAnswers.push(...fillers);
+        }
+        
+        const options = wrongAnswers.length >= 3 
+          ? [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5)
+          : [correctAnswer]; // Fallback
+        
+        return {
+          char: char.char,
+          romaji: char.romaji,
+          options,
+          correct: options.indexOf(correctAnswer),
+          example: char.example,
+          exampleMeaning: char.exampleMeaning,
+        };
+      });
+      
+      setIsLoading(false);
+    } catch (err) {
+      console.error('Failed to generate questions:', err);
+      setError('Gagal menghasilkan soal');
+      setIsLoading(false);
+    }
   }, [moduleType, quizKey]);
 
   // Reset state when quiz opens
@@ -308,6 +338,7 @@ function QuizModal({ isOpen, onClose, moduleType }: {
       setScore(0);
       setIsComplete(false);
       setShowResult(false);
+      setError(null);
     }
   }, [isOpen, quizKey]);
 
@@ -316,7 +347,7 @@ function QuizModal({ isOpen, onClose, moduleType }: {
   const questions = questionsRef.current;
 
   // Show loading or empty state while generating questions
-  if (isLoading || questions.length === 0) {
+  if (isLoading) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -333,6 +364,42 @@ function QuizModal({ isOpen, onClose, moduleType }: {
     );
   }
 
+  // Show error state
+  if (error || questions.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
+      >
+        <div className="text-center p-6">
+          <div className="text-4xl mb-3">⚠️</div>
+          <p className="text-white/80 mb-4">{error || 'Soal tidak tersedia'}</p>
+          <button 
+            onClick={() => setQuizKey(k => k + 1)} 
+            className="px-6 py-3 rounded-xl font-bold text-white"
+            style={{ backgroundColor: colors.brand }}
+          >
+            🔄 Coba Lagi
+          </button>
+          <button 
+            onClick={onClose} 
+            className="block w-full mt-3 px-6 py-2 rounded-xl text-white/60"
+          >
+            Tutup
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Bounds check - prevent out of bounds access
+  if (currentQuestion >= questions.length) {
+    console.error(`currentQuestion ${currentQuestion} >= questions.length ${questions.length}`);
+    setCurrentQuestion(Math.max(0, questions.length - 1));
+  }
+  
   const q = questions[currentQuestion];
   if (!q) {
     return (
@@ -375,6 +442,71 @@ function QuizModal({ isOpen, onClose, moduleType }: {
     setQuizKey(k => k + 1);
   };
 
+  const handleComplete = () => {
+    // Ensure we have questions before processing
+    const questions = questionsRef.current;
+    if (!questions || questions.length === 0) {
+      console.error('No questions to complete');
+      onClose();
+      return;
+    }
+    
+    // Calculate reward
+    const reward = score >= 8 ? 15 : score >= 6 ? 8 : 0;
+    
+    // Add diamonds if earned
+    if (reward > 0) {
+      addDiamonds(reward);
+    }
+    
+    // Mark characters as learned if passed
+    if (score >= 6) {
+      questions.forEach(q => {
+        try {
+          markCharLearned(moduleType, q.char, q.romaji);
+        } catch (err) {
+          console.error('Failed to mark char learned:', err);
+        }
+      });
+      
+      // Update quest progress using fresh state from store
+      try {
+        const store = useCollectionStore.getState();
+        const moduleQuests = store.dailyQuests.filter(q => q.type === 'MODULE' && !q.completed);
+        moduleQuests.forEach(quest => {
+          try {
+            const newProgress = quest.progress + 1;
+            updateQuestProgress(quest.id, newProgress);
+            
+            // Auto-complete if target reached
+            if (newProgress >= quest.target && !quest.completed) {
+              setTimeout(() => {
+                try {
+                  const currentStore = useCollectionStore.getState();
+                  const currentQuest = currentStore.dailyQuests.find(q => q.id === quest.id);
+                  if (currentQuest && !currentQuest.claimed) {
+                    completeQuest(quest.id);
+                  }
+                } catch (err) {
+                  console.error('Failed to complete quest:', err);
+                }
+              }, 500);
+            }
+          } catch (err) {
+            console.error('Failed to update quest progress:', err);
+          }
+        });
+      } catch (err) {
+        console.error('Failed to process quest progress:', err);
+      }
+    }
+    
+    // Always close the quiz modal
+    setTimeout(() => {
+      onClose();
+    }, 50);
+  };
+
   // Complete screen
   if (isComplete) {
     return (
@@ -411,35 +543,7 @@ function QuizModal({ isOpen, onClose, moduleType }: {
               🔄 Ulangi
             </button>
             <button
-              onClick={() => {
-                const reward = score >= 8 ? 15 : score >= 6 ? 8 : 0;
-                if (reward > 0) addDiamonds(reward);
-                
-                // Mark all characters in this quiz as learned (if passed)
-                if (score >= 6) {
-                  questionsRef.current.forEach(q => {
-                    markCharLearned(moduleType, q.char, q.romaji);
-                  });
-                }
-                
-                // Update MODULE quest progress - use getState() to avoid stale closure
-                if (score >= 6) {
-                  const moduleQuests = useCollectionStore.getState().dailyQuests.filter(q => q.type === 'MODULE' && !q.completed);
-                  moduleQuests.forEach(quest => {
-                    const newProgress = quest.progress + 1;
-                    updateQuestProgress(quest.id, newProgress);
-                    if (newProgress >= quest.target) {
-                      setTimeout(() => {
-                        const latest = useCollectionStore.getState().dailyQuests.find(q => q.id === quest.id);
-                        if (latest && !latest.claimed) {
-                          completeQuest(quest.id);
-                        }
-                      }, 1000);
-                    }
-                  });
-                }
-                onClose();
-              }}
+              onClick={handleComplete}
               className="px-6 py-3 rounded-xl font-bold text-white"
               style={{ backgroundColor: colors.brand }}
             >
