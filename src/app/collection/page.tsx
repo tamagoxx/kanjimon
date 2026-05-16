@@ -347,19 +347,19 @@ function BattleContent() {
         setShowDeckPicker(true);
       }
     } else {
-      router.push('/battle');
+      router.push('/battle?mode=card');
     }
   };
 
   const handleSelectDeck = (deckId: string) => {
     setActiveDeck(deckId);
     setShowDeckPicker(false);
-    router.push('/battle');
+    router.push('/battle?mode=card');
   };
 
   // Janken (Rock Paper Scissors) inline game
   if (battleMode === 'janken') {
-    return <JankenGame onBack={() => setBattleMode(null)} />;
+    return <JankenGame onBack={() => router.push('/collection?tab=battle')} />;
   }
 
   return (

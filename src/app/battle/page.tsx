@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCollectionStore, PokemonCard } from '@/store/collectionStore';
 import { Swords, Shield, ArrowLeft, Zap, Flame, Droplets, Leaf, Eye, Sparkles, CircleDot } from 'lucide-react';
+import JankenGame from '@/components/battle/JankenGame';
 
 // ============================================================
 // Types
@@ -273,9 +274,15 @@ function ActiveCard({ card, isPlayer }: { card: BattleCard; isPlayer: boolean })
 // ============================================================
 // Main Component
 // ============================================================
-export default function BattlePage() {
+function BattlePageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { ownedPokemon, addCoins, addDiamonds, trackQuestEvent } = useCollectionStore();
+
+  // Battle mode: 'card' (default) or 'janken'
+  const [battleMode, setBattleMode] = useState<'card' | 'janken'>(
+    searchParams.get('mode') === 'janken' ? 'janken' : 'card'
+  );
 
   // Core state
   const [phase, setPhase] = useState<Phase>('select-opponent');
@@ -697,6 +704,11 @@ export default function BattlePage() {
     return () => clearTimeout(timer);
   }, [autoMode, isPlayerTurn, phase, processing, playerActive, turn]);
 
+  // Render Janken mode
+  if (battleMode === 'janken') {
+    return <JankenGame onBack={() => router.push('/collection?tab=battle')} />;
+  }
+
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#0d0d1a' }}>
       <div className="absolute inset-0 bg-gradient-to-b from-purple-900/10 via-transparent to-orange-900/10" />
@@ -842,5 +854,19 @@ export default function BattlePage() {
         )}
       </main>
     </div>
+  );
+}
+
+// Wrap in Suspense for useSearchParams
+export default function BattlePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3" style={{ backgroundColor: '#0d0d1a' }}>
+        <div className="w-10 h-10 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
+        <p className="text-white/40 text-sm">Loading...</p>
+      </div>
+    }>
+      <BattlePageContent />
+    </Suspense>
   );
 }
