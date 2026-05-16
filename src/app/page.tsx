@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useCollectionStore } from '@/store/collectionStore';
 import { useAuthStore } from '@/store/authStore';
+import { useLearningProgressStore } from '@/store/learningProgressStore';
 
 const QUEST_ICONS: Record<string, string> = {
   BATTLE: '⚔️',
@@ -241,7 +242,23 @@ function QuickAction({ icon, label, color, route }: { icon: string; label: strin
 export default function HomePage() {
   const router = useRouter();
   const dailyQuests = useCollectionStore(s => s.dailyQuests);
-  
+  const user = useAuthStore(s => s.user);
+  const hiraganaProgress = useLearningProgressStore(s => s.getModuleProgress)('hiragana');
+  const katakanaProgress = useLearningProgressStore(s => s.getModuleProgress)('katakana');
+
+  const displayName = user?.username || 'Tamago';
+  const userLevel = user?.level || 1;
+  const totalXP = user?.xp || 0;
+  const xpPerLevel = 1000;
+  const levelProgress = totalXP > 0 ? (totalXP % xpPerLevel) / xpPerLevel * 100 : 0;
+
+  // Determine active module for continue learning card
+  const activeModule = hiraganaProgress.learned > 0
+    ? { id: 'hiragana', name: 'Hiragana', subtitle: 'Dasar', icon: 'あ', progress: hiraganaProgress }
+    : katakanaProgress.learned > 0
+    ? { id: 'katakana', name: 'Katakana', subtitle: 'Dasar', icon: 'ア', progress: katakanaProgress }
+    : { id: 'hiragana', name: 'Hiragana', subtitle: 'Dasar', icon: 'あ', progress: hiraganaProgress };
+
   // Sample cards for featured
   const featuredCards = [
     { id: '1', japanese: '水', reading: 'mizu', indonesian: 'air', element: 'WATER', attack: 65, defense: 30 },
@@ -264,7 +281,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-[#d8e4ea] mb-1">
-                Halo, Tamago! 👋
+                Halo, {displayName}! 👋
               </h1>
               <p className="text-sm text-[#c8c4d7]">
                 Lanjutkan perjalanan belajarmu hari ini
@@ -290,6 +307,35 @@ export default function HomePage() {
           <QuickAction icon="🃏" label="Kartu" color={colors.lightPurple} route="/collection" />
           <QuickAction icon="🏆" label="Peringkat" color={colors.gold} route="/leaderboard" />
         </div>
+
+        {/* Continue Learning Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          onClick={() => router.push('/learn')}
+          className="mb-4 p-4 rounded-2xl cursor-pointer"
+          style={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.inputBg}` }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-[#c8c4d7]">Lanjutkan Belajar</span>
+            <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: `${colors.brand}20`, color: colors.brand }}>Lanjutkan</span>
+          </div>
+          <p className="text-lg font-bold text-[#d8e4ea]">
+            {activeModule.name} - {activeModule.subtitle} ({activeModule.progress.total} karakter)
+          </p>
+          <div className="mt-2 flex items-center gap-3">
+            <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.inputBg }}>
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${activeModule.progress.percentage}%`, backgroundColor: colors.teal }}
+              />
+            </div>
+            <span className="text-xs text-[#c8c4d7] whitespace-nowrap">
+              {activeModule.progress.learned}/{activeModule.progress.total}
+            </span>
+          </div>
+        </motion.div>
 
         {/* Daily Quests */}
         <div className="mb-4">
