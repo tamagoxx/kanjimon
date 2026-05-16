@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useCollectionStore } from '@/store/collectionStore';
+import { useAuthStore } from '@/store/authStore';
 
 const QUEST_ICONS: Record<string, string> = {
   BATTLE: '⚔️',
@@ -40,18 +41,27 @@ const colors = {
 function TopAppBar() {
   const diamonds = useCollectionStore(s => s.diamonds);
   const dailyQuests = useCollectionStore(s => s.dailyQuests);
+  const user = useAuthStore(s => s.user);
+  const router = useRouter();
+
+  const displayName = user?.username || 'Tamago';
+  const displayLevel = user?.level || 1;
+  const avatarInitial = displayName.charAt(0).toUpperCase();
+  const xp = user?.xp || 0;
+  const xpPerLevel = 1000;
+  const xpProgress = xp % xpPerLevel;
   
   return (
     <div className="sticky top-0 z-40 px-4 h-16 flex items-center justify-between" style={{ backgroundColor: '#0a1519' }}>
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.brand }}>
-          <span className="text-white font-bold">T</span>
+          <span className="text-white font-bold">{avatarInitial}</span>
         </div>
         <div>
-          <span className="text-base font-medium text-[#c6bfff]">Tamago</span>
+          <span className="text-base font-medium text-[#c6bfff]">{displayName}</span>
           <div className="flex items-center gap-1 text-xs">
             <span className="text-[#f0bf63]">⭐</span>
-            <span className="text-[#c8c4d7]">Level 7</span>
+            <span className="text-[#c8c4d7]">Level {displayLevel}</span>
           </div>
         </div>
       </div>
@@ -60,7 +70,7 @@ function TopAppBar() {
           <span className="text-sm">💎</span>
           <span className="text-sm font-bold text-[#f0bf63]">{diamonds.toLocaleString()}</span>
         </div>
-        <button className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.inputBg }}>
+        <button onClick={() => router.push('/profile')} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.inputBg }}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#c6bfff" strokeWidth="2">
             <path d="M9 18h6M10 22h4M12 2a8 8 0 110 16 8 8 0 010-16z" />
           </svg>
