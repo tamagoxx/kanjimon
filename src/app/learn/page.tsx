@@ -61,6 +61,7 @@ function BottomNav() {
     { icon: '📚', label: 'Belajar', route: '/learn', active: true },
     { icon: '⚔️', label: 'Battle', route: '/battle' },
     { icon: '🃏', label: 'Kartu', route: '/collection' },
+    { icon: '🔀', label: 'Fusion', route: '/fusion' },
     { icon: '👤', label: 'Profile', route: '/profile' },
   ];
 

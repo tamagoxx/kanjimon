@@ -218,3 +218,57 @@ export interface GrammarPattern {
   examples: VocabularyItem[];
   notes: string;
 }
+
+// --- Card Fusion ---
+export interface FusedCard {
+  id: string;                  // original fused card ID (unique per fusion)
+  parentCards: [string, string]; // card IDs that were fused
+  // Base stats from the higher-rarity parent
+  baseHp: number;
+  baseAttack: number;
+  baseDefense: number;
+  level: number;                // starts at 1, can be leveled
+  exp: number;                  // current exp toward next level
+  fusionCount: number;         // how many times this card has been fused
+  learnedAt: string;            // when this fusion result was created
+}
+
+export type FusionRarityBoost = {
+  COMMON: 'UNCOMMON';
+  UNCOMMON: 'RARE';
+  RARE: 'ULTRA_RARE';
+  ULTRA_RARE: 'ULTRA_RARE'; // max level
+};
+
+export interface FusionRecipe {
+  resultRarity: Rarity;
+  cost: number; // diamonds to fuse
+  statBonus: {
+    hp: number;
+    attack: number;
+    defense: number;
+  };
+}
+
+export const FUSION_RECIPES: Record<Rarity, FusionRecipe> = {
+  COMMON: {
+    resultRarity: 'UNCOMMON',
+    cost: 10,
+    statBonus: { hp: 15, attack: 8, defense: 1 },
+  },
+  UNCOMMON: {
+    resultRarity: 'RARE',
+    cost: 25,
+    statBonus: { hp: 25, attack: 15, defense: 2 },
+  },
+  RARE: {
+    resultRarity: 'ULTRA_RARE',
+    cost: 50,
+    statBonus: { hp: 35, attack: 20, defense: 3 },
+  },
+  ULTRA_RARE: {
+    resultRarity: 'ULTRA_RARE',
+    cost: 100,
+    statBonus: { hp: 10, attack: 5, defense: 0 }, // just refines, no rarity change
+  },
+};

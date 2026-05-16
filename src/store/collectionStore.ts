@@ -86,6 +86,7 @@ interface CollectionState {
   addCard: (card: OwnedCard) => void;
   addCards: (cards: OwnedCard[]) => void;
   markCardSeen: (cardId: string) => void;
+  removeCard: (cardId: string) => void;
 
   // Pokemon actions
   catchPokemon: (pokemon: PokemonCard) => void;
@@ -151,6 +152,12 @@ export const useCollectionStore = create<CollectionState>()(
           ownedCards: state.ownedCards.map(oc =>
             oc.cardId === cardId ? { ...oc, isNew: false } : oc
           ),
+        }));
+      },
+
+      removeCard: (cardId) => {
+        set(state => ({
+          ownedCards: state.ownedCards.filter(oc => oc.cardId !== cardId),
         }));
       },
 

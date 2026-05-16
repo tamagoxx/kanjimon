@@ -92,6 +92,7 @@ function BottomNav() {
     { icon: '⚔️', label: 'Battle', route: '/battle' },
     { icon: '🃏', label: 'Kartu', route: '/collection' },
     { icon: '🎰', label: 'Gacha', route: '/gacha' },
+    { icon: '🔀', label: 'Fusion', route: '/fusion' },
     { icon: '🛒', label: 'Toko', route: '/shop' },
   ];
 
