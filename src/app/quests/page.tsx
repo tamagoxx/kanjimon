@@ -40,6 +40,7 @@ const QUEST_COLORS: Record<string, string> = {
 function TopAppBar() {
   const router = useRouter();
   const diamonds = useCollectionStore(s => s.diamonds);
+  const streakDays = useCollectionStore(s => s.streakDays);
 
   return (
     <div className="sticky top-0 z-40 px-4 h-16 flex items-center justify-between" style={{ backgroundColor: colors.navBg }}>
@@ -47,7 +48,15 @@ function TopAppBar() {
         <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: colors.brand }}>
           T
         </div>
-        <span className="text-base font-medium text-[#c6bfff]">Quest Harian</span>
+        <div>
+          <span className="text-base font-medium text-[#c6bfff]">Quest Harian</span>
+          {streakDays > 0 && (
+            <div className="flex items-center gap-1 text-xs">
+              <span>🔥</span>
+              <span style={{ color: colors.gold }}>{streakDays} hari streak</span>
+            </div>
+          )}
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1 px-2 py-1 rounded-full" style={{ backgroundColor: `${colors.gold}20` }}>
@@ -92,10 +101,10 @@ function BottomNav() {
 
 // Progress Overview Card
 function ProgressOverview({ quests }: { quests: any[] }) {
-  const completed = quests.filter(q => q.completed).length;
+  const completed = quests.filter(q => q.claimed).length;
   const total = quests.length;
   const totalDiamonds = quests.reduce((sum: number, q: any) => sum + (q.diamondReward || 0), 0);
-  const earnedDiamonds = quests.filter((q: any) => q.completed).reduce((sum: number, q: any) => sum + (q.diamondReward || 0), 0);
+  const earnedDiamonds = quests.filter((q: any) => q.claimed).reduce((sum: number, q: any) => sum + (q.diamondReward || 0), 0);
   const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
@@ -134,23 +143,31 @@ function ProgressOverview({ quests }: { quests: any[] }) {
           <span className="text-sm font-bold text-[#c6bfff]">{earnedDiamonds}/{totalDiamonds} Diamond</span>
         </div>
         <div className="flex-1" />
-        <span className="text-xs text-[#c8c4d7]">⏰ Reset 12:00</span>
+        <span className="text-xs text-[#c8c4d7]">⏰ Reset 00:00</span>
       </div>
     </motion.div>
   );
 }
 
 // Quest Card
-function QuestCard({ quest, onClaim, onProgress, index }: {
+function QuestCard({ quest, onClaim, index }: {
   quest: any;
   onClaim: (quest: any) => void;
-  onProgress: (quest: any) => void;
   index: number;
 }) {
   const color = QUEST_COLORS[quest.type] || colors.brand;
   const icon = QUEST_ICONS[quest.type] || '📌';
   const canClaim = quest.completed && !quest.claimed;
   const progressPercent = Math.min(100, (quest.progress / quest.target) * 100);
+
+  // Hint text based on quest type
+  const hintText: Record<string, string> = {
+    BATTLE: 'Menangkan battle',
+    MODULE: 'Selesaikan kuis belajar',
+    REVIEW: 'Review kartu',
+    STREAK: 'Login dan belajar',
+    COLLECT: 'Tangkap Pokemon baru',
+  };
 
   return (
     <motion.div
@@ -174,18 +191,19 @@ function QuestCard({ quest, onClaim, onProgress, index }: {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="font-bold text-[#d8e4ea]">{quest.title}</span>
-              {quest.completed && !quest.claimed && (
-                <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: `${colors.teal}30`, color: colors.teal }}>
-                  ✓ Selesai
-                </span>
-              )}
               {quest.claimed && (
                 <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: `${colors.gold}30`, color: colors.gold }}>
                   🏆 Didapat
                 </span>
               )}
+              {quest.completed && !quest.claimed && (
+                <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: `${colors.teal}30`, color: colors.teal }}>
+                  ✓ Siap Klaim
+                </span>
+              )}
             </div>
-            <p className="text-sm text-[#c8c4d7] mb-3">{quest.description}</p>
+            <p className="text-sm text-[#c8c4d7] mb-1">{quest.description}</p>
+            <p className="text-xs text-[#c8c4d7]/60 mb-3">💡 {hintText[quest.type] || 'Aktivitas terkait'}</p>
 
             {/* Progress Bar */}
             <div className="mb-2">
@@ -216,15 +234,11 @@ function QuestCard({ quest, onClaim, onProgress, index }: {
 
       {/* Action Button */}
       <div className="border-t" style={{ borderColor: colors.inputBg }}>
-        {!quest.completed ? (
-          <button
-            onClick={() => onProgress(quest)}
-            className="w-full py-3 text-center text-sm font-bold transition-colors"
-            style={{ backgroundColor: `${color}15`, color }}
-          >
-            + Tingkatkan Progress
-          </button>
-        ) : !quest.claimed ? (
+        {quest.claimed ? (
+          <div className="w-full py-3 text-center text-sm font-medium" style={{ backgroundColor: `${colors.teal}10`, color: colors.teal }}>
+            ✓ Hadiah Sudah Diclaim
+          </div>
+        ) : quest.completed ? (
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={() => onClaim(quest)}
@@ -234,8 +248,8 @@ function QuestCard({ quest, onClaim, onProgress, index }: {
             Klaim Hadiah 🎁
           </motion.button>
         ) : (
-          <div className="w-full py-3 text-center text-sm font-medium" style={{ backgroundColor: `${colors.teal}10`, color: colors.teal }}>
-            ✓ Hadiah Sudah Diclaim
+          <div className="w-full py-3 text-center text-sm" style={{ backgroundColor: `${color}10`, color }}>
+            🔄 Sedang Progress...
           </div>
         )}
       </div>
@@ -276,10 +290,28 @@ function HowToEarn() {
 }
 
 export default function QuestsPage() {
-  const { dailyQuests, updateQuestProgress, completeQuest } = useCollectionStore();
+  const dailyQuests = useCollectionStore(s => s.dailyQuests);
+  const checkAndResetDailyQuests = useCollectionStore(s => s.checkAndResetDailyQuests);
+  const completeQuest = useCollectionStore(s => s.completeQuest);
   const [showRewardModal, setShowRewardModal] = useState(false);
   const [lastClaimedQuest, setLastClaimedQuest] = useState<any>(null);
   const router = useRouter();
+
+  // Check and reset quests on page load
+  useEffect(() => {
+    checkAndResetDailyQuests();
+  }, [checkAndResetDailyQuests]);
+
+  // Also check on visibility change (app coming to foreground)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        checkAndResetDailyQuests();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [checkAndResetDailyQuests]);
 
   const handleClaim = (quest: any) => {
     if (!quest.completed || quest.claimed) return;
@@ -289,14 +321,9 @@ export default function QuestsPage() {
     setShowRewardModal(true);
   };
 
-  const handleProgress = (quest: any) => {
-    // For manual progress buttons in quest cards
-    updateQuestProgress(quest.id, quest.progress + 1);
-  };
-
-  const completedCount = dailyQuests.filter(q => q.completed).length;
+  const completedCount = dailyQuests.filter(q => q.claimed).length;
   const totalCount = dailyQuests.length;
-  const allClaimed = completedCount === totalCount && dailyQuests.every(q => q.claimed);
+  const allClaimed = completedCount === totalCount && totalCount > 0;
 
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: colors.background }}>
@@ -311,17 +338,23 @@ export default function QuestsPage() {
 
         {/* Quest List */}
         <section>
-          <h3 className="text-sm font-bold text-[#c8c4d7] mb-3 tracking-wider">QUEST AKTIF</h3>
+          <h3 className="text-sm font-bold text-[#c8c4d7] mb-3 tracking-wider">QUEST HARIAN</h3>
           <div className="space-y-3">
-            {dailyQuests.map((quest, i) => (
-              <QuestCard
-                key={quest.id}
-                quest={quest}
-                onClaim={handleClaim}
-                onProgress={handleProgress}
-                index={i}
-              />
-            ))}
+            {dailyQuests.length === 0 ? (
+              <div className="text-center p-6 rounded-2xl" style={{ backgroundColor: colors.cardBg }}>
+                <div className="text-4xl mb-2">⏳</div>
+                <p className="text-[#c8c4d7]">Memuat quest...</p>
+              </div>
+            ) : (
+              dailyQuests.map((quest, i) => (
+                <QuestCard
+                  key={quest.id}
+                  quest={quest}
+                  onClaim={handleClaim}
+                  index={i}
+                />
+              ))
+            )}
           </div>
         </section>
 
@@ -330,14 +363,14 @@ export default function QuestsPage() {
           <div className="text-center p-6 rounded-2xl" style={{ backgroundColor: `${colors.teal}20` }}>
             <span className="text-4xl mb-2 block">🏆</span>
             <p className="text-lg font-bold text-[#d8e4ea]">Semua Quest Selesai!</p>
-            <p className="text-sm text-[#c8c4d7]"> Sampai jumpa besok! 💎</p>
+            <p className="text-sm text-[#c8c4d7]">Sampai jumpa besok! 💎</p>
           </div>
         )}
 
         {/* Info box */}
         <div className="p-3 rounded-xl" style={{ backgroundColor: `${colors.brand}15` }}>
           <p className="text-xs text-[#c8c4d7] text-center">
-            💡 Progress quest di-reset setiap hari jam 12:00. Klaim hadiah sebelum reset!
+            💡 Quest di-reset setiap hari jam 00:00. Klaim hadiah sebelum reset!
           </p>
         </div>
       </main>
