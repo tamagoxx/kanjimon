@@ -590,7 +590,9 @@ function FusionContent() {
     }
   };
 
-  const sortedPokemon = [...ownedPokemon].sort((a, b) => {
+  const sortedPokemon = [...ownedPokemon]
+    .filter(p => p.pokemonId < 10000) // Only REST API Pokemon
+    .sort((a, b) => {
     const order = ['ULTRA_RARE', 'RARE', 'UNCOMMON', 'COMMON'];
     return order.indexOf(a.rarity) - order.indexOf(b.rarity);
   });

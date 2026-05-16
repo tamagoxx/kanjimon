@@ -276,6 +276,7 @@ export const FUSION_RECIPES: Record<Rarity, FusionRecipe> = {
 // --- Pokemon Fusion ---
 export interface FusedPokemon {
   id: string;
+  pokemonId: number;              // numeric ID for deck integration (e.g. 10001)
   parentPokemonIds: [number, number];
   name: string;             // combined or evolved name
   types: string[];

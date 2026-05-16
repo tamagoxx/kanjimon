@@ -36,6 +36,12 @@ export const useFusionStore = create<FusionState>()(
   persist(
     (set, get) => ({
       canFuse: (pokemonIdA: number, pokemonIdB: number): FusionCheck => {
+        // Only allow fusion of Pokemon from REST API (id < 10000)
+        // Fused Pokemon (id >= 10000) cannot be used for fusion
+        if (pokemonIdA >= 10000 || pokemonIdB >= 10000) {
+          return { possible: false, reason: 'Hanya Pokemon dari API yang bisa di-fusion' };
+        }
+
         if (pokemonIdA === pokemonIdB) {
           return { possible: false, reason: 'Tidak bisa fuse Pokemon yang sama' };
         }
@@ -81,6 +87,12 @@ export const useFusionStore = create<FusionState>()(
         const pokeA = collection.ownedPokemon.find(p => p.pokemonId === pokemonIdA)!;
         const pokeB = collection.ownedPokemon.find(p => p.pokemonId === pokemonIdB)!;
 
+        // Only allow fusion of Pokemon caught from REST API (id < 10000)
+        // Fused Pokemon (id >= 10000) cannot be used for further fusion
+        if (pokemonIdA >= 10000 || pokemonIdB >= 10000) {
+          return { success: false, error: 'Hanya Pokemon dari REST API yang bisa di-fusion' };
+        }
+
         const rarityA = pokeA.rarity;
         const rarityB = pokeB.rarity;
         const higherRarity = getHigherRarity(rarityA, rarityB);
@@ -98,10 +110,14 @@ export const useFusionStore = create<FusionState>()(
         // Combine types (unique, max 2)
         const combinedTypes = [...new Set([...pokeA.types, ...pokeB.types])].slice(0, 2);
 
-        // Generate fused Pokemon
+        // Generate fused Pokemon with pokemonId >= 10000 for deck integration
         const fusedId = `fused_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        // Use a numeric pokemonId >= 10000 so it integrates with deck/battle (poke-10001, etc.)
+        const existingFusedIds = collection.fusedPokemon.map(fp => fp.pokemonId).filter(id => id >= 10000);
+        const fusedPokemonId = existingFusedIds.length > 0 ? Math.max(...existingFusedIds) + 1 : 10001;
         const fusedPokemon = {
           id: fusedId,
+          pokemonId: fusedPokemonId,
           parentPokemonIds: [pokemonIdA, pokemonIdB] as [number, number],
           name: `${pokeA.name} x ${pokeB.name}`,
           types: combinedTypes,

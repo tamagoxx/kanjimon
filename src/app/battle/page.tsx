@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useCollectionStore, PokemonCard } from '@/store/collectionStore';
-import { CARDS_BY_ID } from '@/data/cards';
 import { Swords, Shield, ArrowLeft, Zap, Flame, Droplets, Leaf, Eye, Sparkles, CircleDot } from 'lucide-react';
 
 // ============================================================
@@ -327,12 +326,34 @@ export default function BattlePage() {
       for (const cardId of activeDeck.cardIds) {
         if (cardId.startsWith('poke-')) {
           const pokemonId = parseInt(cardId.replace('poke-', ''));
+          // Check owned Pokemon first (REST API Pokemon)
           const poke = useCollectionStore.getState().ownedPokemon.find(p => p.pokemonId === pokemonId);
           if (poke) battleCards.push(createBattleCard(poke, true));
-        } else if (cardId.startsWith('jp-')) {
-          const jpId = cardId.replace('jp-', '');
-          const jpCard = CARDS_BY_ID.get(jpId);
-          if (jpCard) battleCards.push(createBattleCard(jpCard, true));
+        } else if (cardId.startsWith('fused-')) {
+          // Handle fused Pokemon cards (fused-10001)
+          const fusedId = parseInt(cardId.replace('fused-', ''));
+          const fused = useCollectionStore.getState().fusedPokemon.find(f => f.pokemonId === fusedId);
+          if (fused) {
+            battleCards.push(createBattleCard({
+              id: `fused-${fused.pokemonId}`,
+              pokemonId: fused.pokemonId,
+              name: fused.name,
+              types: fused.types,
+              element: fused.element,
+              image: fused.image,
+              hp: fused.baseHp,
+              attack: fused.baseAttack,
+              defense: fused.baseDefense,
+              speed: fused.baseSpeed,
+              rarity: fused.rarity,
+              height: 0,
+              weight: 0,
+              ability: '',
+              flavorText: '',
+              color: '#6c5ce7',
+              shinyImage: '',
+            }, true));
+          }
         }
       }
       if (battleCards.length >= 3) {
