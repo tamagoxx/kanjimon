@@ -279,10 +279,9 @@ function BattlePageContent() {
   const searchParams = useSearchParams();
   const { ownedPokemon, addCoins, addDiamonds, trackQuestEvent } = useCollectionStore();
 
-  // Battle mode: 'card' (default) or 'janken'
-  const [battleMode, setBattleMode] = useState<'card' | 'janken'>(
-    searchParams.get('mode') === 'janken' ? 'janken' : 'card'
-  );
+  // Battle mode: derive from URL search params
+  const modeParam = searchParams.get('mode');
+  const battleMode: 'card' | 'janken' | null = modeParam === 'janken' ? 'janken' : modeParam === 'card' ? 'card' : null;
 
   // Core state
   const [phase, setPhase] = useState<Phase>('select-opponent');
@@ -692,6 +691,7 @@ function BattlePageContent() {
       setPlayerActive(null);
       setOppActive(null);
     } else {
+      // No mode selected → go to collection
       router.push('/');
     }
   };
@@ -706,7 +706,55 @@ function BattlePageContent() {
 
   // Render Janken mode
   if (battleMode === 'janken') {
-    return <JankenGame onBack={() => router.push('/collection?tab=battle')} />;
+    return <JankenGame onBack={() => router.push('/battle')} />;
+  }
+
+  // Render mode selector when no mode is set
+  if (!battleMode || (searchParams.get('mode') === null && phase === 'select-opponent' && !opponent)) {
+    return (
+      <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#0d0d1a' }}>
+        <div className="absolute inset-0 bg-gradient-to-b from-purple-900/10 via-transparent to-orange-900/10" />
+        <button onClick={() => router.push('/')} className="absolute top-4 left-4 w-10 h-10 rounded-full flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <ArrowLeft className="w-5 h-5 text-white" />
+        </button>
+        <main className="relative z-10 flex flex-col items-center justify-center h-screen px-6">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-black text-white mb-2">⚔️ Battle</h1>
+            <p className="text-white/40 text-sm">Pilih mode battle yang kamu mau!</p>
+          </div>
+
+          <div className="w-full max-w-sm space-y-4">
+            <button
+              onClick={() => router.push('/battle?mode=card')}
+              className="w-full p-6 rounded-2xl flex items-center gap-4 transition-all active:scale-95"
+              style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #162125 100%)', border: '2px solid #6c5ce760' }}
+            >
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl" style={{ backgroundColor: '#6c5ce730' }}>🃏</div>
+              <div className="text-left">
+                <p className="font-bold text-white text-lg">Battle Card</p>
+                <p className="text-sm text-white/40">Kumpulkan deck, kalahkan lawan dengan kartu Pokemon!</p>
+              </div>
+              <span style={{ color: '#6c5ce7' }}>›</span>
+            </button>
+
+            <button
+              onClick={() => router.push('/battle?mode=janken')}
+              className="w-full p-6 rounded-2xl flex items-center gap-4 transition-all active:scale-95"
+              style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #162125 100%)', border: '2px solid #ff6b3560' }}
+            >
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl" style={{ backgroundColor: '#ff6b3530' }}>✌️</div>
+              <div className="text-left">
+                <p className="font-bold text-white text-lg">Janken</p>
+                <p className="text-sm text-white/40">Batu Gunting Kertas — kalahkan bot dan dapat streak reward!</p>
+              </div>
+              <span style={{ color: '#ff6b35' }}>›</span>
+            </button>
+          </div>
+
+          <p className="text-white/20 text-xs mt-8">Pilih salah satu mode untuk mulai</p>
+        </main>
+      </div>
+    );
   }
 
   return (
