@@ -450,7 +450,7 @@ function DiamondInfo() {
 // ============================================================
 export default function GachaPage() {
   const router = useRouter();
-  const { diamonds, scrolls, spendDiamonds, spendScrolls, addDiamonds, ownedPokemon, catchPokemon, isPokemonCaught } = useCollectionStore();
+  const { diamonds, scrolls, spendScrolls, addDiamonds, ownedPokemon, catchPokemon, isPokemonCaught } = useCollectionStore();
 
   const [selectedBanner, setSelectedBanner] = useState<GachaBanner | null>(null);
   const [pulling, setPulling] = useState(false);
@@ -522,20 +522,14 @@ export default function GachaPage() {
     prefetchPokemon(20);
   }, [prefetchPokemon]);
 
-  // Pull gacha
+  // Pull gacha - only accepts scrolls
   const doPull = async (banner: GachaBanner) => {
-    // Use scrolls if available, else diamonds
-    const useScrolls = scrolls >= 1;
-    if (!useScrolls && diamonds < banner.cost) {
-      alert(`Tidak cukup 💎! Butuh ${banner.cost}, punya ${diamonds}. Kumpulkan scroll di toko!`);
+    if (scrolls < 1) {
+      alert(`Tidak cukup 📜! Butuh 1 scroll. Beli scroll di toko!`);
       return;
     }
 
-    if (useScrolls) {
-      spendScrolls(1);
-    } else {
-      if (!spendDiamonds(banner.cost)) return;
-    }
+    spendScrolls(1);
 
     setPulling(true);
     setSelectedBanner(banner);
