@@ -822,23 +822,6 @@ function BattlePageContent() {
             {opponent && <span className="text-sm text-white/40">vs {opponent.name}</span>}
           </div>
           <div className="flex items-center gap-2">
-            {/* Mode toggle - hidden in janken mode (JankenGame renders full page) */}
-            {battleMode === 'card' && (
-              <div className="flex rounded-xl overflow-hidden border border-white/10">
-                <button
-                  onClick={() => router.push('/battle?mode=card')}
-                  className="px-3 py-1.5 text-xs font-bold bg-[#6c5ce7] text-white"
-                >
-                  🃏 Card
-                </button>
-                <button
-                  onClick={() => router.push('/battle?mode=janken')}
-                  className="px-3 py-1.5 text-xs font-bold bg-[#1a1a2e] text-white/40 hover:text-white transition-all"
-                >
-                  ✌️ Janken
-                </button>
-              </div>
-            )}
             <span className="text-xs text-white/40">Turn: <span className="text-white font-bold">{turn}</span></span>
             <span className={`px-3 py-1 rounded-full text-xs font-bold ${isPlayerTurn ? 'bg-[#4bddb7] text-black' : 'bg-[#ff6b35] text-white'}`}>
               {isPlayerTurn ? 'Your Turn' : opponent?.name}
