@@ -317,12 +317,12 @@ export default function SettingsPage() {
     { icon: 'ℹ️', label: 'Tentang', description: 'Versi 1.0.0', action: 'about' as SubPage },
   ];
 
-  if (subPage === 'notification') return <NotificationSettings onBack={() => setSubPage(null)} />;
-  if (subPage === 'language') return <LanguageSettings onBack={() => setSubPage(null)} />;
-  if (subPage === 'theme') return <ThemeSettings onBack={() => setSubPage(null)} />;
-  if (subPage === 'privacy') return <PrivacySettings onBack={() => setSubPage(null)} />;
-  if (subPage === 'help') return <HelpSettings onBack={() => setSubPage(null)} />;
-  if (subPage === 'about') return <AboutSettings onBack={() => setSubPage(null)} />;
+  if (subPage === 'notification') return <NotificationSettings onBack={() => { setSubPage(null); }} />;
+  if (subPage === 'language') return <LanguageSettings onBack={() => { setSubPage(null); }} />;
+  if (subPage === 'theme') return <ThemeSettings onBack={() => { setSubPage(null); }} />;
+  if (subPage === 'privacy') return <PrivacySettings onBack={() => { setSubPage(null); }} />;
+  if (subPage === 'help') return <HelpSettings onBack={() => { setSubPage(null); }} />;
+  if (subPage === 'about') return <AboutSettings onBack={() => { setSubPage(null); }} />;
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: colors.background }}>
