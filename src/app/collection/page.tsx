@@ -48,7 +48,7 @@ const rarityColors: Record<string, string> = {
 
 const allJapaneseCards = Object.values(CARDS_BY_ID);
 
-type TabType = 'all' | 'japanese' | 'pokemon' | 'fusion' | 'battle';
+type TabType = 'all' | 'japanese' | 'pokemon' | 'battle';
 type FilterType = 'all' | 'verbs' | 'nouns' | 'adjectives' | 'particles';
 
 // Top Navigation Bar
@@ -908,7 +908,6 @@ export default function CollectionPage() {
               { id: 'all' as TabType, label: 'Semua', icon: '📦' },
               { id: 'japanese' as TabType, label: 'Kartu Jepang', icon: '📜' },
               { id: 'pokemon' as TabType, label: 'Pokemon', icon: '🎮' },
-              { id: 'fusion' as TabType, label: 'Fusion', icon: '⚡' },
               { id: 'battle' as TabType, label: 'Battle', icon: '⚔️' },
             ].map(tab => (
               <button
@@ -1024,9 +1023,6 @@ export default function CollectionPage() {
               )}
             </div>
           )}
-
-          {/* Fusion Tab */}
-          {activeTab === 'fusion' && <FusionContent />}
 
           {/* Battle Tab */}
           {activeTab === 'battle' && <BattleContent />}
