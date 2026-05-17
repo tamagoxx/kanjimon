@@ -73,7 +73,7 @@ function TopAppBar() {
           <span className="text-sm">💎</span>
           <span className="text-sm font-bold text-[#f0bf63]">{diamonds.toLocaleString()}</span>
         </div>
-        <button onClick={() => router.push('/profile')} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.inputBg }}>
+        <button onClick={() => router.push('/settings')} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.inputBg }}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#c6bfff" strokeWidth="2">
             <circle cx="10" cy="10" r="3" />
             <path d="M10 1v2M10 17v2M1 10h2M17 10h2M3.22 3.22l1.42 1.42M15.36 15.36l1.42 1.42M3.22 16.78l1.42-1.42M15.36 4.64l1.42-1.42" />
