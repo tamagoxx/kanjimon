@@ -87,11 +87,11 @@ const EFFECTIVENESS: Record<string, string[]> = {
 };
 
 const OPPONENTS = [
-  { id: 'sensei', name: 'Sensei Bot', emoji: '👨‍🏫', atk: 25, def: 15, hp: 100, level: 1, strategy: 'balanced' },
-  { id: 'ninja', name: 'Ninja Bot', emoji: '🥷', atk: 40, def: 10, hp: 80, level: 5, strategy: 'aggressive' },
-  { id: 'samurai', name: 'Samurai Bot', emoji: '⚔️', atk: 20, def: 25, hp: 120, level: 10, strategy: 'defensive' },
-  { id: 'shogun', name: 'Shogun Bot', emoji: '🛡️', atk: 35, def: 20, hp: 100, level: 20, strategy: 'smart' },
-  { id: 'dragon', name: 'Dragon Bot', emoji: '🐉', atk: 55, def: 15, hp: 130, level: 35, strategy: 'boss' },
+  { id: 'sensei', name: 'Sensei Bot', emoji: '👨‍🏫', atk: 45, def: 30, hp: 120, level: 1, strategy: 'balanced' },
+  { id: 'ninja', name: 'Ninja Bot', emoji: '🥷', atk: 65, def: 20, hp: 100, level: 5, strategy: 'aggressive' },
+  { id: 'samurai', name: 'Samurai Bot', emoji: '⚔️', atk: 40, def: 50, hp: 150, level: 10, strategy: 'defensive' },
+  { id: 'shogun', name: 'Shogun Bot', emoji: '🛡️', atk: 60, def: 40, hp: 130, level: 20, strategy: 'smart' },
+  { id: 'dragon', name: 'Dragon Bot', emoji: '🐉', atk: 85, def: 30, hp: 160, level: 35, strategy: 'boss' },
 ];
 
 // ============================================================
@@ -222,23 +222,28 @@ function ResultModal({ win, xpGained, diamondsGained, onClose }: { win: boolean;
   );
 }
 
-function StudyModal({ question, onAnswer }: { question: { q: string; opts: string[]; ans: string }; onAnswer: (c: boolean) => void }) {
+function HealModal({ card, onHeal, onSkip }: { card: BattleCard; onHeal: () => void; onSkip: () => void }) {
+  const healAmount = Math.floor(card.maxHp * 0.25);
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="bg-[#1a1a2e] border border-white/10 rounded-2xl p-6 max-w-md w-full">
         <div className="text-center mb-4">
-          <div className="text-4xl mb-2">📚</div>
-          <h3 className="text-xl font-bold text-white mb-2">Study Time!</h3>
-          <p className="text-lg text-white">{question.q}</p>
+          <div className="text-4xl mb-2">💚</div>
+          <h3 className="text-xl font-bold text-white mb-1">Heal HP</h3>
+          <p className="text-sm text-white/60">Kartu aktifmu: {card.name}</p>
+          <p className="text-lg text-white mt-2">HP: {card.hp}/{card.maxHp}</p>
+          <p className="text-green-400 font-bold mt-1">+{healAmount} HP</p>
         </div>
         <div className="space-y-3">
-          {question.opts.map((opt, i) => (
-            <button key={i} onClick={() => onAnswer(opt === question.ans)}
-              className="w-full p-4 bg-[#2d2d44] hover:bg-[#6c5ce7] rounded-xl text-white text-left transition-colors">
-              <span className="font-bold mr-2">{String.fromCharCode(65 + i)}.</span>{opt}
-            </button>
-          ))}
+          <button onClick={onHeal}
+            className="w-full p-4 bg-green-600 hover:bg-green-500 rounded-xl text-white font-bold text-lg transition-colors flex items-center justify-center gap-2">
+            💚 Heal (+{healAmount} HP)
+          </button>
+          <button onClick={onSkip}
+            className="w-full p-4 bg-[#2d2d44] hover:bg-[#3d3d54] rounded-xl text-white/70 font-bold transition-colors">
+            Lewati
+          </button>
         </div>
       </motion.div>
     </motion.div>
@@ -594,18 +599,25 @@ function BattlePageContent() {
     }
   };
 
-  // Answer study (player)
-  const answerStudy = (correct: boolean) => {
+  // Answer heal (player) — heal action triggered instead of study
+  const answerHeal = (chosen: 'heal' | 'skip') => {
     setShowStudy(false);
-    if (correct && playerActive) {
-      const b: BattleCard = { ...playerActive, attack: Math.floor(playerActive.attack * 1.3), status: 'boosted' };
-      setPlayerActive(b);
-      setPlayerHand(prev => prev.map(c => c.id === playerActive.id ? b : c));
-      addLog(`✨ Benar! +30% ATK ke ${playerActive.name}!`);
-    } else if (playerActive) {
-      addLog(`❌ Salah! Jawabannya: ${studyQ?.ans}`);
+    if (!playerActive) {
+      setTimeout(() => doEndPlayerTurn(), 300);
+      return;
     }
-    setTimeout(() => doEndPlayerTurn(), 600);
+    
+    if (chosen === 'heal') {
+      const healAmount = Math.floor(playerActive.maxHp * 0.25);
+      const newHp = Math.min(playerActive.maxHp, playerActive.hp + healAmount);
+      const healed: BattleCard = { ...playerActive, hp: newHp, status: 'normal' };
+      setPlayerActive(healed);
+      setPlayerHand(prev => prev.map(c => c.id === playerActive.id ? healed : c));
+      addLog(`💚 ${playerActive.name} heal +${healAmount} HP!`);
+    } else {
+      addLog(`💨 Skip heal`);
+    }
+    setTimeout(() => doEndPlayerTurn(), 400);
   };
 
   // Player Defend action
@@ -623,13 +635,15 @@ function BattlePageContent() {
     setTimeout(() => doEndPlayerTurn(), 500);
   };
 
-  // Handle Study
-  const handleStudy = () => {
+  // Handle Heal — replace study action
+  const handleHeal = () => {
     if (!playerActive || !isPlayerTurn || processing) return;
+    if (playerEnergy < 1) {
+      addLog(`⚡ Tidak cukup energy! Butuh 1, punya ${playerEnergy}`);
+      return;
+    }
     setPlayerEnergy(prev => prev - 1);
-    const q = genQuestion(playerActive);
-    setStudyQ(q);
-    setShowStudy(true);
+    setShowStudy(true); // reuse the modal pattern for heal confirmation
   };
 
   // AI Turn logic (called directly, not as callback)
@@ -686,21 +700,15 @@ function BattlePageContent() {
       setOppActive(def);
       setTimeout(() => doEndAITurn(), 800);
     } else if (action === 'study') {
-      const q = genQuestion(s.oppActive);
-      setStudyQ(q);
-      setShowStudy(true);
-      setTimeout(() => {
-        setShowStudy(false);
-        const correct = Math.random() < 0.7;
-        if (correct && s.oppActive) {
-          const b: BattleCard = { ...s.oppActive, attack: Math.floor(s.oppActive.attack * 1.3), status: 'boosted' };
-          setOppActive(b);
-          addLog(`✨ ${s.opponent.name} jawab benar! +30% ATK!`);
-        } else {
-          addLog(`❌ ${s.opponent.name} salah menjawab!`);
-        }
-        setTimeout(() => doEndAITurn(), 600);
-      }, 800);
+      // AI heal action — heal 25% of max HP
+      const healAmount = Math.floor((s.oppActive?.maxHp || 100) * 0.25);
+      const newHp = Math.min(s.oppActive?.maxHp || 100, (s.oppActive?.hp || 0) + healAmount);
+      if (s.oppActive) {
+        const healed: BattleCard = { ...s.oppActive, hp: newHp, status: 'normal' };
+        setOppActive(healed);
+        addLog(`💚 ${s.opponent.name} heal +${healAmount} HP!`);
+      }
+      setTimeout(() => doEndAITurn(), 800);
     }
   };
 
@@ -981,7 +989,7 @@ function BattlePageContent() {
         {phase === 'select-opponent' && <OpponentSelectModal onSelect={startBattle} onClose={() => router.push('/')} />}
       </AnimatePresence>
       <AnimatePresence>{result && <ResultModal win={result.win} xpGained={result.xp} diamondsGained={result.diamonds} onClose={() => { setResult(null); setPhase('select-opponent'); }} />}</AnimatePresence>
-      <AnimatePresence>{showStudy && studyQ && <StudyModal question={studyQ} onAnswer={answerStudy} />}</AnimatePresence>
+      <AnimatePresence>{showStudy && playerActive && <HealModal card={playerActive} onHeal={() => answerHeal('heal')} onSkip={() => answerHeal('skip')} />}</AnimatePresence>
 
       {phase === 'intro' && opponent && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-40 flex items-center justify-center" style={{ backgroundColor: '#0d0d1a' }}>
@@ -1107,10 +1115,10 @@ function BattlePageContent() {
                 className="h-11 rounded-xl flex items-center justify-center gap-1.5 font-bold text-white text-sm bg-[#ff6b35] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
                 <Swords className="w-4 h-4" /> Attack
               </button>
-              <button onClick={handleStudy}
+              <button onClick={handleHeal}
                 disabled={!isPlayerTurn || processing}
-                className="h-11 rounded-xl flex items-center justify-center gap-1.5 font-bold text-white text-sm bg-[#6c5ce7] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
-                📚 Study
+                className="h-11 rounded-xl flex items-center justify-center gap-1.5 font-bold text-white text-sm bg-[#4bddb7] text-black active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
+                💚 Heal
               </button>
               <button onClick={handleDefend}
                 disabled={!isPlayerTurn || processing}
