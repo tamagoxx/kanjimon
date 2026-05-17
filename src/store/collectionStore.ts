@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { OwnedCard, Deck, DailyQuest, JapaneseCard, FusedPokemon } from '@/types';
+import type { OwnedCard, Deck, DailyQuest, JapaneseCard, FusedPokemon, ElementEssence } from '@/types';
 import { useAuthStore } from './authStore';
 
 // Pokemon card type (from PokeAPI)
@@ -83,6 +83,8 @@ interface CollectionState {
   dollars: number;
   scrolls: number;
   energy: number;
+  stardust: number;
+  elementEssences: Record<ElementEssence, number>;
   totalDiamondsEarned: number;
   streakDays: number;
   lastLoginDate: string | null;
@@ -109,6 +111,8 @@ interface CollectionState {
   // Fused Pokemon actions
   addFusedPokemon: (fused: FusedPokemon) => void;
   getFusedPokemonById: (id: string) => FusedPokemon | undefined;
+  evolveFusedPokemon: (fusedId: string, newTier: 'LIMITED_EDITION' | 'LEGENDARY' | 'MYTHICAL', sacrificedCardIds: string[], sacrificedPokemonId?: number) => boolean;
+  getFusedByTier: (tier: string) => FusedPokemon[];
 
   // Deck actions
   createDeck: (name: string, cardIds: string[]) => void;
@@ -135,6 +139,10 @@ interface CollectionState {
   spendScrolls: (amount: number) => boolean;
   addEnergy: (amount: number) => void;
   spendEnergy: (amount: number) => boolean;
+  addStardust: (amount: number) => void;
+  spendStardust: (amount: number) => boolean;
+  addElementEssence: (essence: ElementEssence, amount: number) => void;
+  spendElementEssence: (essence: ElementEssence, amount: number) => boolean;
   sellCard: (cardId: string) => boolean;
   sellPokemon: (pokemonId: number) => boolean;
   sellFusedPokemon: (fusedId: string) => boolean;
@@ -161,6 +169,15 @@ export const useCollectionStore = create<CollectionState>()(
       diamonds: 0,
       scrolls: 3,
       energy: 10,
+      stardust: 0,
+      elementEssences: {
+        FIRE_ESSENCE: 0,
+        WATER_ESSENCE: 0,
+        GRASS_ESSENCE: 0,
+        ELECTRIC_ESSENCE: 0,
+        PSYCHIC_ESSENCE: 0,
+        NORMAL_ESSENCE: 0,
+      },
       dollars: 0,
       totalDiamondsEarned: 0,
       streakDays: 0,
@@ -266,6 +283,54 @@ export const useCollectionStore = create<CollectionState>()(
 
       getFusedPokemonById: (id) => {
         return get().fusedPokemon.find(fp => fp.id === id);
+      },
+
+      getFusedByTier: (tier) => {
+        return get().fusedPokemon.filter(fp => fp.evolutionTier === tier);
+      },
+
+      evolveFusedPokemon: (fusedId, newTier, sacrificedCardIds, sacrificedPokemonId) => {
+        const state = get();
+        const fused = state.fusedPokemon.find(fp => fp.id === fusedId);
+        if (!fused) return false;
+
+        // Remove sacrificed Japanese cards
+        let updatedCards = [...state.ownedCards];
+        for (const cardId of sacrificedCardIds) {
+          updatedCards = updatedCards.filter(oc => oc.cardId !== cardId);
+        }
+
+        // Remove sacrificed Pokemon if provided (for LEGENDARY/MYTHICAL)
+        let updatedPokemon = [...state.ownedPokemon];
+        if (sacrificedPokemonId !== undefined) {
+          updatedPokemon = updatedPokemon.filter(p => p.pokemonId !== sacrificedPokemonId);
+        }
+
+        // Update the fused Pokemon's tier and stats
+        const statBonus = {
+          LIMITED_EDITION: { hp: 15, attack: 10, defense: 2, speed: 5 },
+          LEGENDARY: { hp: 25, attack: 18, defense: 4, speed: 10 },
+          MYTHICAL: { hp: 40, attack: 30, defense: 8, speed: 15 },
+        }[newTier];
+
+        set(state => ({
+          ownedCards: updatedCards,
+          ownedPokemon: updatedPokemon,
+          fusedPokemon: state.fusedPokemon.map(fp => {
+            if (fp.id !== fusedId) return fp;
+            return {
+              ...fp,
+              evolutionTier: newTier,
+              rarity: newTier as any,
+              baseHp: fp.baseHp + statBonus.hp,
+              baseAttack: fp.baseAttack + statBonus.attack,
+              baseDefense: fp.baseDefense + statBonus.defense,
+              baseSpeed: fp.baseSpeed + statBonus.speed,
+              fusionCount: fp.fusionCount + 1,
+            };
+          }),
+        }));
+        return true;
       },
 
       // Deck actions
@@ -466,6 +531,38 @@ export const useCollectionStore = create<CollectionState>()(
         const { energy } = get();
         if (energy < amount) return false;
         set(state => ({ energy: state.energy - amount }));
+        return true;
+      },
+
+      addStardust: (amount) => {
+        set(state => ({ stardust: state.stardust + amount }));
+      },
+
+      spendStardust: (amount) => {
+        const { stardust } = get();
+        if (stardust < amount) return false;
+        set(state => ({ stardust: state.stardust - amount }));
+        return true;
+      },
+
+      addElementEssence: (essence, amount) => {
+        set(state => ({
+          elementEssences: {
+            ...state.elementEssences,
+            [essence]: state.elementEssences[essence] + amount,
+          },
+        }));
+      },
+
+      spendElementEssence: (essence, amount) => {
+        const { elementEssences } = get();
+        if (elementEssences[essence] < amount) return false;
+        set(state => ({
+          elementEssences: {
+            ...state.elementEssences,
+            [essence]: state.elementEssences[essence] - amount,
+          },
+        }));
         return true;
       },
 

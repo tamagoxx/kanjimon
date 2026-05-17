@@ -4,8 +4,9 @@
 
 // --- Card Types ---
 export type CardType = 'VERB' | 'NOUN' | 'ADJECTIVE' | 'PARTICLE';
-export type Rarity = 'COMMON' | 'UNCOMMON' | 'RARE' | 'ULTRA_RARE';
+export type Rarity = 'COMMON' | 'UNCOMMON' | 'RARE' | 'ULTRA_RARE' | 'LIMITED_EDITION' | 'LEGENDARY' | 'MYTHICAL';
 export type Element = 'FIRE' | 'WATER' | 'GRASS' | 'ELECTRIC' | 'PSYCHIC' | 'NORMAL';
+export type ElementEssence = 'FIRE_ESSENCE' | 'WATER_ESSENCE' | 'GRASS_ESSENCE' | 'ELECTRIC_ESSENCE' | 'PSYCHIC_ESSENCE' | 'NORMAL_ESSENCE';
 
 export interface JapaneseCard {
   id: string;
@@ -267,9 +268,24 @@ export const FUSION_RECIPES: Record<Rarity, FusionRecipe> = {
     statBonus: { hp: 35, attack: 20, defense: 3 },
   },
   ULTRA_RARE: {
-    resultRarity: 'ULTRA_RARE',
+    resultRarity: 'LIMITED_EDITION',
     cost: 100,
-    statBonus: { hp: 10, attack: 5, defense: 0 }, // just refines, no rarity change
+    statBonus: { hp: 15, attack: 10, defense: 2 },
+  },
+  LIMITED_EDITION: {
+    resultRarity: 'LEGENDARY',
+    cost: 200,
+    statBonus: { hp: 20, attack: 15, defense: 3 },
+  },
+  LEGENDARY: {
+    resultRarity: 'MYTHICAL',
+    cost: 500,
+    statBonus: { hp: 30, attack: 20, defense: 5 },
+  },
+  MYTHICAL: {
+    resultRarity: 'MYTHICAL',
+    cost: 1000,
+    statBonus: { hp: 5, attack: 5, defense: 1 },
   },
 };
 
@@ -291,6 +307,9 @@ export interface FusedPokemon {
   element: string;
   image: string;
   rarity: Rarity;
+  // Evolution tier (only for UR+ fusions)
+  evolutionTier: 'NONE' | 'LIMITED_EDITION' | 'LEGENDARY' | 'MYTHICAL';
+  elementEssence?: string; // the elemental essence bound to this fused Pokemon
 }
 
 export interface PokemonFusionRecipe {
@@ -321,8 +340,83 @@ export const POKEMON_FUSION_RECIPES: Record<Rarity, PokemonFusionRecipe> = {
     statBonus: { hp: 50, attack: 30, defense: 5, speed: 12 },
   },
   ULTRA_RARE: {
-    resultRarity: 'ULTRA_RARE',
+    resultRarity: 'LIMITED_EDITION',
     cost: 100,
     statBonus: { hp: 15, attack: 10, defense: 2, speed: 5 },
   },
+  LIMITED_EDITION: {
+    resultRarity: 'LEGENDARY',
+    cost: 200,
+    statBonus: { hp: 20, attack: 15, defense: 3, speed: 8 },
+  },
+  LEGENDARY: {
+    resultRarity: 'MYTHICAL',
+    cost: 500,
+    statBonus: { hp: 30, attack: 20, defense: 5, speed: 12 },
+  },
+  MYTHICAL: {
+    resultRarity: 'MYTHICAL',
+    cost: 1000,
+    statBonus: { hp: 5, attack: 5, defense: 1, speed: 2 },
+  },
+};
+
+// Evolution tier requirements
+export type EvolutionTier = 'NONE' | 'LIMITED_EDITION' | 'LEGENDARY' | 'MYTHICAL';
+
+export interface EvolutionRequirement {
+  stardust: number;
+  japaneseCardCount: number;
+  elementEssence?: string;
+  additionalPokemon?: boolean; // need 1 extra UR
+  resultTier: EvolutionTier;
+  statBonus: { hp: number; attack: number; defense: number; speed: number };
+}
+
+export const EVOLUTION_REQUIREMENTS: Record<EvolutionTier, EvolutionRequirement> = {
+  NONE: { stardust: 0, japaneseCardCount: 0, resultTier: 'NONE', statBonus: { hp: 0, attack: 0, defense: 0, speed: 0 } },
+  LIMITED_EDITION: {
+    stardust: 50,
+    japaneseCardCount: 1,
+    resultTier: 'LIMITED_EDITION',
+    statBonus: { hp: 15, attack: 10, defense: 2, speed: 5 },
+  },
+  LEGENDARY: {
+    stardust: 200,
+    japaneseCardCount: 2,
+    elementEssence: undefined, // must match one of the parent's elements
+    additionalPokemon: true,   // needs 1 extra UR as sacrifice
+    resultTier: 'LEGENDARY',
+    statBonus: { hp: 25, attack: 18, defense: 4, speed: 10 },
+  },
+  MYTHICAL: {
+    stardust: 500,
+    japaneseCardCount: 3,
+    elementEssence: undefined, // must match one of the parent's elements
+    additionalPokemon: true,  // needs 1 LE + 1 UR as sacrifice
+    resultTier: 'MYTHICAL',
+    statBonus: { hp: 40, attack: 30, defense: 8, speed: 15 },
+  },
+};
+
+export const RARITY_ORDER: Rarity[] = ['COMMON', 'UNCOMMON', 'RARE', 'ULTRA_RARE', 'LIMITED_EDITION', 'LEGENDARY', 'MYTHICAL'];
+
+export const RARITY_COLORS: Record<Rarity, string> = {
+  COMMON: '#c8c4d7',
+  UNCOMMON: '#4bddb7',
+  RARE: '#6c5ce7',
+  ULTRA_RARE: '#f0bf63',
+  LIMITED_EDITION: '#ff8c00',
+  LEGENDARY: '#ff6b35',
+  MYTHICAL: '#ff2d55',
+};
+
+export const RARITY_BORDER_COLORS: Record<Rarity, string> = {
+  COMMON: '#888888',
+  UNCOMMON: '#3cb371',
+  RARE: '#9b59b6',
+  ULTRA_RARE: '#f39c12',
+  LIMITED_EDITION: '#ff6600',
+  LEGENDARY: '#e74c3c',
+  MYTHICAL: '#ff1493',
 };

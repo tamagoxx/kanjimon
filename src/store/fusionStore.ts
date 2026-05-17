@@ -132,6 +132,7 @@ export const useFusionStore = create<FusionState>()(
           element: basePoke.element,
           image: basePoke.image,
           rarity: check.resultRarity,
+          evolutionTier: 'NONE' as const,
         };
 
         // Remove parent Pokemon from collection

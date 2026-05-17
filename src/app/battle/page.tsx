@@ -675,7 +675,7 @@ function ActiveCard({ card, isPlayer, attacking, hit }: { card: BattleCard; isPl
 function BattlePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { ownedPokemon, addCoins, addDiamonds, trackQuestEvent } = useCollectionStore();
+  const { ownedPokemon, addCoins, addDiamonds, addStardust, trackQuestEvent } = useCollectionStore();
   const { addXP, incrementStat } = useAuthStore();
 
   // Zustand ready check — prevent reading stale persisted state
@@ -1180,13 +1180,15 @@ function BattlePageContent() {
       if (newOppHp <= 0) {
         const xp = 10 + (s.opponent?.level || 1) * 5;
         const diamonds = 5 + (s.opponent?.level || 1) * 2;
+        const stardustReward = 5 + (s.opponent?.level || 1) * 2;
         addCoins(xp);
         addDiamonds(diamonds);
+        addStardust(stardustReward);
         addXP(xp);
         incrementStat('battles');
         incrementStat('wins');
         setResult({ win: true, xp, diamonds });
-        addLog(`🏆 VICTORY! +${xp} XP +${diamonds} 💎`);
+        addLog(`🏆 VICTORY! +${xp} XP +${diamonds} 💎 +${stardustReward} ✨`);
         setPhase('result');
 
         // Update BATTLE quest progress

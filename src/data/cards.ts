@@ -9,6 +9,9 @@ const RARITY_STATS: Record<Rarity, { hp: [number, number]; attack: [number, numb
   UNCOMMON: { hp: [90, 130], attack: [25, 40] },
   RARE: { hp: [130, 170], attack: [40, 60] },
   ULTRA_RARE: { hp: [170, 200], attack: [60, 80] },
+  LIMITED_EDITION: { hp: [200, 230], attack: [80, 100] },
+  LEGENDARY: { hp: [230, 270], attack: [100, 130] },
+  MYTHICAL: { hp: [270, 350], attack: [130, 180] },
 };
 
 const DEFENSE_BY_TYPE: Record<CardType, number> = {
