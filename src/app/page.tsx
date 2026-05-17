@@ -182,10 +182,10 @@ function FeaturedCard({ card, index }: { card: any; index: number }) {
     NORMAL: '📝',
   };
 
+  const isPokemon = card._type === 'pokemon' || card._type === 'fused';
   const cardColor = elementColors[card.element] || colors.darkText;
-  const attackVal = card.attackPower ?? card.attack ?? 0;
-  const defenseVal = card.defenseRating ?? card.defense ?? 0;
-  const indonesian = card.meaningId ?? card.indonesian ?? card.meaning ?? '';
+  const attackVal = card.attackPower ?? card.attack ?? card.baseAttack ?? 0;
+  const defenseVal = card.defenseRating ?? card.defense ?? card.baseDefense ?? 0;
 
   return (
     <motion.div
@@ -200,19 +200,32 @@ function FeaturedCard({ card, index }: { card: any; index: number }) {
         className="h-48 flex flex-col items-center justify-center p-3"
         style={{ background: `linear-gradient(135deg, ${cardColor}30, ${colors.cardBg})` }}
       >
-        <div className="text-4xl font-bold text-white mb-1">{card.japanese}</div>
-        <div className="text-sm text-[#c8c4d7] mb-2">{card.reading}</div>
+        {isPokemon ? (
+          <>
+            {card.image && (
+              <img src={card.image} alt={card.name} className="w-20 h-20 object-contain mb-1" />
+            )}
+            <div className="text-sm font-bold text-white capitalize">{card.name}</div>
+          </>
+        ) : (
+          <>
+            <div className="text-4xl font-bold text-white mb-1">{card.japanese}</div>
+            <div className="text-sm text-[#c8c4d7] mb-2">{card.reading}</div>
+          </>
+        )}
         <div
-          className="px-2 py-1 rounded-full text-xs font-medium"
+          className="px-2 py-1 rounded-full text-xs font-medium mt-1"
           style={{ backgroundColor: `${cardColor}30`, color: cardColor }}
         >
-          {elementIcons[card.element]}
+          {elementIcons[card.element] || card.element || '📝'}
         </div>
       </div>
 
       {/* Card Info */}
       <div className="p-3">
-        <div className="text-xs text-[#d8e4ea] mb-1 truncate">{indonesian}</div>
+        <div className="text-xs text-[#d8e4ea] mb-1 truncate">
+          {isPokemon ? card.name : (card.meaningId ?? card.meaning ?? '')}
+        </div>
         <div className="flex items-center justify-between text-xs">
           <span className="text-[#ffb4ab] font-bold">{attackVal} ATK</span>
           <span className="text-[#4bddb7] font-bold">{defenseVal} DEF</span>
@@ -245,25 +258,62 @@ function QuickAction({ icon, label, color, route }: { icon: string; label: strin
   );
 }
 
-// Get featured cards: top 3 by combined ATK+DEF for existing users,
-// or starter 5 cards for new users with small collection
+// Get featured cards: top 3 by combined ATK+DEF across ALL owned cards (Japanese + Pokemon)
+// Starter cards only shown for new users with very few cards
 function useFeaturedCards() {
   const ownedCards = useCollectionStore(s => s.ownedCards);
+  const ownedPokemon = useCollectionStore(s => s.ownedPokemon);
+  const fusedPokemon = useCollectionStore(s => s.fusedPokemon);
 
-  if (ownedCards.length === 0) return [];
-  if (ownedCards.length <= 5) {
-    // New user with starter cards - show first 3
-    return ownedCards.slice(0, 3).map(oc => oc.card);
+  if (ownedCards.length === 0 && ownedPokemon.length === 0 && fusedPokemon.length === 0) return [];
+
+  // Build combined list of all cards with their stats
+  type AnyCard = { id: string; type: 'jp' | 'pokemon' | 'fused'; attack: number; defense: number; data: any };
+  const allCards: AnyCard[] = [];
+
+  // Japanese cards
+  ownedCards.forEach(oc => {
+    allCards.push({
+      id: oc.cardId,
+      type: 'jp',
+      attack: oc.card.attackPower ?? 0,
+      defense: oc.card.defenseRating ?? 0,
+      data: oc.card,
+    });
+  });
+
+  // Pokemon cards
+  ownedPokemon.forEach(p => {
+    allCards.push({
+      id: `poke-${p.pokemonId}`,
+      type: 'pokemon',
+      attack: p.attack ?? 0,
+      defense: p.defense ?? 0,
+      data: p,
+    });
+  });
+
+  // Fused Pokemon
+  fusedPokemon.forEach(f => {
+    allCards.push({
+      id: f.id,
+      type: 'fused',
+      attack: f.baseAttack ?? 0,
+      defense: f.baseDefense ?? 0,
+      data: f,
+    });
+  });
+
+  // Sort by combined ATK + DEF
+  const sorted = [...allCards].sort((a, b) => (b.attack + b.defense) - (a.attack + a.defense));
+
+  // New user (total < 5 cards) → show first 3 from starter Japanese cards
+  if (allCards.length <= 5) {
+    return sorted.slice(0, 3).map(c => ({ ...c.data, _type: c.type }));
   }
-  // Existing user - top 3 by ATK + DEF combined
-  return [...ownedCards]
-    .map(oc => oc.card as any)
-    .sort((a: { attackPower?: number; attack?: number; defenseRating?: number; defense?: number }, b: { attackPower?: number; attack?: number; defenseRating?: number; defense?: number }) => {
-      const aScore = (a.attackPower ?? a.attack ?? 0) + (a.defenseRating ?? a.defense ?? 0);
-      const bScore = (b.attackPower ?? b.attack ?? 0) + (b.defenseRating ?? b.defense ?? 0);
-      return bScore - aScore;
-    })
-    .slice(0, 3);
+
+  // Existing user → top 3 by ATK+DEF across all types
+  return sorted.slice(0, 3).map(c => ({ ...c.data, _type: c.type }));
 }
 
 export default function HomePage() {
