@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { useCollectionStore } from '@/store/collectionStore';
 
 const colors = {
   background: '#0a1519',
@@ -28,7 +29,8 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const { login, register } = useAuthStore();
+  const { initNewUser } = useAuthStore();
+  const { initNewUserCards } = useCollectionStore();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,9 +39,9 @@ export default function AuthPage() {
     // Simulate auth delay
     setTimeout(() => {
       if (activeTab === 'login') {
-        login({ username: email.split('@')[0], email });
+        initNewUser({ username: email.split('@')[0], email }, initNewUserCards);
       } else {
-        register({ username: username || email.split('@')[0], email });
+        initNewUser({ username: username || email.split('@')[0], email }, initNewUserCards);
       }
       setIsLoading(false);
       router.push('/');
@@ -47,9 +49,9 @@ export default function AuthPage() {
   };
 
   const handleGuest = () => {
-    // Create a guest user with random name
+    // Create a guest user with random name + 5 starter Japanese cards
     const guestName = `Guest_${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-    login({ username: guestName, email: 'guest@kanjimon.app' });
+    initNewUser({ username: guestName, email: 'guest@kanjimon.app' }, initNewUserCards);
     router.push('/');
   };
 

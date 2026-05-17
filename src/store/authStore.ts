@@ -14,6 +14,8 @@ interface AuthState {
   addBadge: (badge: Badge) => void;
   updateProgress: (updates: Partial<UserProgress>) => void;
   logout: () => void;
+  // New user onboarding
+  initNewUser: (userData: { username: string; email: string }, initCollection: () => void) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -109,6 +111,25 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           isLoading: false,
         }),
+
+      initNewUser: (userData, initCollection) => {
+        const newUser: UserProfile = {
+          id: crypto.randomUUID(),
+          username: userData.username,
+          email: userData.email,
+          level: 1,
+          xp: 0,
+          badges: [],
+          createdAt: new Date().toISOString(),
+        };
+        set({
+          user: newUser,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+        // Initialize collection with starting cards
+        initCollection();
+      },
     }),
     {
       name: 'kanjimon-auth',

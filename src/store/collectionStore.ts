@@ -125,6 +125,9 @@ interface CollectionState {
 
   // Daily login & streak
   checkDailyLogin: () => boolean;
+
+  // New user onboarding - give 5 basic Japanese cards
+  initNewUserCards: () => void;
 }
 
 export const useCollectionStore = create<CollectionState>()(
@@ -457,6 +460,143 @@ export const useCollectionStore = create<CollectionState>()(
           return true;
         }
         return false;
+      },
+
+      // New user onboarding - give 5 basic Japanese cards with ATK 15, DEF 5
+      initNewUserCards: () => {
+        const basicCards: OwnedCard[] = [
+          {
+            cardId: 'jp_starter_1',
+            obtainedAt: new Date().toISOString(),
+            isNew: true,
+            card: {
+              id: 'jp_starter_1',
+              japanese: '一',
+              reading: 'いち',
+              romaji: 'ichi',
+              meaning: 'satu',
+              meaningId: 'satu',
+              type: 'NOUN',
+              jlptLevel: 'N5',
+              hp: 60,
+              attackPower: 15,
+              defenseRating: 5,
+              specialAbility: 'Angka dasar',
+              rarity: 'COMMON',
+              element: 'NORMAL',
+              cardArtUrl: '',
+              exampleSentence: '一人は没人',
+              exampleTranslation: 'Satu orang',
+              tags: ['angka', 'dasar'],
+            },
+          },
+          {
+            cardId: 'jp_starter_2',
+            obtainedAt: new Date().toISOString(),
+            isNew: true,
+            card: {
+              id: 'jp_starter_2',
+              japanese: '二',
+              reading: 'に',
+              romaji: 'ni',
+              meaning: 'dua',
+              meaningId: 'dua',
+              type: 'NOUN',
+              jlptLevel: 'N5',
+              hp: 60,
+              attackPower: 15,
+              defenseRating: 5,
+              specialAbility: 'Angka dasar',
+              rarity: 'COMMON',
+              element: 'NORMAL',
+              cardArtUrl: '',
+              exampleSentence: '二郎はに人',
+              exampleTranslation: 'Dua orang',
+              tags: ['angka', 'dasar'],
+            },
+          },
+          {
+            cardId: 'jp_starter_3',
+            obtainedAt: new Date().toISOString(),
+            isNew: true,
+            card: {
+              id: 'jp_starter_3',
+              japanese: '三',
+              reading: 'さん',
+              romaji: 'san',
+              meaning: 'tiga',
+              meaningId: 'tiga',
+              type: 'NOUN',
+              jlptLevel: 'N5',
+              hp: 60,
+              attackPower: 15,
+              defenseRating: 5,
+              specialAbility: 'Angka dasar',
+              rarity: 'COMMON',
+              element: 'NORMAL',
+              cardArtUrl: '',
+              exampleSentence: '三人はさん人',
+              exampleTranslation: 'Tiga orang',
+              tags: ['angka', 'dasar'],
+            },
+          },
+          {
+            cardId: 'jp_starter_4',
+            obtainedAt: new Date().toISOString(),
+            isNew: true,
+            card: {
+              id: 'jp_starter_4',
+              japanese: '日',
+              reading: 'にち',
+              romaji: 'nichi',
+              meaning: 'hari / matahari',
+              meaningId: 'hari',
+              type: 'NOUN',
+              jlptLevel: 'N5',
+              hp: 60,
+              attackPower: 15,
+              defenseRating: 5,
+              specialAbility: 'Kanji dasar',
+              rarity: 'COMMON',
+              element: 'NORMAL',
+              cardArtUrl: '',
+              exampleSentence: '今日は何曜日ですか',
+              exampleTranslation: 'Hari ini hari apa?',
+              tags: ['hari', 'matahari', 'waktu'],
+            },
+          },
+          {
+            cardId: 'jp_starter_5',
+            obtainedAt: new Date().toISOString(),
+            isNew: true,
+            card: {
+              id: 'jp_starter_5',
+              japanese: '月',
+              reading: 'げつ',
+              romaji: 'gets',
+              meaning: 'bulan',
+              meaningId: 'bulan',
+              type: 'NOUN',
+              jlptLevel: 'N5',
+              hp: 60,
+              attackPower: 15,
+              defenseRating: 5,
+              specialAbility: 'Kanji dasar',
+              rarity: 'COMMON',
+              element: 'NORMAL',
+              cardArtUrl: '',
+              exampleSentence: '月は綺麗ですね',
+              exampleTranslation: 'Bulan cantik ya',
+              tags: ['bulan', 'waktu'],
+            },
+          },
+        ];
+
+        set(state => ({
+          ownedCards: [...state.ownedCards, ...basicCards],
+        }));
+
+        console.log('[Collection] New user initialized with 5 basic Japanese cards');
       },
     }),
     {
