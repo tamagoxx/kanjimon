@@ -345,6 +345,11 @@ function DeckEditScreen({ deckId, onBack }: { deckId: string; onBack: () => void
           style={{ backgroundColor: '#6c5ce7' }}>
           Simpan
         </button>
+        <button onClick={onBack}
+          className="w-10 h-10 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: '#1a1a2e' }}>
+          ✕
+        </button>
       </div>
 
       <div className="px-4 py-2 flex items-center gap-2" style={{ backgroundColor: '#1a1a2e' }}>
@@ -438,6 +443,11 @@ function NewDeckScreen({ onBack }: { onBack: () => void }) {
           className="px-4 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-40"
           style={{ backgroundColor: '#6c5ce7' }}>
           Buat
+        </button>
+        <button onClick={onBack}
+          className="w-10 h-10 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: '#1a1a2e' }}>
+          ✕
         </button>
       </div>
 
