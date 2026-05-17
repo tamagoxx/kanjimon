@@ -23,11 +23,16 @@ const colors = {
 // ============================================================
 // Currency Icons
 // ============================================================
-function CurrencyDisplay({ diamonds, coins, energy, scrolls }: {
-  diamonds: number; coins: number; energy: number; scrolls: number;
+function CurrencyDisplay({ dollars, diamonds, coins, energy, scrolls }: {
+  dollars: number; diamonds: number; coins: number; energy: number; scrolls: number;
 }) {
   return (
     <div className="flex items-center gap-2">
+      {/* Dollars */}
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full" style={{ backgroundColor: colors.cardBg }}>
+        <span className="text-sm">💵</span>
+        <span className="text-xs font-bold" style={{ color: '#4ade80' }}>{dollars.toLocaleString()}</span>
+      </div>
       {/* Diamonds */}
       <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full" style={{ backgroundColor: colors.cardBg }}>
         <Gem className="w-3.5 h-3.5 text-cyan-400" />
@@ -54,7 +59,7 @@ function CurrencyDisplay({ diamonds, coins, energy, scrolls }: {
 
 // Top App Bar
 function TopAppBar() {
-  const { coins, diamonds, energy, scrolls } = useCollectionStore();
+  const { dollars, coins, diamonds, energy, scrolls } = useCollectionStore();
 
   return (
     <div className="sticky top-0 z-40 px-4 h-[72px] flex items-center justify-between" style={{ backgroundColor: colors.background }}>
@@ -64,7 +69,7 @@ function TopAppBar() {
         </div>
         <span className="text-sm font-medium text-[#c6bfff]">Toko</span>
       </div>
-      <CurrencyDisplay diamonds={diamonds} coins={coins} energy={energy} scrolls={scrolls} />
+      <CurrencyDisplay dollars={dollars} diamonds={diamonds} coins={coins} energy={energy} scrolls={scrolls} />
     </div>
   );
 }
@@ -311,6 +316,147 @@ function BottomNav() {
 }
 
 // ============================================================
+// Sell Cards Section
+// ============================================================
+function SellSection() {
+  const router = useRouter();
+  const { ownedCards, ownedPokemon, fusedPokemon, sellCard, sellPokemon, sellFusedPokemon, dollars } = useCollectionStore();
+  const [selling, setSelling] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [sellType, setSellType] = useState<'card' | 'pokemon' | 'fused'>('card');
+
+  const DOLLAR_VALUE: Record<string, number> = {
+    COMMON: 5,
+    UNCOMMON: 15,
+    RARE: 50,
+    ULTRA_RARE: 200,
+  };
+
+  const handleSell = (id: string, type: 'card' | 'pokemon' | 'fused') => {
+    setSelling(id);
+    setSellType(type);
+    setConfirmId(id);
+  };
+
+  const confirmSell = () => {
+    if (!selling) return;
+    let success = false;
+    if (sellType === 'card') success = sellCard(selling);
+    else if (sellType === 'pokemon') success = sellPokemon(Number(selling));
+    else success = sellFusedPokemon(selling);
+    if (success) {
+      setSelling(null);
+      setConfirmId(null);
+    }
+  };
+
+  const allCards = [
+    ...ownedCards.map(c => ({ ...c, _type: 'card' as const, _id: c.cardId })),
+    ...ownedPokemon.map(p => ({ ...p, _type: 'pokemon' as const, _id: String(p.pokemonId) })),
+    ...fusedPokemon.map(f => ({ ...f, _type: 'fused' as const, _id: f.id })),
+  ];
+
+  if (allCards.length === 0) {
+    return (
+      <div className="rounded-2xl p-6 text-center" style={{ backgroundColor: colors.cardBg }}>
+        <span className="text-3xl">📦</span>
+        <p className="text-sm text-white/50 mt-2">Kumpulkan kartu untuk bisa menjualnya</p>
+        <button
+          onClick={() => router.push('/collection')}
+          className="mt-3 px-4 py-2 rounded-xl text-xs font-bold text-white"
+          style={{ backgroundColor: colors.brand }}
+        >
+          Buka Koleksi
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-bold text-white">💵 Jual Kartu</h2>
+        <span className="text-xs text-green-400">💵 {dollars.toLocaleString()}</span>
+      </div>
+      <div className="grid grid-cols-4 gap-2">
+        {allCards.slice(0, 8).map((item: any) => {
+          const rarity = item.rarity;
+          const value = DOLLAR_VALUE[rarity] || 5;
+          const label = item._type === 'card' ? item.meaningId : item.name;
+          const icon = item._type === 'fused' ? '🔀' : item._type === 'pokemon' ? '⚡' : item.meaningId;
+
+          return (
+            <div key={item._id} className="relative">
+              <div
+                className="rounded-xl p-2 text-center cursor-pointer hover:opacity-80 transition-opacity"
+                style={{ backgroundColor: colors.inputBg, border: `1px solid ${rarity === 'ULTRA_RARE' ? '#ff6b35' : rarity === 'RARE' ? '#ffd700' : rarity === 'UNCOMMON' ? '#c0c0c0' : '#cd7f32'}40` }}
+                onClick={() => handleSell(item._id, item._type)}
+              >
+                <div className="text-lg">{icon}</div>
+                <div className="text-[9px] text-white/60 truncate">{label}</div>
+                <div className="text-[9px] font-bold text-green-400">💵{value}</div>
+                <div className="text-[8px] text-white/30">{rarity}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {allCards.length > 8 && (
+        <button
+          onClick={() => router.push('/collection')}
+          className="w-full py-2 text-xs text-white/40 hover:text-white"
+        >
+          +{allCards.length - 8} more cards
+        </button>
+      )}
+
+      {/* Confirm Sell Modal */}
+      <AnimatePresence>
+        {confirmId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+            onClick={() => setConfirmId(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.8 }}
+              className="w-72 rounded-2xl p-6 text-center"
+              style={{ backgroundColor: colors.cardBg }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="text-4xl mb-3">💵</div>
+              <h3 className="text-lg font-bold text-white mb-1">Jual Kartu?</h3>
+              <p className="text-sm text-white/60 mb-4">Kartu akan dihapus dari koleksi</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmId(null)}
+                  className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white"
+                  style={{ backgroundColor: colors.inputBg }}
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={confirmSell}
+                  className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white"
+                  style={{ backgroundColor: '#4ade80' }}
+                >
+                  Jual 💵
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ============================================================
 // Main Shop Page
 // ============================================================
 export default function ShopPage() {
@@ -346,6 +492,11 @@ export default function ShopPage() {
           <span className="text-white">Buka Gacha!</span>
           <span className="text-sm text-white/70">📜 1x pull</span>
         </motion.button>
+
+        {/* Sell Cards Section */}
+        <section>
+          <SellSection />
+        </section>
 
         {/* Daily Deal */}
         <DailyDeal />

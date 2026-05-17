@@ -80,6 +80,7 @@ interface CollectionState {
   questHistory: { date: string; questsCompleted: number; diamondsEarned: number }[];
   coins: number;
   diamonds: number;
+  dollars: number;
   scrolls: number;
   energy: number;
   totalDiamondsEarned: number;
@@ -128,10 +129,15 @@ interface CollectionState {
   spendCoins: (amount: number) => boolean;
   addDiamonds: (amount: number) => void;
   spendDiamonds: (amount: number) => boolean;
+  addDollars: (amount: number) => void;
+  spendDollars: (amount: number) => boolean;
   addScrolls: (amount: number) => void;
   spendScrolls: (amount: number) => boolean;
   addEnergy: (amount: number) => void;
   spendEnergy: (amount: number) => boolean;
+  sellCard: (cardId: string) => boolean;
+  sellPokemon: (pokemonId: number) => boolean;
+  sellFusedPokemon: (fusedId: string) => boolean;
 
   // Daily login & streak
   checkDailyLogin: () => boolean;
@@ -155,6 +161,7 @@ export const useCollectionStore = create<CollectionState>()(
       diamonds: 0,
       scrolls: 3,
       energy: 10,
+      dollars: 0,
       totalDiamondsEarned: 0,
       streakDays: 0,
       lastLoginDate: null,
@@ -459,6 +466,82 @@ export const useCollectionStore = create<CollectionState>()(
         const { energy } = get();
         if (energy < amount) return false;
         set(state => ({ energy: state.energy - amount }));
+        return true;
+      },
+
+      // Dollars (from selling cards/pokemon)
+      addDollars: (amount) => {
+        set(state => ({ dollars: state.dollars + amount }));
+      },
+
+      spendDollars: (amount) => {
+        const { dollars } = get();
+        if (dollars < amount) return false;
+        set(state => ({ dollars: state.dollars - amount }));
+        return true;
+      },
+
+      // Sell Japanese card for dollars based on rarity
+      sellCard: (cardId) => {
+        const { ownedCards } = get();
+        const idx = ownedCards.findIndex(c => c.cardId === cardId);
+        if (idx === -1) return false;
+
+        const card = ownedCards[idx];
+        const DOLLAR_VALUE: Record<string, number> = {
+          COMMON: 5,
+          UNCOMMON: 15,
+          RARE: 50,
+          ULTRA_RARE: 200,
+        };
+        const value = DOLLAR_VALUE[card.card.rarity] || 5;
+
+        set(state => ({
+          dollars: state.dollars + value,
+          ownedCards: state.ownedCards.filter(c => c.cardId !== cardId),
+        }));
+        return true;
+      },
+
+      // Sell Pokemon for dollars based on rarity
+      sellPokemon: (pokemonId) => {
+        const { ownedPokemon } = get();
+        const poke = ownedPokemon.find(p => p.pokemonId === pokemonId);
+        if (!poke) return false;
+
+        const DOLLAR_VALUE: Record<string, number> = {
+          COMMON: 5,
+          UNCOMMON: 15,
+          RARE: 50,
+          ULTRA_RARE: 200,
+        };
+        const value = DOLLAR_VALUE[poke.rarity] || 5;
+
+        set(state => ({
+          dollars: state.dollars + value,
+          ownedPokemon: state.ownedPokemon.filter(p => p.pokemonId !== pokemonId),
+        }));
+        return true;
+      },
+
+      // Sell fused Pokemon for dollars
+      sellFusedPokemon: (fusedId) => {
+        const { fusedPokemon } = get();
+        const fused = fusedPokemon.find(f => f.id === fusedId);
+        if (!fused) return false;
+
+        const DOLLAR_VALUE: Record<string, number> = {
+          COMMON: 5,
+          UNCOMMON: 15,
+          RARE: 50,
+          ULTRA_RARE: 200,
+        };
+        const value = DOLLAR_VALUE[fused.rarity] || 5;
+
+        set(state => ({
+          dollars: state.dollars + value,
+          fusedPokemon: state.fusedPokemon.filter(f => f.id !== fusedId),
+        }));
         return true;
       },
 
