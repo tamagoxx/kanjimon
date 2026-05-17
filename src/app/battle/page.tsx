@@ -388,6 +388,12 @@ function BattlePageContent() {
   const [combo, setCombo] = useState(0);
   const [lastElem, setLastElem] = useState<string | null>(null);
   
+  // Timers
+  const [battleTimeLeft, setBattleTimeLeft] = useState(120); // 2 min max battle
+  const [cardSelectTimer, setCardSelectTimer] = useState(0);  // 5 sec card selection
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const battleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  
   // UI state
   const [showDmg, setShowDmg] = useState(false);
   const [dmgVal, setDmgVal] = useState(0);
@@ -502,7 +508,21 @@ function BattlePageContent() {
   // Battle Logic Functions
   // ============================================================
 
-  // Generate study question
+  // Reset card selection timer (call when turn changes or card selected)
+  const resetCardTimer = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setCardSelectTimer(5);
+    timerRef.current = setTimeout(() => {
+      // Time's up — skip attack automatically
+      if (stateRef.current.isPlayerTurn && stateRef.current.phase === 'battle' && !stateRef.current.processing) {
+        addLog(`⏰ Waktu habis! Skip attack...`);
+        // Auto-skip: defend instead
+        setPlayerEnergy(0);
+        setPlayerActive(null);
+        doEndPlayerTurn();
+      }
+    }, 5000);
+  };
   const genQuestion = (card: BattleCard) => {
     const meanings = ['makan', 'minum', 'pergi', 'lihat', 'dengar', 'belajar', 'bekerja', 'bermain', 'tidur', 'bangun', 'duduk', 'berdiri', 'jatuh', 'naik', 'turun'];
     const name = card.name.toLowerCase();
@@ -529,10 +549,15 @@ function BattlePageContent() {
     setResult(null);
     setProcessing(false);
     setAutoMode(false);
+    setBattleTimeLeft(120);
+    setCardSelectTimer(0);
     
     addLog(`⚔️ Battle dimulai vs ${opp.name}!`);
     addLog('🎯 Pilih kartu dari tanganmu');
     setPhase('intro');
+    
+    // Start card selection timer
+    resetCardTimer();
     
     setTimeout(() => setPhase('battle'), 1500);
   };
@@ -546,6 +571,7 @@ function BattlePageContent() {
     if (playerActive?.id === card.id) {
       setPlayerActive(null);
       addLog(`❌ Batal memilih ${card.name}`);
+      if (timerRef.current) clearTimeout(timerRef.current);
       return;
     }
 
@@ -557,6 +583,15 @@ function BattlePageContent() {
     setPlayerEnergy(prev => prev - card.cost);
     setPlayerActive(card);
     addLog(`🃏 Pilih ${card.name} (${card.element}) ⚔️ ATK:${card.attack} 🛡️ DEF:${card.defense}`);
+    
+    // Clear card selection timer once card is chosen
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setCardSelectTimer(0);
+    
+    // Auto attack if autoMode is on
+    if (autoMode) {
+      setTimeout(() => executePlayerAttack(), 500);
+    }
   };
 
   // Answer study (player)
@@ -736,6 +771,9 @@ function BattlePageContent() {
     setOppActive(null);
     setIsPlayerTurn(true);
     addLog(`🎯 Giliran ${stateRef.current.turn + 1} - pilih kartu!`);
+    
+    // Start card selection timer for new turn
+    resetCardTimer();
   };
 
   // End player turn → AI turn
@@ -778,6 +816,9 @@ function BattlePageContent() {
 
     setDmgVal(damage);
     setShowDmg(true);
+    // Clear card selection timer
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setCardSelectTimer(0);
     // Animate player card attacking forward, then opponent card shake on hit
     setAttackingCard('player');
     setTimeout(() => {
@@ -836,10 +877,44 @@ function BattlePageContent() {
   // Auto attack
   useEffect(() => {
     if (!autoMode || !isPlayerTurn || phase !== 'battle' || processing) return;
-    if (!playerActive) return;
+    if (!playerActive) {
+      // Auto-select best card if none selected
+      const best = [...playerHand].filter(c => c.hp > 0).sort((a, b) => (b.attack + b.defense) - (a.attack + a.defense))[0];
+      const idx = playerHand.findIndex(c => c.id === best?.id);
+      if (idx >= 0) {
+        selectCard(idx);
+      }
+      return;
+    }
     const timer = setTimeout(() => executePlayerAttack(), 800);
     return () => clearTimeout(timer);
   }, [autoMode, isPlayerTurn, phase, processing, playerActive, turn]);
+
+  // Battle max 2 minutes timer
+  useEffect(() => {
+    if (phase !== 'battle') return;
+    battleTimerRef.current = setInterval(() => {
+      setBattleTimeLeft(prev => {
+        if (prev <= 1) {
+          // Time's up — battle ends in draw
+          addLog(`⏰ Waktu battle habis!`);
+          setResult({ win: false, xp: Math.floor(prev / 2), diamonds: 0 });
+          incrementStat('battles');
+          setPhase('result');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => { if (battleTimerRef.current) clearInterval(battleTimerRef.current); };
+  }, [phase]);
+
+  // Card select countdown display (visual only — actual timeout in resetCardTimer)
+  useEffect(() => {
+    if (!isPlayerTurn || phase !== 'battle' || cardSelectTimer <= 0) return;
+    const t = setInterval(() => setCardSelectTimer(prev => prev > 0 ? prev - 1 : 0), 1000);
+    return () => clearInterval(t);
+  }, [isPlayerTurn, phase, cardSelectTimer]);
 
   // Render Janken mode
   if (battleMode === 'janken') {
@@ -942,6 +1017,18 @@ function BattlePageContent() {
           </div>
           <span className="text-xs font-bold" style={{ color: '#ffd93d' }}>{playerEnergy}/3</span>
           {combo > 1 && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#ff6b35] text-white">🔥 {combo}x</span>}
+          
+          {/* Card selection timer */}
+          {isPlayerTurn && cardSelectTimer > 0 && (
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cardSelectTimer <= 2 ? 'bg-red-500 text-white animate-pulse' : 'bg-yellow-500/20 text-yellow-400'}`}>
+              ⏱️ {cardSelectTimer}s
+            </span>
+          )}
+          
+          {/* Battle timer */}
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/10 text-white/60">
+            ⏰ {Math.floor(battleTimeLeft / 60)}:{(battleTimeLeft % 60).toString().padStart(2, '0')}
+          </span>
           
           <button
             onClick={() => setAutoMode(prev => !prev)}
