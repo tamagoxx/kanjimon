@@ -1,18 +1,16 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
+import FusionPageContent from './FusionPageContent';
 
-export default function FusionRedirect() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace('/collection?tab=fusion');
-  }, [router]);
-
+export default function FusionPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#0a1519' }}>
-      <div className="text-white">Redirecting...</div>
-    </div>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#0a1519' }}>
+        <div className="text-white/40">Loading...</div>
+      </div>
+    }>
+      <FusionPageContent />
+    </Suspense>
   );
 }
