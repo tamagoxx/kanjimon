@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCollectionStore, PokemonCard } from '@/store/collectionStore';
+import { useAuthStore } from '@/store/authStore';
 import { Swords, Shield, ArrowLeft, Zap, Flame, Droplets, Leaf, Eye, Sparkles, CircleDot } from 'lucide-react';
 import JankenGame from '@/components/battle/JankenGame';
 
@@ -278,6 +279,7 @@ function BattlePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { ownedPokemon, addCoins, addDiamonds, trackQuestEvent } = useCollectionStore();
+  const { addXP, incrementStat } = useAuthStore();
 
   // Battle mode: derive from URL search params
   const modeParam = searchParams.get('mode');
@@ -628,6 +630,7 @@ function BattlePageContent() {
       if (newPlayerHp <= 0) {
         setResult({ win: false, xp: 0, diamonds: 0 });
         addLog(`💀 DEFEAT!`);
+        incrementStat('battles');
         setPhase('result');
         return;
       }
@@ -703,6 +706,9 @@ function BattlePageContent() {
         const diamonds = 5 + (s.opponent?.level || 1) * 2;
         addCoins(xp);
         addDiamonds(diamonds);
+        addXP(xp);
+        incrementStat('battles');
+        incrementStat('wins');
         setResult({ win: true, xp, diamonds });
         addLog(`🏆 VICTORY! +${xp} XP +${diamonds} 💎`);
         setPhase('result');

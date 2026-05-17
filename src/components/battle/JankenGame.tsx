@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useCollectionStore } from '@/store/collectionStore';
+import { useAuthStore } from '@/store/authStore';
 import { allJapaneseCards } from '@/data/cards';
 import { ArrowLeft, Shield, Heart, Zap } from 'lucide-react';
 
@@ -246,6 +247,7 @@ function QuestionPhase({
 export default function JankenGame({ onBack }: { onBack: () => void }) {
   const router = useRouter();
   const { addCoins, addDiamonds, addJapaneseCard, trackQuestEvent } = useCollectionStore();
+  const { addXP, incrementStat } = useAuthStore();
 
   const TOTAL_ROUNDS = 5;
   const MAX_BOT_HP = 100;
@@ -346,8 +348,12 @@ export default function JankenGame({ onBack }: { onBack: () => void }) {
 
       if (newBotHp <= 0) {
         // Bot HP 0, player wins early — give reward
+        const xp = 15;
         const card = allJapaneseCards[Math.floor(Math.random() * allJapaneseCards.length)];
         addJapaneseCard(card);
+        addXP(xp);
+        incrementStat('battles');
+        incrementStat('wins');
         setRewardCard(card);
         setGamePhase('ended');
         return;
@@ -360,14 +366,21 @@ export default function JankenGame({ onBack }: { onBack: () => void }) {
     // Check if all rounds done
     if (round >= TOTAL_ROUNDS && correct) {
       // Won all rounds — give reward card
+      const xp = 20;
       const card = allJapaneseCards[Math.floor(Math.random() * allJapaneseCards.length)];
       addJapaneseCard(card);
+      addXP(xp);
+      incrementStat('battles');
+      incrementStat('wins');
       setRewardCard(card);
       setGamePhase('ended');
       return;
     }
 
     if (round >= TOTAL_ROUNDS) {
+      // Completed all rounds without early win — player gets partial XP
+      addXP(5);
+      incrementStat('battles');
       setGamePhase('ended');
     } else {
       setRound(prev => prev + 1);
