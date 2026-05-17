@@ -865,12 +865,14 @@ const navItems = [
 
 export default function CollectionPage() {
   const router = useRouter();
-  const { ownedPokemon, coins } = useCollectionStore();
+  const { ownedPokemon, coins, ownedCards } = useCollectionStore();
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [categoryFilter, setCategoryFilter] = useState<FilterType>('all');
 
-  // For Japanese cards, we show all (in a real app, would filter by owned)
-  const filteredJapanese = allJapaneseCards.filter(card => {
+  // Filter ownedCards by category
+  const ownedCardIds = new Set(ownedCards.map(oc => oc.cardId));
+  const filteredOwnedJapanese = allJapaneseCards.filter(card => {
+    if (!ownedCardIds.has(card.id)) return false;
     if (categoryFilter !== 'all') {
       const typeMap: Record<string, string> = { verbs: 'VERB', nouns: 'NOUN', adjectives: 'ADJECTIVE', particles: 'PARTICLE' };
       if (card.type !== typeMap[categoryFilter]) return false;
@@ -878,7 +880,14 @@ export default function CollectionPage() {
     return true;
   });
 
-  const totalCards = allJapaneseCards.length + ownedPokemon.length;
+  // For Japanese tab: only show owned cards
+  const displayedJapanese = activeTab === 'japanese'
+    ? filteredOwnedJapanese
+    : activeTab === 'all'
+      ? allJapaneseCards.filter(card => ownedCardIds.has(card.id) || ownedPokemon.some(p => p.id === card.id)).slice(0, 6)
+      : filteredOwnedJapanese;
+
+  const totalOwned = ownedCards.length + ownedPokemon.length;
 
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: colors.background }}>
@@ -889,11 +898,11 @@ export default function CollectionPage() {
         <div className="px-4 py-3 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-[#d8e4ea]">Koleksiku</h1>
-            <p className="text-sm text-[#c8c4d7]">{totalCards} kartu terkumpul</p>
+            <p className="text-sm text-[#c8c4d7]">{totalOwned} kartu terkumpul</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-lg">🃏</span>
-            <span className="text-sm font-medium text-[#c8c4d7]">📦 {allJapaneseCards.length} + 🎮 {ownedPokemon.length}</span>
+            <span className="text-sm font-medium text-[#c8c4d7]">📦 {ownedCards.length} + 🎮 {ownedPokemon.length}</span>
           </div>
         </div>
 
@@ -955,7 +964,7 @@ export default function CollectionPage() {
         {/* Stats Summary */}
         <div className="px-4 mb-3 flex gap-3">
           <div className="flex-1 p-3 rounded-xl text-center" style={{ backgroundColor: colors.cardBg }}>
-            <div className="text-lg font-bold text-[#4bddb7]">{allJapaneseCards.length}</div>
+            <div className="text-lg font-bold text-[#4bddb7]">{ownedCards.length}</div>
             <div className="text-xs text-[#c8c4d7]">Kartu Jepang</div>
           </div>
           <div className="flex-1 p-3 rounded-xl text-center" style={{ backgroundColor: colors.cardBg }}>
@@ -981,13 +990,13 @@ export default function CollectionPage() {
                 </div>
               )}
               <div className="grid grid-cols-3 gap-2 mb-4">
-                {filteredJapanese.slice(0, activeTab === 'all' ? 6 : 12).map((card, i) => (
+                {displayedJapanese.slice(0, activeTab === 'all' ? 6 : undefined).map((card, i) => (
                   <JapaneseCardItem key={card.id} card={card} index={i} />
                 ))}
               </div>
-              {filteredJapanese.length > (activeTab === 'all' ? 6 : 12) && (
+              {displayedJapanese.length > (activeTab === 'all' ? 6 : 0) && (
                 <p className="text-center text-xs text-[#c8c4d7] py-2 mb-4">
-                  +{filteredJapanese.length - (activeTab === 'all' ? 6 : 12)} kartu Jepang lainnya
+                  +{displayedJapanese.length - (activeTab === 'all' ? 6 : 0)} kartu Jepang lainnya
                 </p>
               )}
             </div>
@@ -1038,7 +1047,7 @@ export default function CollectionPage() {
             </div>
           )}
 
-          {activeTab === 'japanese' && filteredJapanese.length === 0 && (
+          {activeTab === 'japanese' && displayedJapanese.length === 0 && (
             <div className="text-center py-12">
               <span className="text-4xl">🔍</span>
               <p className="text-[#c8c4d7] mt-2">Tidak ada kartu yang cocok</p>
