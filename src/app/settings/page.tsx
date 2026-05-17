@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { useSettingsStore, type Theme, type Language } from '@/store/settingsStore';
 
 const colors = {
   background: '#0a1519',
@@ -19,11 +20,7 @@ const colors = {
   darkGray: '#2b363b',
 };
 
-type Theme = 'dark' | 'light';
-type Language = 'id' | 'en' | 'jp';
-
-// --- Sub Pages ---
-
+// --- Back Button ---
 function BackButton({ onBack }: { onBack: () => void }) {
   return (
     <button onClick={onBack} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.inputBg }}>
@@ -34,6 +31,7 @@ function BackButton({ onBack }: { onBack: () => void }) {
   );
 }
 
+// --- Section Header ---
 function SectionHeader({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <div className="sticky top-0 z-40 px-4 h-16 flex items-center justify-between" style={{ backgroundColor: colors.cardBg }}>
@@ -44,43 +42,99 @@ function SectionHeader({ title, onBack }: { title: string; onBack: () => void })
   );
 }
 
+// --- Toggle Item ---
+function ToggleItem({ icon, label, description, checked, onChange }: {
+  icon: string; label: string; description: string; checked: boolean; onChange: (v: boolean) => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="w-full px-4 py-4 flex items-center gap-3 rounded-2xl"
+      style={{ backgroundColor: colors.cardBg }}
+    >
+      <span className="text-2xl">{icon}</span>
+      <div className="flex-1 text-left">
+        <span className="text-base font-medium block" style={{ color: colors.lightText }}>{label}</span>
+        <span className="text-sm" style={{ color: colors.darkText }}>{description}</span>
+      </div>
+      <button
+        onClick={() => onChange(!checked)}
+        className="w-12 h-7 rounded-full flex items-center p-1 transition-colors"
+        style={{ backgroundColor: checked ? colors.teal : colors.inputBg }}
+      >
+        <motion.div
+          animate={{ x: checked ? 20 : 0 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+          className="w-5 h-5 rounded-full"
+          style={{ backgroundColor: checked ? 'white' : colors.darkText }}
+        />
+      </button>
+    </motion.div>
+  );
+}
+
+// --- Sub Pages ---
+
 function NotificationSettings({ onBack }: { onBack: () => void }) {
-  const [pushEnabled, setPushEnabled] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [dailyReminder, setDailyReminder] = useState(true);
-  const [battleReminder, setBattleReminder] = useState(false);
+  const { notifications, setNotification } = useSettingsStore();
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: colors.background }}>
       <SectionHeader title="Notifikasi" onBack={onBack} />
       <main className="max-w-md mx-auto px-4 py-6 space-y-3">
-        <ToggleItem icon="🔔" label="Notifikasi Push" description="Terima notifikasi push" checked={pushEnabled} onChange={setPushEnabled} />
-        <ToggleItem icon="🔊" label="Suara" description="Suara saat event" checked={soundEnabled} onChange={setSoundEnabled} />
-        <ToggleItem icon="📅" label="Pengingat Harian" description=" напоминание belajar harian" checked={dailyReminder} onChange={setDailyReminder} />
-        <ToggleItem icon="⚔️" label="Battle Reminder" description=" напоминание untuk battle" checked={battleReminder} onChange={setBattleReminder} />
+        <ToggleItem
+          icon="🔔"
+          label="Notifikasi Push"
+          description="Terima notifikasi push"
+          checked={notifications.pushEnabled}
+          onChange={(v) => setNotification('pushEnabled', v)}
+        />
+        <ToggleItem
+          icon="🔊"
+          label="Suara"
+          description="Suara saat event"
+          checked={notifications.soundEnabled}
+          onChange={(v) => setNotification('soundEnabled', v)}
+        />
+        <ToggleItem
+          icon="📅"
+          label="Pengingat Harian"
+          description=" напоминание belajar harian"
+          checked={notifications.dailyReminder}
+          onChange={(v) => setNotification('dailyReminder', v)}
+        />
+        <ToggleItem
+          icon="⚔️"
+          label="Battle Reminder"
+          description=" напоминание untuk battle"
+          checked={notifications.battleReminder}
+          onChange={(v) => setNotification('battleReminder', v)}
+        />
       </main>
     </div>
   );
 }
 
 function LanguageSettings({ onBack }: { onBack: () => void }) {
-  const [language, setLanguage] = useState<Language>('id');
-  const languages = [
-    { id: 'id' as Language, label: 'Indonesia', flag: '🇮🇩' },
-    { id: 'en' as Language, label: 'English', flag: '🇺🇸' },
-    { id: 'jp' as Language, label: '日本語', flag: '🇯🇵' },
+  const { language, setLanguage } = useSettingsStore();
+  const languages: { id: Language; label: string; flag: string }[] = [
+    { id: 'id', label: 'Indonesia', flag: '🇮🇩' },
+    { id: 'en', label: 'English', flag: '🇺🇸' },
+    { id: 'jp', label: '日本語', flag: '🇯🇵' },
   ];
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: colors.background }}>
       <SectionHeader title="Bahasa" onBack={onBack} />
       <main className="max-w-md mx-auto px-4 py-6 space-y-3">
-        {languages.map(lang => (
+        {languages.map((lang, i) => (
           <motion.button
             key={lang.id}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            className="w-full px-4 py-4 flex items-center gap-4 rounded-2xl transition-colors"
+            transition={{ delay: i * 0.05 }}
+            className="w-full px-4 py-4 flex items-center gap-4 rounded-2xl transition-colors active:scale-95"
             style={{ backgroundColor: colors.cardBg }}
             onClick={() => setLanguage(lang.id)}
           >
@@ -103,22 +157,23 @@ function LanguageSettings({ onBack }: { onBack: () => void }) {
 }
 
 function ThemeSettings({ onBack }: { onBack: () => void }) {
-  const [theme, setTheme] = useState<Theme>('dark');
-  const themes = [
-    { id: 'dark' as Theme, label: 'Gelap', description: 'Tema default', icon: '🌙' },
-    { id: 'light' as Theme, label: 'Terang', description: 'Tema terang', icon: '☀️' },
+  const { theme, setTheme } = useSettingsStore();
+  const themes: { id: Theme; label: string; description: string; icon: string }[] = [
+    { id: 'dark', label: 'Gelap', description: 'Tema default', icon: '🌙' },
+    { id: 'light', label: 'Terang', description: 'Tema terang', icon: '☀️' },
   ];
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: colors.background }}>
       <SectionHeader title="Tema" onBack={onBack} />
       <main className="max-w-md mx-auto px-4 py-6 space-y-3">
-        {themes.map(t => (
+        {themes.map((t, i) => (
           <motion.button
             key={t.id}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            className="w-full px-4 py-4 flex items-center gap-4 rounded-2xl transition-colors"
+            transition={{ delay: i * 0.05 }}
+            className="w-full px-4 py-4 flex items-center gap-4 rounded-2xl transition-colors active:scale-95"
             style={{ backgroundColor: colors.cardBg }}
             onClick={() => setTheme(t.id)}
           >
@@ -176,12 +231,26 @@ function PrivacySettings({ onBack }: { onBack: () => void }) {
 }
 
 function HelpSettings({ onBack }: { onBack: () => void }) {
-  const faqs = [
+  const { language } = useSettingsStore();
+
+  const faqs = language === 'id' ? [
     { q: 'Bagaimana cara menangkap Pokemon?', a: 'Buka Gacha dari menu utama untuk kesempatan menangkap Pokemon baru.' },
     { q: 'Apa itu fusion?', a: 'Fusion menggabungkan 2 Pokemon menjadi 1 dengan stats lebih tinggi dan rarity lebih baik.' },
     { q: 'Bagaimana cara mendapat kartu Jepang?', a: 'Kartu Jepang hanya bisa diperoleh dari menang Battle Janken mode.' },
     { q: 'Apa bedanya Battle Card dan Battle Janken?', a: 'Card battle adalah strategi kartu, Janken adalah game suit dengan quiz bahasa.' },
     { q: 'Bagaimana cara mendapat diamond?', a: 'Selesaikan daily quests dan menang battle untuk mendapatkan diamond.' },
+  ] : language === 'en' ? [
+    { q: 'How to catch Pokemon?', a: 'Open Gacha from the main menu to get a chance at catching new Pokemon.' },
+    { q: 'What is fusion?', a: 'Fusion combines 2 Pokemon into 1 with higher stats and better rarity.' },
+    { q: 'How to get Japanese cards?', a: 'Japanese cards can only be obtained by winning Battle Janken mode.' },
+    { q: 'Difference between Card Battle and Janken?', a: 'Card battle is card strategy, Janken is a rock-paper-scissors game with language quiz.' },
+    { q: 'How to earn diamonds?', a: 'Complete daily quests and win battles to earn diamonds.' },
+  ] : [
+    { q: 'Pokemonの捕まえ方は？', a: 'メインメニューからガシャを開いて新しいPokemonを捕まえる機会を得ましょう。' },
+    { q: 'Fusionとは？', a: 'Fusionは2体のPokemonを1体にまとめ、より高いステータスとより良いレアリティにします。' },
+    { q: '日本語卡的入手方法は？', a: '日本語 карт はBattle Jankenモードで勝利することでのみ入手できます。' },
+    { q: 'カードバトルとじゃんけんの違いは？', a: 'カードバトルはカードの戦略、じゃんけんは言語クイズ付きグッパーゲームです。' },
+    { q: 'ダイヤモンドの入手方法は？', a: 'デイリークエストを完了し、バトルに勝利してダイヤモンドを獲得しましょう。' },
   ];
 
   return (
@@ -231,49 +300,18 @@ function AboutSettings({ onBack }: { onBack: () => void }) {
   );
 }
 
-// --- Toggle Item ---
-function ToggleItem({ icon, label, description, checked, onChange }: {
-  icon: string; label: string; description: string; checked: boolean; onChange: (v: boolean) => void;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="w-full px-4 py-4 flex items-center gap-3 rounded-2xl"
-      style={{ backgroundColor: colors.cardBg }}
-    >
-      <span className="text-2xl">{icon}</span>
-      <div className="flex-1 text-left">
-        <span className="text-base font-medium block" style={{ color: colors.lightText }}>{label}</span>
-        <span className="text-sm" style={{ color: colors.darkText }}>{description}</span>
-      </div>
-      <button
-        onClick={() => onChange(!checked)}
-        className="w-12 h-7 rounded-full flex items-center p-1 transition-colors"
-        style={{ backgroundColor: checked ? colors.teal : colors.inputBg }}
-      >
-        <motion.div
-          animate={{ x: checked ? 20 : 0 }}
-          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-          className="w-5 h-5 rounded-full"
-          style={{ backgroundColor: checked ? 'white' : colors.darkText }}
-        />
-      </button>
-    </motion.div>
-  );
-}
-
 // --- Main Page ---
 type SubPage = 'notification' | 'language' | 'theme' | 'privacy' | 'help' | 'about' | null;
 
 export default function SettingsPage() {
   const router = useRouter();
   const [subPage, setSubPage] = useState<SubPage>(null);
+  const { getLanguageLabel, getThemeLabel } = useSettingsStore();
 
   const settingsItems = [
     { icon: '🔔', label: 'Notifikasi', description: 'Atur notifikasi push', action: 'notification' as SubPage },
-    { icon: '🌐', label: 'Bahasa', description: 'Indonesia', action: 'language' as SubPage },
-    { icon: '🎨', label: 'Tema', description: 'Gelap', action: 'theme' as SubPage },
+    { icon: '🌐', label: 'Bahasa', description: getLanguageLabel(), action: 'language' as SubPage },
+    { icon: '🎨', label: 'Tema', description: getThemeLabel(), action: 'theme' as SubPage },
     { icon: '🔐', label: 'Privasi', description: 'Kelola data pribadi', action: 'privacy' as SubPage },
     { icon: '❓', label: 'Bantuan', description: 'FAQ & support', action: 'help' as SubPage },
     { icon: 'ℹ️', label: 'Tentang', description: 'Versi 1.0.0', action: 'about' as SubPage },
