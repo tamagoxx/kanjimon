@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { useRouter, usePathname } from 'next/navigation';
 import { useCollectionStore, PokemonCard } from '@/store/collectionStore';
 import { useFusionStore } from '@/store/fusionStore';
-import { CARDS_BY_ID } from '@/data/cards';
+import { CARDS_BY_ID, ALL_CARDS } from '@/data/cards';
 import { Heart, Swords, Shield, Zap, Star, X, Loader2, Crown, Package } from 'lucide-react';
 
 const colors = {
@@ -46,7 +46,7 @@ const rarityColors: Record<string, string> = {
   ULTRA_RARE: '#f0bf63',
 };
 
-const allJapaneseCards = Object.values(CARDS_BY_ID);
+const allJapaneseCards = ALL_CARDS;
 
 type TabType = 'all' | 'japanese' | 'pokemon' | 'fusion' | 'battle';
 type FilterType = 'all' | 'verbs' | 'nouns' | 'adjectives' | 'particles';
