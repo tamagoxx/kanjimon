@@ -132,8 +132,8 @@ function ShopItem({
 function DiamondBundle({ amount, bonus, price, original, popular }: {
   amount: number; bonus: number; price: number; original?: number; popular?: boolean;
 }) {
-  const { diamonds, addDiamonds, spendDiamonds } = useCollectionStore();
-  const canAfford = diamonds >= price;
+  const { dollars, addDiamonds, spendDollars } = useCollectionStore();
+  const canAfford = dollars >= price;
 
   return (
     <div className={`rounded-2xl overflow-hidden relative ${popular ? 'ring-2 ring-cyan-400/60' : ''}`} style={{ backgroundColor: colors.cardBg }}>
@@ -157,11 +157,13 @@ function DiamondBundle({ amount, bonus, price, original, popular }: {
           </div>
           <button
             onClick={() => {
-              // In a real app, this would open payment flow
-              // For now, simulate direct diamond purchase
-              addDiamonds(amount + bonus);
+              if (canAfford) {
+                spendDollars(price);
+                addDiamonds(amount + bonus);
+              }
             }}
-            className="px-4 py-2 rounded-xl font-bold text-white text-xs"
+            disabled={!canAfford}
+            className="px-4 py-2 rounded-xl font-bold text-white text-xs disabled:opacity-40"
             style={{ backgroundColor: colors.brand }}
           >
             Beli
@@ -317,8 +319,11 @@ export default function ShopPage() {
 
   const handleBuy = (currency: '💎' | '💰' | '⚡', price: number, action: () => void) => {
     if (currency === '💎' && diamonds < price) return;
+    if (currency === '💎') spendDiamonds(price);
     if (currency === '💰' && coins < price) return;
+    if (currency === '💰') spendCoins(price);
     if (currency === '⚡' && energy < price) return;
+    if (currency === '⚡') spendEnergy(price);
     setBuying(true);
     setTimeout(() => {
       action();
