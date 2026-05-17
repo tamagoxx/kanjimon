@@ -401,6 +401,9 @@ export const ALL_CARDS: JapaneseCard[] = [
 // Quick lookup
 export const CARDS_BY_ID = new Map(ALL_CARDS.map(c => [c.id, c]));
 
+// Alias for JankenGame and other components
+export const allJapaneseCards = ALL_CARDS;
+
 // Filter helpers
 export const getCardsByElement = (element: Element) => ALL_CARDS.filter(c => c.element === element);
 export const getCardsByRarity = (rarity: Rarity) => ALL_CARDS.filter(c => c.rarity === rarity);

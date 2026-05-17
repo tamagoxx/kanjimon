@@ -87,6 +87,7 @@ interface CollectionState {
   // Card actions (Japanese)
   addCard: (card: OwnedCard) => void;
   addCards: (cards: OwnedCard[]) => void;
+  addJapaneseCard: (card: JapaneseCard) => void;
   markCardSeen: (cardId: string) => void;
   removeCard: (cardId: string) => void;
 
@@ -149,6 +150,20 @@ export const useCollectionStore = create<CollectionState>()(
         set(state => ({
           ownedCards: [...state.ownedCards, card],
         }));
+      },
+
+      addJapaneseCard: (card) => {
+        set(state => {
+          const alreadyOwned = state.ownedCards.some(oc => oc.cardId === card.id);
+          if (alreadyOwned) return state;
+          const ownedCard: OwnedCard = {
+            cardId: card.id,
+            obtainedAt: new Date().toISOString(),
+            isNew: false,
+            card,
+          };
+          return { ownedCards: [...state.ownedCards, ownedCard] };
+        });
       },
 
       addCards: (cards) => {
