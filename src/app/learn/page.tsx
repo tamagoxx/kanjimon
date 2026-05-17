@@ -844,61 +844,71 @@ export default function LearnPage() {
   const katakanaProgress = useLearningProgressStore(s => s.getModuleProgress)('katakana');
 
   const modules = [
-    { 
-      id: 'hiragana', 
-      title: 'Hiragana', 
-      subtitle: 'Aksara dasar Jepang', 
-      icon: 'あ', 
-      status: 'learning' as const, 
+    {
+      id: 'hiragana',
+      title: 'Hiragana',
+      subtitle: 'Aksara dasar Jepang',
+      icon: 'あ',
+      status: hiraganaProgress.percentage >= 100 ? 'completed' as const : 'learning' as const,
       progress: hiraganaProgress.percentage,
-      learned: hiraganaProgress.learned, 
+      learned: hiraganaProgress.learned,
       total: hiraganaProgress.total,
-      badge: 'Sedang Belajar', 
-      badgeColor: colors.brand 
+      badge: hiraganaProgress.percentage >= 100 ? '✓ Selesai' : hiraganaProgress.percentage >= 85 ? '🔓 Bisa Lanjut!' : 'Sedang Belajar',
+      badgeColor: hiraganaProgress.percentage >= 100 ? colors.teal : hiraganaProgress.percentage >= 85 ? colors.gold : colors.brand,
     },
-    { 
-      id: 'katakana', 
-      title: 'Katakana', 
-      subtitle: 'Aksara dasar Jepang', 
-      icon: 'ア', 
-      status: katakanaProgress.learned > 0 ? 'learning' as const : 'locked' as const, 
-      progress: katakanaProgress.percentage, 
-      learned: katakanaProgress.learned, 
+    {
+      id: 'katakana',
+      title: 'Katakana',
+      subtitle: 'Aksara dasar Jepang',
+      icon: 'ア',
+      status: katakanaProgress.percentage >= 100 ? 'completed' as const : hiraganaProgress.percentage >= 85 ? 'learning' as const : 'locked' as const,
+      progress: katakanaProgress.percentage,
+      learned: katakanaProgress.learned,
       total: katakanaProgress.total,
+      badge: katakanaProgress.percentage >= 100 ? '✓ Selesai' : katakanaProgress.percentage >= 85 ? '🔓 Bisa Lanjut!' : katakanaProgress.learned > 0 ? 'Sedang Belajar' : '🔒 85% Hiragana',
+      badgeColor: katakanaProgress.percentage >= 100 ? colors.teal : katakanaProgress.percentage >= 85 ? colors.gold : colors.darkGray,
     },
-    { 
-      id: 'kanji', 
-      title: 'Kanji N5', 
-      subtitle: '103 Kanji JLPT N5', 
-      icon: '漢', 
-      status: 'locked' as const, 
-      progress: 0, 
-      learned: 0, 
+    {
+      id: 'kanji',
+      title: 'Kanji N5',
+      subtitle: '103 Kanji JLPT N5',
+      icon: '漢',
+      status: katakanaProgress.percentage >= 85 ? 'learning' as const : 'locked' as const,
+      progress: 0,
+      learned: 0,
       total: 103,
+      badge: katakanaProgress.percentage >= 85 ? 'Sedang Belajar' : '🔒 85% Katakana',
+      badgeColor: colors.darkGray,
     },
-    { 
-      id: 'vocabulary', 
-      title: 'Kosakata', 
-      subtitle: '241 kata dasar N5', 
-      icon: '📝', 
-      status: 'locked' as const, 
-      progress: 0, 
-      learned: 0, 
+    {
+      id: 'vocabulary',
+      title: 'Kosakata',
+      subtitle: '241 kata dasar N5',
+      icon: '📝',
+      status: katakanaProgress.percentage >= 100 ? 'learning' as const : 'locked' as const,
+      progress: 0,
+      learned: 0,
       total: 241,
+      badge: katakanaProgress.percentage >= 100 ? 'Sedang Belajar' : '🔒 85% Kanji',
+      badgeColor: colors.darkGray,
     },
-    { 
-      id: 'grammar', 
-      title: 'Tata Bahasa', 
-      subtitle: '20 pola kalimat N5', 
-      icon: '📖', 
-      status: 'locked' as const, 
-      progress: 0, 
-      learned: 0, 
+    {
+      id: 'grammar',
+      title: 'Tata Bahasa',
+      subtitle: '20 pola kalimat N5',
+      icon: '📖',
+      status: 'locked' as const,
+      progress: 0,
+      learned: 0,
       total: 20,
+      badge: '🔒 85% Kosakata',
+      badgeColor: colors.darkGray,
     },
   ];
 
   const handleModuleClick = (moduleId: string) => {
+    const mod = modules.find(m => m.id === moduleId);
+    if (!mod || mod.status === 'locked') return;
     setActiveModule(moduleId);
   };
 
