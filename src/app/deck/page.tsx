@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useCollectionStore, PokemonCard } from '@/store/collectionStore';
 import { CARDS_BY_ID } from '@/data/cards';
@@ -52,7 +52,7 @@ interface DeckCard {
   symbol?: string;
 }
 
-function TopAppBar({ onSave }: { onSave: () => void }) {
+function TopAppBar({ onSave, onShowDecks }: { onSave: () => void; onShowDecks: () => void }) {
   const router = useRouter();
   return (
     <div className="sticky top-0 z-40 px-4 h-[89px] flex items-center justify-between" style={{ backgroundColor: '#0a1519' }}>
@@ -64,9 +64,14 @@ function TopAppBar({ onSave }: { onSave: () => void }) {
         </button>
         <span className="text-base font-medium text-[#c6bfff]">Deck Builder</span>
       </div>
-      <button onClick={onSave} className="px-4 py-2 rounded-xl font-bold text-white text-sm" style={{ backgroundColor: colors.brand }}>
-        Simpan Deck
-      </button>
+      <div className="flex items-center gap-2">
+        <button onClick={onShowDecks} className="px-3 py-2 rounded-xl font-bold text-sm text-[#4bddb7]" style={{ backgroundColor: colors.cardBg }}>
+          📋 Deck Saya
+        </button>
+        <button onClick={onSave} className="px-4 py-2 rounded-xl font-bold text-white text-sm" style={{ backgroundColor: colors.brand }}>
+          Simpan Deck
+        </button>
+      </div>
     </div>
   );
 }
@@ -151,6 +156,56 @@ function CollectionCard({ card, index, inDeck, onAdd, onRemove }: {
           <span className="text-[9px] text-red-400">{card.attack}⚔️</span>
         </div>
       </div>
+    </motion.div>
+  );
+}
+
+function DeckListModal({ decks, activeDeckId, onSelect, onDelete, onClose }: {
+  decks: any[]; activeDeckId: string | null; onSelect: (id: string) => void; onDelete: (id: string) => void; onClose: () => void;
+}) {
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={onClose}>
+      <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
+        className="w-full max-w-sm mx-4 rounded-3xl overflow-hidden" style={{ background: '#0f1923', borderTop: '3px solid #6c5ce7' }}
+        onClick={e => e.stopPropagation()}>
+        <div className="p-6">
+          <h2 className="text-xl font-black text-white text-center mb-1">📋 Deck Saya</h2>
+          <p className="text-xs text-white/40 text-center mb-4">Pilih deck untuk digunakan di battle</p>
+          {decks.length === 0 ? (
+            <div className="text-center py-8 text-white/40">
+              <p className="mb-2">Belum ada deck.</p>
+              <p className="text-sm">Buat deck baru di Deck Builder!</p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {decks.map(deck => (
+                <div key={deck.id}
+                  className="p-4 rounded-2xl flex items-center gap-3 transition-all"
+                  style={{
+                    backgroundColor: activeDeckId === deck.id ? '#6c5ce720' : '#1a1a2e',
+                    border: activeDeckId === deck.id ? '2px solid #6c5ce7' : '2px solid transparent',
+                  }}>
+                  <div className="flex-1 cursor-pointer" onClick={() => { onSelect(deck.id); onClose(); }}>
+                    <p className="font-bold text-white">{deck.name}</p>
+                    <p className="text-xs text-white/40">{deck.cardIds.length} kartu</p>
+                    {activeDeckId === deck.id && (
+                      <span className="text-xs text-[#4bddb7]">✓ Aktif</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => { onDelete(deck.id); }}
+                    className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 hover:bg-red-500/40 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <button onClick={onClose} className="w-full py-4 border-t border-white/10 text-white/40 text-sm font-bold">Tutup</button>
+      </motion.div>
     </motion.div>
   );
 }
@@ -254,12 +309,13 @@ const navItems = [
 
 export default function DeckBuilderPage() {
   const router = useRouter();
-  const { ownedPokemon, fusedPokemon, ownedCards, createDeck } = useCollectionStore();
+  const { ownedPokemon, fusedPokemon, ownedCards, createDeck, decks, activeDeckId, setActiveDeck, deleteDeck } = useCollectionStore();
 
   const [deckName, setDeckName] = useState('Deck Baru');
   const [deckCards, setDeckCards] = useState<DeckCard[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'japanese' | 'pokemon'>('all');
   const [sortBy, setSortBy] = useState<'rarity' | 'element' | 'hp'>('rarity');
+  const [showDeckList, setShowDeckList] = useState(false);
 
   // Get Japanese cards from data
   const allJapaneseCards = Object.values(CARDS_BY_ID);
@@ -357,11 +413,22 @@ export default function DeckBuilderPage() {
     setDeckName('Deck Baru');
   };
 
+  const handleSelectDeck = (deckId: string) => {
+    setActiveDeck(deckId);
+    alert('Deck aktif dipilih untuk battle!');
+  };
+
+  const handleDeleteDeck = (deckId: string) => {
+    if (confirm('Yakin hapus deck ini?')) {
+      deleteDeck(deckId);
+    }
+  };
+
   const elementSet = new Set(deckCards.map(c => c.element));
 
   return (
     <div className="min-h-screen pb-32" style={{ backgroundColor: colors.background }}>
-      <TopAppBar onSave={onSave} />
+      <TopAppBar onSave={onSave} onShowDecks={() => setShowDeckList(true)} />
       <ValidationBar cardCount={deckCards.length} elementCount={elementSet.size} />
 
       <main className="max-w-md mx-auto px-4 pt-4 space-y-4">
@@ -448,6 +515,18 @@ export default function DeckBuilderPage() {
           </div>
         </section>
       </main>
+
+      <AnimatePresence>
+        {showDeckList && (
+          <DeckListModal
+            decks={decks}
+            activeDeckId={activeDeckId}
+            onSelect={handleSelectDeck}
+            onDelete={handleDeleteDeck}
+            onClose={() => setShowDeckList(false)}
+          />
+        )}
+      </AnimatePresence>
 
       <BottomNav />
     </div>
