@@ -181,19 +181,17 @@ function DiamondBundle({ amount, bonus, price, original, popular }: {
 // Daily Deal
 // ============================================================
 function DailyDeal() {
-  const { diamonds, spendDiamonds } = useCollectionStore();
+  const { dollars, spendDollars, addDiamonds } = useCollectionStore();
 
   const deal = {
-    name: 'Mega Bundle',
-    original: 500,
-    price: 250,
+    name: 'Daily Bonus',
     emoji: '🎁',
     color: '#f0bf63',
-    bonus: 50,
-    total: 550,
+    diamonds: 50,
+    costDollars: 5,
   };
 
-  const canAfford = diamonds >= deal.price;
+  const canAfford = dollars >= deal.costDollars;
 
   return (
     <motion.div
@@ -204,30 +202,29 @@ function DailyDeal() {
     >
       <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${deal.color}20` }}>
         <div className="flex items-center gap-2">
-          <span className="text-lg">🔥</span>
-          <span className="text-sm font-bold text-white">Deal Harian</span>
+          <span className="text-lg">{deal.emoji}</span>
+          <span className="text-sm font-bold text-white">{deal.name}</span>
         </div>
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold text-black" style={{ backgroundColor: deal.color }}>HEMAT 50%</span>
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold text-black" style={{ backgroundColor: deal.color }}>FREE</span>
       </div>
       <div className="p-4">
         <div className="flex items-center gap-3">
           <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl" style={{ background: `${deal.color}20` }}>
-            {deal.emoji}
+            <Gem className="w-8 h-8 text-cyan-400" />
           </div>
           <div className="flex-1">
-            <h3 className="font-bold text-white text-sm">{deal.name}</h3>
+            <h3 className="font-bold text-white text-sm">50 Diamond Bonus</h3>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-xs text-white/40 line-through">{deal.original}💎</span>
-              <Gem className="w-3 h-3 text-cyan-400" />
-              <span className="text-sm font-black text-cyan-400">{deal.price}</span>
+              <span className="text-xs text-white/40">Harga:</span>
+              <span className="text-sm font-black text-yellow-400">💵 5</span>
             </div>
-            <p className="text-[10px] text-green-400 mt-0.5">Bonus +{deal.bonus}💎</p>
+            <p className="text-[10px] text-green-400 mt-0.5">+{deal.diamonds}💎 setiap hari</p>
           </div>
           <button
             onClick={() => {
-              if (diamonds >= deal.price) {
-                spendDiamonds(deal.price);
-                useCollectionStore.getState().addDiamonds(deal.total);
+              if (canAfford) {
+                spendDollars(deal.costDollars);
+                addDiamonds(deal.diamonds);
               }
             }}
             disabled={!canAfford}
@@ -378,10 +375,10 @@ export default function ShopPage() {
             <h2 className="text-sm font-bold text-white">💎 Beli Diamond</h2>
           </div>
           <div className="space-y-2">
-            <DiamondBundle amount={100} bonus={0} price={1} />
-            <DiamondBundle amount={500} bonus={50} price={5} popular />
-            <DiamondBundle amount={1200} bonus={200} price={10} />
-            <DiamondBundle amount={3000} bonus={750} price={20} original={30} />
+            <DiamondBundle amount={10} bonus={0} price={1} />
+            <DiamondBundle amount={50} bonus={0} price={5} popular />
+            <DiamondBundle amount={100} bonus={0} price={10} />
+            <DiamondBundle amount={200} bonus={0} price={20} original={30} />
           </div>
         </section>
 
