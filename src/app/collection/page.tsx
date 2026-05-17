@@ -55,6 +55,7 @@ type FilterType = 'all' | 'verbs' | 'nouns' | 'adjectives' | 'particles';
 function TopAppBar() {
   const router = useRouter();
   const { coins, ownedPokemon } = useCollectionStore();
+  const canFuse = ownedPokemon.filter(p => p.pokemonId < 10000).length >= 2;
 
   return (
     <div className="sticky top-0 z-40 px-4 h-16 flex items-center justify-between" style={{ backgroundColor: '#0a1519' }}>
@@ -68,8 +69,12 @@ function TopAppBar() {
         </button>
         <span className="text-base font-medium text-[#c6bfff]">Koleksiku</span>
       </div>
-      <button className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium" style={{ backgroundColor: `${colors.brand}30`, color: colors.brand }}>
-        💎 {coins.toLocaleString()}
+      <button
+        onClick={() => router.push('/fusion')}
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${canFuse ? 'bg-[#6c5ce720] text-[#c6bfff] border border-[#6c5ce760] hover:bg-[#6c5ce740]' : 'bg-white/5 text-white/30 border border-white/10 cursor-not-allowed'}`}
+        title={canFuse ? 'Gabungkan 2 Pokemon untuk membuat yang lebih kuat!' : 'Butuh minimal 2 Pokemon untuk fusion'}
+      >
+        🔀 Fusion
       </button>
     </div>
   );
