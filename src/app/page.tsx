@@ -161,7 +161,8 @@ function QuestCard({ quest }: { quest: any }) {
   );
 }
 
-// Featured Card
+// FeaturedCard - shows JapaneseCard stats
+// JapaneseCard: attackPower, defenseRating, meaningId (indonesian)
 function FeaturedCard({ card, index }: { card: any; index: number }) {
   const elementColors: Record<string, string> = {
     FIRE: '#ffb4ab',
@@ -171,7 +172,7 @@ function FeaturedCard({ card, index }: { card: any; index: number }) {
     PSYCHIC: '#c6bfff',
     NORMAL: '#c8c4d7',
   };
-  
+
   const elementIcons: Record<string, string> = {
     FIRE: '🔥',
     WATER: '💧',
@@ -180,8 +181,11 @@ function FeaturedCard({ card, index }: { card: any; index: number }) {
     PSYCHIC: '🔮',
     NORMAL: '📝',
   };
-  
+
   const cardColor = elementColors[card.element] || colors.darkText;
+  const attackVal = card.attackPower ?? card.attack ?? 0;
+  const defenseVal = card.defenseRating ?? card.defense ?? 0;
+  const indonesian = card.meaningId ?? card.indonesian ?? card.meaning ?? '';
 
   return (
     <motion.div
@@ -205,13 +209,13 @@ function FeaturedCard({ card, index }: { card: any; index: number }) {
           {elementIcons[card.element]}
         </div>
       </div>
-      
+
       {/* Card Info */}
       <div className="p-3">
-        <div className="text-xs text-[#d8e4ea] mb-1 truncate">{card.indonesian}</div>
+        <div className="text-xs text-[#d8e4ea] mb-1 truncate">{indonesian}</div>
         <div className="flex items-center justify-between text-xs">
-          <span className="text-[#ffb4ab] font-bold">{card.attack} ATK</span>
-          <span className="text-[#4bddb7] font-bold">{card.defense} DEF</span>
+          <span className="text-[#ffb4ab] font-bold">{attackVal} ATK</span>
+          <span className="text-[#4bddb7] font-bold">{defenseVal} DEF</span>
         </div>
       </div>
     </motion.div>
@@ -241,12 +245,34 @@ function QuickAction({ icon, label, color, route }: { icon: string; label: strin
   );
 }
 
+// Get featured cards: top 3 by combined ATK+DEF for existing users,
+// or starter 5 cards for new users with small collection
+function useFeaturedCards() {
+  const ownedCards = useCollectionStore(s => s.ownedCards);
+
+  if (ownedCards.length === 0) return [];
+  if (ownedCards.length <= 5) {
+    // New user with starter cards - show first 3
+    return ownedCards.slice(0, 3).map(oc => oc.card);
+  }
+  // Existing user - top 3 by ATK + DEF combined
+  return [...ownedCards]
+    .map(oc => oc.card as any)
+    .sort((a: { attackPower?: number; attack?: number; defenseRating?: number; defense?: number }, b: { attackPower?: number; attack?: number; defenseRating?: number; defense?: number }) => {
+      const aScore = (a.attackPower ?? a.attack ?? 0) + (a.defenseRating ?? a.defense ?? 0);
+      const bScore = (b.attackPower ?? b.attack ?? 0) + (b.defenseRating ?? b.defense ?? 0);
+      return bScore - aScore;
+    })
+    .slice(0, 3);
+}
+
 export default function HomePage() {
   const router = useRouter();
   const dailyQuests = useCollectionStore(s => s.dailyQuests);
   const user = useAuthStore(s => s.user);
   const hiraganaProgress = useLearningProgressStore(s => s.getModuleProgress)('hiragana');
   const katakanaProgress = useLearningProgressStore(s => s.getModuleProgress)('katakana');
+  const featuredCards = useFeaturedCards();
 
   const displayName = user?.username || 'Tamago';
   const userLevel = user?.level || 1;
@@ -260,13 +286,6 @@ export default function HomePage() {
     : katakanaProgress.learned > 0
     ? { id: 'katakana', name: 'Katakana', subtitle: 'Dasar', icon: 'ア', progress: katakanaProgress }
     : { id: 'hiragana', name: 'Hiragana', subtitle: 'Dasar', icon: 'あ', progress: hiraganaProgress };
-
-  // Sample cards for featured
-  const featuredCards = [
-    { id: '1', japanese: '水', reading: 'mizu', indonesian: 'air', element: 'WATER', attack: 65, defense: 30 },
-    { id: '2', japanese: '火', reading: 'hi', indonesian: 'api', element: 'FIRE', attack: 80, defense: 20 },
-    { id: '3', japanese: '木', reading: 'ki', indonesian: 'pohon', element: 'GRASS', attack: 55, defense: 25 },
-  ];
 
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: colors.background }}>
