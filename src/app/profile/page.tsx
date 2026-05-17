@@ -63,7 +63,7 @@ function TopAppBar({ onSettingsClick }: { onSettingsClick?: () => void }) {
       </div>
       
       <button 
-        onClick={onSettingsClick}
+        onClick={() => router.push('/settings')}
         className="w-10 h-10 rounded-full flex items-center justify-center"
         style={{ backgroundColor: colors.inputBg }}
       >
