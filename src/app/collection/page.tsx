@@ -869,23 +869,13 @@ export default function CollectionPage() {
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [categoryFilter, setCategoryFilter] = useState<FilterType>('all');
 
-  // Filter ownedCards by category
-  const ownedCardIds = new Set(ownedCards.map(oc => oc.cardId));
-  const filteredOwnedJapanese = allJapaneseCards.filter(card => {
-    if (!ownedCardIds.has(card.id)) return false;
-    if (categoryFilter !== 'all') {
-      const typeMap: Record<string, string> = { verbs: 'VERB', nouns: 'NOUN', adjectives: 'ADJECTIVE', particles: 'PARTICLE' };
-      if (card.type !== typeMap[categoryFilter]) return false;
-    }
-    return true;
-  });
-
-  // For Japanese tab: only show owned cards
+  // For Japanese tab: show owned cards directly from ownedCards store
+  // (starter cards jp_starter_1-5 are NOT in CARDS_BY_ID, they exist only in ownedCards)
   const displayedJapanese = activeTab === 'japanese'
-    ? filteredOwnedJapanese
+    ? ownedCards.map(oc => oc.card)
     : activeTab === 'all'
-      ? allJapaneseCards.filter(card => ownedCardIds.has(card.id)).slice(0, 6)
-      : filteredOwnedJapanese;
+      ? ownedCards.slice(0, 6).map(oc => oc.card)
+      : ownedCards.map(oc => oc.card);
 
   const totalOwned = ownedCards.length + ownedPokemon.length;
 
