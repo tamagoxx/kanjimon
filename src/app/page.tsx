@@ -54,7 +54,8 @@ function TopAppBar() {
   
   return (
     <div className="sticky top-0 z-40 px-4 h-16 flex items-center justify-between" style={{ backgroundColor: '#0a1519' }}>
-      <div className="flex items-center gap-3">
+      {/* Left: Profile button */}
+      <button onClick={() => router.push('/profile')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
         <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.brand }}>
           <span className="text-white font-bold">{avatarInitial}</span>
         </div>
@@ -65,7 +66,8 @@ function TopAppBar() {
             <span className="text-[#c8c4d7]">Level {displayLevel}</span>
           </div>
         </div>
-      </div>
+      </button>
+      {/* Right: Settings button */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1 px-3 py-1.5 rounded-full" style={{ backgroundColor: `${colors.gold}20` }}>
           <span className="text-sm">💎</span>
@@ -73,7 +75,8 @@ function TopAppBar() {
         </div>
         <button onClick={() => router.push('/profile')} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.inputBg }}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#c6bfff" strokeWidth="2">
-            <path d="M9 18h6M10 22h4M12 2a8 8 0 110 16 8 8 0 010-16z" />
+            <circle cx="10" cy="10" r="3" />
+            <path d="M10 1v2M10 17v2M1 10h2M17 10h2M3.22 3.22l1.42 1.42M15.36 15.36l1.42 1.42M3.22 16.78l1.42-1.42M15.36 4.64l1.42-1.42" />
           </svg>
         </button>
       </div>
