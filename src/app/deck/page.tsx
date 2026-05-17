@@ -254,7 +254,7 @@ const navItems = [
 
 export default function DeckBuilderPage() {
   const router = useRouter();
-  const { ownedPokemon, fusedPokemon, createDeck } = useCollectionStore();
+  const { ownedPokemon, fusedPokemon, ownedCards, createDeck } = useCollectionStore();
 
   const [deckName, setDeckName] = useState('Deck Baru');
   const [deckCards, setDeckCards] = useState<DeckCard[]>([]);
@@ -264,13 +264,18 @@ export default function DeckBuilderPage() {
   // Get Japanese cards from data
   const allJapaneseCards = Object.values(CARDS_BY_ID);
 
-  // Build collection list
+  // Build collection list — only include owned Japanese cards + owned Pokemon
   const collectionCards: DeckCard[] = useMemo(() => {
+    // Build set of owned Japanese card IDs
+    const ownedCardIds = new Set(ownedCards.map(oc => oc.cardId));
+
     const cards: DeckCard[] = [];
 
-    // Add Japanese cards
+    // Add only OWNED Japanese cards (starter cards for new users)
     if (activeTab === 'all' || activeTab === 'japanese') {
       allJapaneseCards.forEach(card => {
+        // Only include if user owns this card (jp_starter_* for new users)
+        if (!ownedCardIds.has(card.id)) return;
         cards.push({
           id: `jp-${card.id}`,
           type: 'japanese',
@@ -285,7 +290,7 @@ export default function DeckBuilderPage() {
       });
     }
 
-    // Add Pokemon cards
+    // Add owned Pokemon + fused Pokemon
     if (activeTab === 'all' || activeTab === 'pokemon') {
       ownedPokemon.forEach(poke => {
         cards.push({
@@ -326,7 +331,7 @@ export default function DeckBuilderPage() {
     }
 
     return cards;
-  }, [activeTab, sortBy, allJapaneseCards, ownedPokemon, fusedPokemon]);
+  }, [activeTab, sortBy, allJapaneseCards, ownedCards, ownedPokemon, fusedPokemon]);
 
   const addToDeck = (card: DeckCard) => {
     if (deckCards.length >= 30) return;
