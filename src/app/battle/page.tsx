@@ -281,6 +281,13 @@ function BattlePageContent() {
   const { ownedPokemon, addCoins, addDiamonds, trackQuestEvent } = useCollectionStore();
   const { addXP, incrementStat } = useAuthStore();
 
+  // Zustand ready check — prevent reading stale persisted state
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setReady(true), 50);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Battle mode: derive from URL search params
   const modeParam = searchParams.get('mode');
   const battleMode: 'card' | 'janken' | null = modeParam === 'janken' ? 'janken' : modeParam === 'card' ? 'card' : null;
@@ -324,10 +331,12 @@ function BattlePageContent() {
   const stateRef = useRef({ phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerEnergy, combo, lastElem, processing });
   useEffect(() => { stateRef.current = { phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerEnergy, combo, lastElem, processing }; }, [phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerEnergy, combo, lastElem, processing]);
 
-  // Initialize hand
+  // Initialize hand — only after Zustand is ready (prevents stale persisted state)
   useEffect(() => {
+    if (!ready) return;
+
     const activeDeck = useCollectionStore.getState().getActiveDeck();
-    const { ownedCards } = useCollectionStore.getState();
+    const { ownedCards, ownedPokemon, fusedPokemon } = useCollectionStore.getState();
 
     if (activeDeck && activeDeck.cardIds.length > 0) {
       // Use deck cards for battle
@@ -412,7 +421,7 @@ function BattlePageContent() {
     } else {
       useDemoDeck(setPlayerHand);
     }
-  }, []);
+  }, [ready]);
 
   // ============================================================
   // Battle Logic Functions
