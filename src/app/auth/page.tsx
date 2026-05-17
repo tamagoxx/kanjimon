@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
 
 const colors = {
   background: '#0a1519',
@@ -28,15 +28,29 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
+  const { login, register } = useAuthStore();
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate auth
+
+    // Simulate auth delay
     setTimeout(() => {
+      if (activeTab === 'login') {
+        login({ username: email.split('@')[0], email });
+      } else {
+        register({ username: username || email.split('@')[0], email });
+      }
       setIsLoading(false);
       router.push('/');
     }, 1500);
+  };
+
+  const handleGuest = () => {
+    // Create a guest user with random name
+    const guestName = `Guest_${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    login({ username: guestName, email: 'guest@kanjimon.app' });
+    router.push('/');
   };
 
   return (
@@ -205,7 +219,7 @@ export default function AuthPage() {
             {/* Guest Login */}
             <button
               type="button"
-              onClick={() => router.push('/')}
+              onClick={handleGuest}
               className="w-full py-4 rounded-xl font-bold text-[#d8e4ea] text-base flex items-center justify-center gap-2"
               style={{ backgroundColor: colors.inputBg }}
             >
