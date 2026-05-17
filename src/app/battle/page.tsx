@@ -325,7 +325,8 @@ function BattlePageContent() {
   // Initialize hand
   useEffect(() => {
     const activeDeck = useCollectionStore.getState().getActiveDeck();
-    
+    const { ownedCards } = useCollectionStore.getState();
+
     if (activeDeck && activeDeck.cardIds.length > 0) {
       // Use deck cards for battle
       const battleCards: BattleCard[] = [];
@@ -335,40 +336,77 @@ function BattlePageContent() {
           // Check owned Pokemon first (REST API Pokemon)
           const poke = useCollectionStore.getState().ownedPokemon.find(p => p.pokemonId === pokemonId);
           if (poke) battleCards.push(createBattleCard(poke, true));
-} else if (cardId.startsWith('fused-')) {
-              // Handle fused Pokemon cards (fused-{pokemonId} e.g. fused-10001)
-              const fusedId = parseInt(cardId.replace('fused-', ''));
-              const fused = useCollectionStore.getState().fusedPokemon.find(f => f.pokemonId === fusedId);
-              if (fused) {
-                battleCards.push(createBattleCard({
-                  id: `fused-${fused.pokemonId}`,
-                  pokemonId: fused.pokemonId,
-                  name: fused.name,
-                  types: fused.types,
-                  element: fused.element,
-                  image: fused.image,
-                  rarity: fused.rarity,
-                  // Map base stats to battle card fields
-                  hp: fused.baseHp,
-                  attack: fused.baseAttack,
-                  defense: fused.baseDefense,
-                  speed: fused.baseSpeed,
-                }, true));
-              }
-            }
+        } else if (cardId.startsWith('fused-')) {
+          // Handle fused Pokemon cards (fused-{pokemonId} e.g. fused-10001)
+          const fusedId = parseInt(cardId.replace('fused-', ''));
+          const fused = useCollectionStore.getState().fusedPokemon.find(f => f.pokemonId === fusedId);
+          if (fused) {
+            battleCards.push(createBattleCard({
+              id: `fused-${fused.pokemonId}`,
+              pokemonId: fused.pokemonId,
+              name: fused.name,
+              types: fused.types,
+              element: fused.element,
+              image: fused.image,
+              rarity: fused.rarity,
+              // Map base stats to battle card fields
+              hp: fused.baseHp,
+              attack: fused.baseAttack,
+              defense: fused.baseDefense,
+              speed: fused.baseSpeed,
+            }, true));
+          }
+        } else if (cardId.startsWith('jp-')) {
+          // Handle Japanese starter cards (jp-{cardId} e.g. jp-jp_starter_1)
+          const cardIdOnly = cardId.replace('jp-', '');
+          const owned = ownedCards.find(oc => oc.cardId === cardIdOnly);
+          if (owned) {
+            battleCards.push(createBattleCard({
+              id: cardId,
+              name: owned.card.japanese,
+              element: owned.card.element,
+              hp: owned.card.hp,
+              attack: owned.card.attackPower,
+              defense: owned.card.defenseRating,
+            }, true));
+          }
+        }
       }
       if (battleCards.length >= 3) {
         setPlayerHand(shuffle(battleCards));
-      } else {
-        // Fallback to owned pokemon if deck doesn't have enough
-        if (ownedPokemon.length >= 3) {
-          setPlayerHand(shuffle(ownedPokemon.slice(0, 5)).map(p => createBattleCard(p, true)));
-        } else {
-          useDemoDeck(setPlayerHand);
-        }
+        return;
       }
+      // Not enough from deck — try owned Pokemon
+      if (ownedPokemon.length >= 3) {
+        setPlayerHand(shuffle(ownedPokemon.slice(0, 5)).map(p => createBattleCard(p, true)));
+        return;
+      }
+      // Not enough from deck or Pokemon — try owned Japanese cards
+      if (ownedCards.length >= 3) {
+        setPlayerHand(shuffle(ownedCards.slice(0, 5).map(oc => createBattleCard({
+          id: `jp-${oc.cardId}`,
+          name: oc.card.japanese,
+          element: oc.card.element,
+          hp: oc.card.hp,
+          attack: oc.card.attackPower,
+          defense: oc.card.defenseRating,
+        }, true))));
+        return;
+      }
+      // Fallback to demo
+      useDemoDeck(setPlayerHand);
     } else if (ownedPokemon.length >= 3) {
       setPlayerHand(shuffle(ownedPokemon.slice(0, 5)).map(p => createBattleCard(p, true)));
+    } else if (ownedCards.length >= 3) {
+      // No deck, no enough Pokemon — use owned Japanese cards for battle
+      setPlayerHand(shuffle(ownedCards.slice(0, 5).map(oc => createBattleCard({
+        id: `jp-${oc.cardId}`,
+        name: oc.card.japanese,
+        element: oc.card.element,
+        hp: oc.card.hp,
+        attack: oc.card.attackPower,
+        defense: oc.card.defenseRating,
+      }, true))));
     } else {
       useDemoDeck(setPlayerHand);
     }
