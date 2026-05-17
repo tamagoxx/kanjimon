@@ -23,8 +23,8 @@ const colors = {
 // ============================================================
 // Currency Icons
 // ============================================================
-function CurrencyDisplay({ dollars, diamonds, coins, energy, scrolls }: {
-  dollars: number; diamonds: number; coins: number; energy: number; scrolls: number;
+function CurrencyDisplay({ dollars, diamonds, energy, scrolls }: {
+  dollars: number; diamonds: number; energy: number; scrolls: number;
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -37,11 +37,6 @@ function CurrencyDisplay({ dollars, diamonds, coins, energy, scrolls }: {
       <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full" style={{ backgroundColor: colors.cardBg }}>
         <Gem className="w-3.5 h-3.5 text-cyan-400" />
         <span className="text-xs font-bold text-cyan-400">{diamonds.toLocaleString()}</span>
-      </div>
-      {/* Coins */}
-      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full" style={{ backgroundColor: colors.cardBg }}>
-        <span className="text-sm">💰</span>
-        <span className="text-xs font-bold" style={{ color: colors.gold }}>{coins.toLocaleString()}</span>
       </div>
       {/* Energy */}
       <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full" style={{ backgroundColor: colors.cardBg }}>
@@ -59,7 +54,7 @@ function CurrencyDisplay({ dollars, diamonds, coins, energy, scrolls }: {
 
 // Top App Bar
 function TopAppBar() {
-  const { dollars, coins, diamonds, energy, scrolls } = useCollectionStore();
+  const { dollars, diamonds, energy, scrolls } = useCollectionStore();
 
   return (
     <div className="sticky top-0 z-40 px-4 h-[72px] flex items-center justify-between" style={{ backgroundColor: colors.background }}>
@@ -69,7 +64,7 @@ function TopAppBar() {
         </div>
         <span className="text-sm font-medium text-[#c6bfff]">Toko</span>
       </div>
-      <CurrencyDisplay dollars={dollars} diamonds={diamonds} coins={coins} energy={energy} scrolls={scrolls} />
+      <CurrencyDisplay dollars={dollars} diamonds={diamonds} energy={energy} scrolls={scrolls} />
     </div>
   );
 }

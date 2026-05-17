@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useCollectionStore, PokemonCard } from '@/store/collectionStore';
-import { Loader2, Gem, Lock, ChevronDown, ChevronUp, Sparkles, X, Shield, Swords, Heart, Zap } from 'lucide-react';
+import { Loader2, Lock, ChevronDown, ChevronUp, Sparkles, X, Shield, Swords, Heart, Zap, Minus, Plus } from 'lucide-react';
 
 // ============================================================
 // Types
@@ -17,8 +17,9 @@ interface GachaBanner {
   name: string;
   emoji: string;
   description: string;
-  cost: number;
-  attempts: number;
+  scrollCost: number;       // scrolls per pull
+  maxPulls: number;        // max slides
+  attempts: number;        // default pulls
   tiers: { tier: GachaTier; chance: number; rarities: Rarity[] }[];
   featured?: boolean;
 }
@@ -69,8 +70,9 @@ const BANNERS: GachaBanner[] = [
     name: 'Starter Gacha',
     emoji: '🎁',
     description: 'Untuk pemula! Peluang menangkap Pokemon bagus.',
-    cost: 30,
-    attempts: 5,
+    scrollCost: 2,
+    maxPulls: 5,
+    attempts: 1,
     tiers: [
       { tier: 'bronze', chance: 60, rarities: ['COMMON', 'UNCOMMON'] },
       { tier: 'silver', chance: 30, rarities: ['UNCOMMON', 'RARE'] },
@@ -82,8 +84,9 @@ const BANNERS: GachaBanner[] = [
     name: 'Adventure Gacha',
     emoji: '⚔️',
     description: 'Tantangan yang lebih besar, reward lebih tinggi!',
-    cost: 80,
-    attempts: 3,
+    scrollCost: 5,
+    maxPulls: 5,
+    attempts: 1,
     tiers: [
       { tier: 'bronze', chance: 30, rarities: ['COMMON', 'UNCOMMON'] },
       { tier: 'silver', chance: 40, rarities: ['UNCOMMON', 'RARE'] },
@@ -96,7 +99,8 @@ const BANNERS: GachaBanner[] = [
     name: 'Legendary Gacha',
     emoji: '👑',
     description: 'Kesempatan terbesar mendapat Pokemon Legendary!',
-    cost: 150,
+    scrollCost: 10,
+    maxPulls: 5,
     attempts: 1,
     tiers: [
       { tier: 'silver', chance: 20, rarities: ['UNCOMMON', 'RARE'] },
@@ -147,8 +151,8 @@ function pickTier(tiers: GachaBanner['tiers']): GachaTier {
 // Components
 // ============================================================
 
-// Currency display
-function CurrencyBar({ diamonds, scrolls, pity, spark }: { diamonds: number; scrolls: number; pity: number; spark: number }) {
+// Currency display - scrolls only
+function CurrencyBar({ scrolls, pity, spark }: { scrolls: number; pity: number; spark: number }) {
   const PITY_MAX = 50;
   return (
     <div className="sticky top-0 z-40 px-4 h-[72px] flex items-center justify-between" style={{ backgroundColor: '#0a1519' }}>
@@ -158,11 +162,6 @@ function CurrencyBar({ diamonds, scrolls, pity, spark }: { diamonds: number; scr
         <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full" style={{ backgroundColor: '#1a1a2e' }}>
           <span className="text-sm">📜</span>
           <span className="text-xs font-bold" style={{ color: '#c6bfff' }}>{scrolls}</span>
-        </div>
-        {/* Diamonds */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full" style={{ backgroundColor: '#1a1a2e' }}>
-          <Gem className="w-3.5 h-3.5 text-cyan-400" />
-          <span className="text-xs font-bold text-cyan-400">{diamonds.toLocaleString()}</span>
         </div>
         {/* Spark (every 5 pulls) */}
         <div className="flex items-center gap-1 px-2 py-1 rounded-full" style={{ backgroundColor: '#1a1a2e' }} title="Spark: Setiap 5 pull, guaranteed RARE+">
@@ -179,10 +178,51 @@ function CurrencyBar({ diamonds, scrolls, pity, spark }: { diamonds: number; scr
   );
 }
 
+// Pull count slider
+function PullSlider({ count, max, onChange }: { count: number; max: number; onChange: (c: number) => void }) {
+  return (
+    <div className="flex items-center gap-3">
+      <button
+        onClick={() => onChange(Math.max(1, count - 1))}
+        disabled={count <= 1}
+        className="w-8 h-8 rounded-full flex items-center justify-center disabled:opacity-30"
+        style={{ backgroundColor: '#212c30' }}
+      >
+        <Minus className="w-4 h-4 text-white" />
+      </button>
+      <div className="flex-1 flex items-center gap-2">
+        {Array.from({ length: max }, (_, i) => i + 1).map(n => (
+          <button
+            key={n}
+            onClick={() => onChange(n)}
+            className="flex-1 h-1.5 rounded-full transition-all"
+            style={{
+              backgroundColor: n <= count ? '#6c5ce7' : '#2b363b',
+            }}
+          />
+        ))}
+      </div>
+      <button
+        onClick={() => onChange(Math.min(max, count + 1))}
+        disabled={count >= max}
+        className="w-8 h-8 rounded-full flex items-center justify-center disabled:opacity-30"
+        style={{ backgroundColor: '#212c30' }}
+      >
+        <Plus className="w-4 h-4 text-white" />
+      </button>
+      <span className="text-xs font-bold text-white w-16 text-right">
+        {count}x pulls
+      </span>
+    </div>
+  );
+}
+
 // Banner card
-function BannerCard({ banner, canPull, onPull, pulling }: {
+function BannerCard({ banner, canPull, onPull, pulling, pullCount, onPullCountChange }: {
   banner: GachaBanner; canPull: boolean; onPull: () => void; pulling: boolean;
+  pullCount: number; onPullCountChange: (c: number) => void;
 }) {
+  const totalScrolls = pullCount * banner.scrollCost;
   const gradient = banner.featured
     ? 'linear-gradient(135deg, #ffd70040, #ff8c0040, #ffd70020)'
     : 'linear-gradient(135deg, #1a1a2e, #2d2d44)';
@@ -222,18 +262,24 @@ function BannerCard({ banner, canPull, onPull, pulling }: {
           </div>
         </div>
 
+        {/* Pull slider */}
+        <div className="mb-4">
+          <PullSlider count={pullCount} max={banner.maxPulls} onChange={onPullCountChange} />
+        </div>
+
         {/* Pull info */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Gem className="w-4 h-4 text-cyan-400" />
-            <span className="font-bold text-white">{banner.cost} 💎</span>
-            <span className="text-xs text-white/40">• {banner.attempts}x pull</span>
+            <span className="text-sm">📜</span>
+            <span className="font-bold text-white">{banner.scrollCost}</span>
+            <span className="text-xs text-white/40">× {pullCount} = </span>
+            <span className="font-bold" style={{ color: '#c6bfff' }}>📜{totalScrolls}</span>
           </div>
           <button
             onClick={onPull}
             disabled={!canPull || pulling}
             className={`px-5 py-2.5 rounded-xl font-bold text-sm text-white transition-all active:scale-95 ${
-              !canPull ? 'opacity-40 cursor-not-allowed' : 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90'
+              !canPull ? 'opacity-40 cursor-not-allowed' : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:opacity-90'
             }`}
           >
             {pulling ? <><Loader2 className="w-4 h-4 animate-spin inline" /> Processing...</> : '🎰 Pull!'}
@@ -380,7 +426,7 @@ function PullResultsModal({ results, onClose }: { results: PullResult[]; onClose
 
             <button
               onClick={onClose}
-              className="w-full mt-4 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-500 active:scale-95"
+              className="w-full mt-4 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-purple-500 to-pink-500 active:scale-95"
             >
               Lanjutkan
             </button>
@@ -391,19 +437,17 @@ function PullResultsModal({ results, onClose }: { results: PullResult[]; onClose
   );
 }
 
-// Diamond earning info
-function DiamondInfo() {
+// How to get scrolls info
+function ScrollInfo() {
   const [expanded, setExpanded] = useState(false);
   
   const sources = [
-    { source: 'Battle Victory', amount: 5, icon: '⚔️', desc: 'per menang' },
-    { source: 'Battle Win Streak', amount: 15, icon: '🔥', desc: 'per 3 streak' },
-    { source: 'Complete Quiz (100%)', amount: 3, icon: '📚', desc: 'per quiz sempurna' },
-    { source: 'Complete Module', amount: 10, icon: '📖', desc: 'per modul selesai' },
-    { source: 'Daily Login', amount: 5, icon: '🎁', desc: 'harian' },
-    { source: 'Daily Quest Complete', amount: 20, icon: '✅', desc: 'per quest' },
-    { source: 'Catch Pokemon', amount: 2, icon: '🎯', desc: 'per pokemon berhasil' },
-    { source: 'Share Collection', amount: 5, icon: '📤', desc: 'sekali' },
+    { source: 'Battle Victory', amount: 1, icon: '⚔️', desc: 'per menang' },
+    { source: 'Daily Login', amount: 1, icon: '🎁', desc: 'harian' },
+    { source: 'Daily Quest', amount: 2, icon: '✅', desc: 'per quest' },
+    { source: 'Sell Card', amount: 1, icon: '🔥', desc: 'per burn kartu' },
+    { source: 'Level Up', amount: 5, icon: '⬆️', desc: 'per naik level' },
+    { source: 'Share Collection', amount: 3, icon: '📤', desc: 'sekali' },
   ];
 
   return (
@@ -413,8 +457,8 @@ function DiamondInfo() {
         className="w-full px-4 py-3 flex items-center justify-between"
       >
         <div className="flex items-center gap-2">
-          <Gem className="w-4 h-4 text-cyan-400" />
-          <span className="text-sm font-bold text-white">Cara Mendapatkan 💎</span>
+          <span className="text-sm">📜</span>
+          <span className="text-sm font-bold text-white">Cara Mendapatkan Scroll</span>
         </div>
         {expanded ? <ChevronUp className="w-4 h-4 text-white/40" /> : <ChevronDown className="w-4 h-4 text-white/40" />}
       </button>
@@ -433,7 +477,7 @@ function DiamondInfo() {
                   <span className="text-lg">{s.icon}</span>
                   <div>
                     <p className="text-xs font-bold text-white">{s.source}</p>
-                    <p className="text-[10px] text-cyan-400">+{s.amount} 💎 {s.desc}</p>
+                    <p className="text-[10px] text-purple-400">+{s.amount} 📜 {s.desc}</p>
                   </div>
                 </div>
               ))}
@@ -450,18 +494,29 @@ function DiamondInfo() {
 // ============================================================
 export default function GachaPage() {
   const router = useRouter();
-  const { diamonds, scrolls, spendScrolls, addDiamonds, ownedPokemon, catchPokemon, isPokemonCaught } = useCollectionStore();
+  const { scrolls, spendScrolls, ownedPokemon, catchPokemon, isPokemonCaught } = useCollectionStore();
 
   const [selectedBanner, setSelectedBanner] = useState<GachaBanner | null>(null);
   const [pulling, setPulling] = useState(false);
   const [pullResults, setPullResults] = useState<PullResult[] | null>(null);
   const [pokemonCache, setPokemonCache] = useState<PokemonCard[]>([]);
   const [loading, setLoading] = useState(false);
+  // Per-banner pull count (slider)
+  const [pullCounts, setPullCounts] = useState<Record<string, number>>({
+    starter: 1,
+    adventure: 1,
+    legendary: 1,
+  });
+
   // Pity system: after PITY_THRESHOLD non-UR pulls, next pull is guaranteed UR
   const PITY_THRESHOLD = 50;
   const [pityCounter, setPityCounter] = useState(0);
   // Spark counter: every 5 pulls gives a guaranteed rare+
   const [sparkCounter, setSparkCounter] = useState(0);
+
+  const handlePullCountChange = (bannerId: string, count: number) => {
+    setPullCounts(prev => ({ ...prev, [bannerId]: count }));
+  };
 
   // Pre-fetch Pokemon for gacha
   const prefetchPokemon = useCallback(async (count: number = 20) => {
@@ -524,12 +579,15 @@ export default function GachaPage() {
 
   // Pull gacha - only accepts scrolls
   const doPull = async (banner: GachaBanner) => {
-    if (scrolls < 1) {
-      alert(`Tidak cukup 📜! Butuh 1 scroll. Beli scroll di toko!`);
+    const count = pullCounts[banner.id] || 1;
+    const totalCost = count * banner.scrollCost;
+
+    if (scrolls < totalCost) {
+      alert(`Tidak cukup 📜! Butuh ${totalCost} scroll. Beli scroll di toko!`);
       return;
     }
 
-    spendScrolls(1);
+    spendScrolls(totalCost);
 
     setPulling(true);
     setSelectedBanner(banner);
@@ -537,33 +595,33 @@ export default function GachaPage() {
     // Wait for animation
     await new Promise(r => setTimeout(r, 800));
 
-    // Generate results
+    // Generate results for each pull
     const results: PullResult[] = [];
 
-    // Determine rarity with pity + spark
-    const isPity = pityCounter >= PITY_THRESHOLD;
-    const isSpark = sparkCounter >= 4; // Every 5th pull (0-indexed, so 4)
+    for (let i = 0; i < count; i++) {
+      // Determine rarity with pity + spark
+      const isPity = pityCounter >= PITY_THRESHOLD;
+      const isSpark = sparkCounter >= 4; // Every 5th pull (0-indexed, so 4)
 
-    let rarity: Rarity;
-    if (isPity) {
-      rarity = 'ULTRA_RARE';
-      setPityCounter(0);
-    } else {
-      const tier = pickTier(banner.tiers);
-      rarity = getRarityFromTier(tier);
-      // Spark: force RARE+ on every 5th pull
-      if (isSpark && (rarity === 'COMMON' || rarity === 'UNCOMMON')) {
-        rarity = 'RARE';
+      let rarity: Rarity;
+      if (isPity) {
+        rarity = 'ULTRA_RARE';
+        setPityCounter(0);
+      } else {
+        const tier = pickTier(banner.tiers);
+        rarity = getRarityFromTier(tier);
+        // Spark: force RARE+ on every 5th pull
+        if (isSpark && (rarity === 'COMMON' || rarity === 'UNCOMMON')) {
+          rarity = 'RARE';
+        }
       }
-    }
 
-    // Increment counters
-    const newPity = rarity !== 'ULTRA_RARE' ? pityCounter + 1 : 0;
-    const newSpark = (sparkCounter + 1) % 5;
-    setPityCounter(newPity);
-    setSparkCounter(newSpark);
+      // Increment counters
+      const newPity = rarity !== 'ULTRA_RARE' ? pityCounter + 1 : 0;
+      const newSpark = (sparkCounter + 1) % 5;
+      setPityCounter(newPity);
+      setSparkCounter(newSpark);
 
-    for (let i = 0; i < banner.attempts; i++) {
       // Get a random Pokemon from cache matching rarity
       let candidates = pokemonCache;
       if (rarity !== 'COMMON') {
@@ -581,7 +639,6 @@ export default function GachaPage() {
       // Auto-catch if new
       if (isNew) {
         catchPokemon(pokemon);
-        addDiamonds(3); // Earn 3 diamonds for catching new pokemon
       }
     }
 
@@ -602,7 +659,7 @@ export default function GachaPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#0d0d1a' }}>
-      <CurrencyBar diamonds={diamonds} scrolls={scrolls} pity={pityCounter} spark={sparkCounter} />
+      <CurrencyBar scrolls={scrolls} pity={pityCounter} spark={sparkCounter} />
 
       <main className="max-w-md mx-auto px-4 pt-4 pb-8 space-y-6">
         {/* Header */}
@@ -611,35 +668,41 @@ export default function GachaPage() {
           <p className="text-sm text-white/40">Tarik untuk mendapat Pokemon langka!</p>
         </div>
 
-        {/* Diamond earning info */}
-        <DiamondInfo />
+        {/* Scroll info */}
+        <ScrollInfo />
 
         {/* Loading cache indicator */}
         {loading && (
           <div className="flex items-center justify-center gap-2 py-3">
-            <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
+            <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
             <span className="text-xs text-white/40">Menyiapkan Pokemon...</span>
           </div>
         )}
 
         {/* Banners */}
         <div className="space-y-4">
-          {BANNERS.map((banner, i) => (
-            <BannerCard
-              key={banner.id}
-              banner={banner}
-              canPull={diamonds >= banner.cost}
-              pulling={pulling && selectedBanner?.id === banner.id}
-              onPull={() => doPull(banner)}
-            />
-          ))}
+          {BANNERS.map((banner, i) => {
+            const count = pullCounts[banner.id] || 1;
+            const totalCost = count * banner.scrollCost;
+            return (
+              <BannerCard
+                key={banner.id}
+                banner={banner}
+                canPull={scrolls >= totalCost}
+                pulling={pulling && selectedBanner?.id === banner.id}
+                onPull={() => doPull(banner)}
+                pullCount={count}
+                onPullCountChange={(c) => handlePullCountChange(banner.id, c)}
+              />
+            );
+          })}
         </div>
 
         {/* Info */}
         <div className="text-center text-xs text-white/30 py-4">
           <p>🔄 Pokemon di Gacha refresh setiap kali kamu pull</p>
           <p>✨ Shiny Pokemon chance: 10% per pull</p>
-          <p>💎 Setiap catch berhasil dapat +2 💎</p>
+          <p>📜 Setiap catch berhasil dapat +3 📜</p>
         </div>
       </main>
 
