@@ -24,6 +24,46 @@ interface BattleCard {
   cost: number;
   status: CardStatus;
   image?: string;
+  ability?: string; // e.g. "Battle Armor", "Overgrow", "Swift Swim"
+}
+
+// Ability badge color mapping based on effect type
+const ABILITY_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
+  // Defense/Armor
+  armor: { bg: '#4facfe30', text: '#4facfe', icon: '🛡️' },
+  shield: { bg: '#4facfe30', text: '#4facfe', icon: '🛡️' },
+  guard: { bg: '#4facfe30', text: '#4facfe', icon: '🛡️' },
+  'battle-armor': { bg: '#4facfe30', text: '#4facfe', icon: '🛡️' },
+  'shell-armor': { bg: '#4facfe30', text: '#4facfe', icon: '🛡️' },
+  // Attack/Power
+  'overgrow': { bg: '#ff6b3530', text: '#ff6b35', icon: '⚔️' },
+  blaze: { bg: '#ff6b3530', text: '#ff6b35', icon: '🔥' },
+  'flash-fire': { bg: '#ff6b3530', text: '#ff6b35', icon: '🔥' },
+  // Speed
+  'swift-swim': { bg: '#4facfe30', text: '#4facfe', icon: '💨' },
+  speed: { bg: '#ffd93d30', text: '#ffd93d', icon: '💨' },
+  // Special
+  'levitate': { bg: '#c77dff30', text: '#c77dff', icon: '👻' },
+  'floating': { bg: '#c77dff30', text: '#c77dff', icon: '✨' },
+  // Heal/Recovery
+  'regenerator': { bg: '#4bddb730', text: '#4bddb7', icon: '💚' },
+  'healer': { bg: '#4bddb730', text: '#4bddb7', icon: '💚' },
+  // Default
+  default: { bg: '#c8c4d730', text: '#c8c4d7', icon: '⭐' },
+};
+
+function getAbilityStyle(abilityName: string): { bg: string; text: string; icon: string } {
+  if (!abilityName) return ABILITY_COLORS.default;
+  const key = abilityName.toLowerCase().replace(/\s+/g, '-');
+  for (const [pattern, style] of Object.entries(ABILITY_COLORS)) {
+    if (key.includes(pattern)) return style;
+  }
+  return ABILITY_COLORS.default;
+}
+
+function formatAbilityName(name: string): string {
+  if (!name) return '';
+  return name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
 type Phase = 'select-opponent' | 'intro' | 'battle' | 'result';
@@ -95,6 +135,7 @@ function createBattleCard(card: any, isPlayer: boolean): BattleCard {
     cost: 1,
     status: 'normal',
     image: card.image || undefined,
+    ability: card.ability || undefined,
   };
 }
 
@@ -208,6 +249,8 @@ function StudyModal({ question, onAnswer }: { question: { q: string; opts: strin
 function HandCard({ card, idx, sel, onClick, disabled }: { card: BattleCard; idx: number; sel: boolean; onClick: () => void; disabled: boolean }) {
   const col = ELEMENT_COLORS[card.element];
   const hpPct = card.hp / card.maxHp;
+  const abilityStyle = getAbilityStyle(card.ability || '');
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.06 }}
       whileHover={disabled ? {} : { y: -10, scale: 1.05 }} whileTap={disabled ? {} : { scale: 0.95 }}
@@ -224,6 +267,15 @@ function HandCard({ card, idx, sel, onClick, disabled }: { card: BattleCard; idx
       ) : (
         <span className="text-2xl" style={{ color: col }}>⬡</span>
       )}
+      {card.ability && (
+        <div
+          className="absolute top-1 left-1 px-1 py-0.5 rounded text-[7px] font-bold flex items-center gap-0.5"
+          style={{ backgroundColor: abilityStyle.bg, color: abilityStyle.text }}
+          title={formatAbilityName(card.ability)}
+        >
+          <span>{abilityStyle.icon}</span>
+        </div>
+      )}
       <span className="text-[9px] text-white/60 capitalize mt-0.5 truncate w-full text-center">{card.name}</span>
       <div className="w-full mt-1 h-1 rounded-full bg-black/40 overflow-hidden">
         <div className="h-full rounded-full" style={{ width: `${hpPct * 100}%`, backgroundColor: hpPct > 0.5 ? '#4bddb7' : hpPct > 0.25 ? '#ffd93d' : '#ff6b35' }} />
@@ -238,11 +290,20 @@ function HandCard({ card, idx, sel, onClick, disabled }: { card: BattleCard; idx
 }
 
 // Active card display
-function ActiveCard({ card, isPlayer }: { card: BattleCard; isPlayer: boolean }) {
+function ActiveCard({ card, isPlayer, attacking, hit }: { card: BattleCard; isPlayer: boolean; attacking?: boolean; hit?: boolean }) {
   const col = ELEMENT_COLORS[card.element];
   const hpPct = card.hp / card.maxHp;
+  const abilityStyle = getAbilityStyle(card.ability || '');
+
   return (
-    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{
+        opacity: 1,
+        scale: 1,
+        x: attacking ? (isPlayer ? 20 : -20) : hit ? [0, -15, 15, -10, 10, 0] : 0,
+      }}
+      transition={attacking ? { duration: 0.15, ease: 'easeOut' } : hit ? { duration: 0.4 } : {}}
       className={`rounded-xl overflow-hidden ${isPlayer ? 'border-t-4' : 'border-b-4'}`}
       style={{ borderColor: col, background: 'linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%)' }}>
       <div className="p-3 flex items-center gap-3">
@@ -254,7 +315,19 @@ function ActiveCard({ card, isPlayer }: { card: BattleCard; isPlayer: boolean })
         </div>
         <div className="flex-1">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-sm font-bold text-white capitalize">{card.name}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-white capitalize">{card.name}</span>
+              {card.ability && (
+                <div
+                  className="px-2 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-1"
+                  style={{ backgroundColor: abilityStyle.bg, color: abilityStyle.text }}
+                  title={formatAbilityName(card.ability)}
+                >
+                  <span>{abilityStyle.icon}</span>
+                  <span>{formatAbilityName(card.ability)}</span>
+                </div>
+              )}
+            </div>
             <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: col + '30', color: col }}>{card.element}</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
@@ -318,7 +391,9 @@ function BattlePageContent() {
   // UI state
   const [showDmg, setShowDmg] = useState(false);
   const [dmgVal, setDmgVal] = useState(0);
-  const [showStudy, setShowStudy] = useState(false);
+  const [attackingCard, setAttackingCard] = useState<'player' | 'opponent' | null>(null); // attack animation
+  const [hitCard, setHitCard] = useState<'player' | 'opponent' | null>(null); // hit shake animation
+  const [showStudy, setShowStudy] = useState(false); // ...
   const [studyQ, setStudyQ] = useState<{ q: string; opts: string[]; ans: string } | null>(null);
   const [result, setResult] = useState<{ win: boolean; xp: number; diamonds: number } | null>(null);
   const [autoMode, setAutoMode] = useState(false);
@@ -611,6 +686,13 @@ function BattlePageContent() {
 
     setDmgVal(damage);
     setShowDmg(true);
+    // Animate opponent card attacking forward, then player card shake on hit
+    setAttackingCard('opponent');
+    setTimeout(() => {
+      setAttackingCard(null);
+      setHitCard('player');
+      setTimeout(() => setHitCard(null), 400);
+    }, 300);
 
     setTimeout(() => {
       setShowDmg(false);
@@ -696,6 +778,13 @@ function BattlePageContent() {
 
     setDmgVal(damage);
     setShowDmg(true);
+    // Animate player card attacking forward, then opponent card shake on hit
+    setAttackingCard('player');
+    setTimeout(() => {
+      setAttackingCard(null);
+      setHitCard('opponent');
+      setTimeout(() => setHitCard(null), 400);
+    }, 300);
 
     setTimeout(() => {
       setShowDmg(false);
@@ -863,7 +952,7 @@ function BattlePageContent() {
         </div>
 
         <div className="flex-1 px-4 py-3 space-y-2 overflow-hidden">
-          {oppActive && <ActiveCard card={oppActive} isPlayer={false} />}
+          {oppActive && <ActiveCard card={oppActive} isPlayer={false} attacking={attackingCard === 'opponent'} hit={hitCard === 'opponent'} />}
           {oppActive && <AnimatePresence>{showDmg && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
 
           {opponent && (
@@ -884,7 +973,7 @@ function BattlePageContent() {
 
           {opponent && <div className="flex items-center gap-2 py-1"><div className="flex-1 h-px bg-white/10" /><span className="text-xs text-white/30">VS</span><div className="flex-1 h-px bg-white/10" /></div>}
 
-          {playerActive && <ActiveCard card={playerActive} isPlayer={true} />}
+          {playerActive && <ActiveCard card={playerActive} isPlayer={true} attacking={attackingCard === 'player'} hit={hitCard === 'player'} />}
           {playerActive && <AnimatePresence>{showDmg && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
 
           {opponent && (
