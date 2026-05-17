@@ -468,17 +468,36 @@ function getAllBadges(badges: { id: string; name: string; icon: string; descript
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, isAuthenticated, totalBattles, totalWins, studySessions } = useAuthStore();
+  const { user, isAuthenticated, isLoading, totalBattles, totalWins, studySessions } = useAuthStore();
   const { coins, diamonds, streakDays, ownedCards, ownedPokemon, fusedPokemon, decks, activeDeckId,
     hiraganaProgress, katakanaProgress, kanjiProgress, vocabularyProgress, grammarProgress } = useCollectionStore();
 
-  // Redirect if not authenticated
+  // Wait for Zustand persist to rehydrate before checking auth
+  const [ready, setReady] = useState(false);
   useEffect(() => {
-    if (!isAuthenticated) router.replace('/auth');
-  }, [isAuthenticated, router]);
+    // Small delay to let Zustand rehydrate from localStorage
+    const timer = setTimeout(() => setReady(true), 50);
+    return () => clearTimeout(timer);
+  }, []);
 
-  // Real data
-  const levelInfo = getLevelFromXP(user?.xp || 0);
+  // Redirect if not authenticated after rehydration
+  useEffect(() => {
+    if (ready && !isAuthenticated) router.replace('/auth');
+  }, [ready, isAuthenticated, router]);
+
+  // Real data — use user's stored level for display (don't recalculate from XP curve)
+  const displayLevel = user?.level || 1;
+  // Compute XP progress within current level using exponential curve
+  const XP_BASE = 500;
+  const XP_GROWTH = 0.10;
+  const xpForLevel = (lv: number) => Math.floor(XP_BASE * Math.pow(1 + XP_GROWTH, lv - 1));
+  // Total XP accumulated before current level
+  let totalPrevXP = 0;
+  for (let l = 1; l < displayLevel; l++) totalPrevXP += xpForLevel(l);
+  const currentLevelXP = (user?.xp || 0) - totalPrevXP;
+  const xpNeeded = xpForLevel(displayLevel);
+  const xpProgress = Math.min(100, (currentLevelXP / xpNeeded) * 100);
+
   const totalCardsOwned = ownedCards.length + ownedPokemon.length + fusedPokemon.length;
   const earnedBadges = getAllBadges(user?.badges || []);
 
@@ -516,24 +535,24 @@ export default function ProfilePage() {
           <h2 className="text-xl font-bold mb-1" style={{ color: colors.lightText }}>
             {user?.username || 'Tamago'}
           </h2>
-          <p className="text-sm mb-3" style={{ color: colors.darkText }}>Level {levelInfo.level}</p>
+          <p className="text-sm mb-3" style={{ color: colors.darkText }}>Level {displayLevel}</p>
 
           {/* Level & XP */}
           <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full" style={{ backgroundColor: colors.inputBg }}>
             <span className="px-2 py-0.5 rounded-full text-xs font-bold text-white" style={{ backgroundColor: colors.brand }}>
-              Lv {levelInfo.level}
+              Lv {displayLevel}
             </span>
             <div className="h-2 w-28 rounded-full overflow-hidden" style={{ backgroundColor: colors.darkGray }}>
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: `${levelInfo.progress}%` }}
+                animate={{ width: `${xpProgress}%` }}
                 transition={{ delay: 0.3, duration: 0.5 }}
                 className="h-full rounded-full"
                 style={{ backgroundColor: colors.teal }}
               />
             </div>
             <span className="text-xs" style={{ color: colors.darkText }}>
-              {levelInfo.currentXP}/{levelInfo.xpForNextLevel} XP
+              {currentLevelXP}/{xpNeeded} XP
             </span>
           </div>
 

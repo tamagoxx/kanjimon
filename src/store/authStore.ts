@@ -82,14 +82,24 @@ export const useAuthStore = create<AuthState>()(
         if (!user) return;
 
         const newXP = user.xp + amount;
-        const xpPerLevel = 1000;
-        const newLevel = Math.floor(newXP / xpPerLevel) + 1;
+        // XP curve: level 1 needs 500, each next level needs 10% more
+        // level 100 = ~490,000 XP total
+        let level = 1;
+        let remaining = newXP;
+        const XP_BASE = 500;
+        const XP_GROWTH = 0.10;
+        while (level < 100) {
+          const needed = Math.floor(XP_BASE * Math.pow(1 + XP_GROWTH, level - 1));
+          if (remaining < needed) break;
+          remaining -= needed;
+          level++;
+        }
 
         set({
           user: {
             ...user,
             xp: newXP,
-            level: newLevel,
+            level,
           },
         });
       },
