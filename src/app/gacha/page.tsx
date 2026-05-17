@@ -494,7 +494,7 @@ function ScrollInfo() {
 // ============================================================
 export default function GachaPage() {
   const router = useRouter();
-  const { scrolls, spendScrolls, ownedPokemon, catchPokemon, isPokemonCaught } = useCollectionStore();
+  const { scrolls, spendScrolls, ownedPokemon, catchPokemon, isPokemonCaught, trackQuestEvent } = useCollectionStore();
 
   const [selectedBanner, setSelectedBanner] = useState<GachaBanner | null>(null);
   const [pulling, setPulling] = useState(false);
@@ -639,6 +639,8 @@ export default function GachaPage() {
       // Auto-catch if new
       if (isNew) {
         catchPokemon(pokemon);
+        // Update COLLECT quest progress
+        trackQuestEvent('COLLECT');
       }
     }
 

@@ -566,12 +566,10 @@ export const useCollectionStore = create<CollectionState>()(
             energy: Math.min(get().energy + 5, 20), // refill 5, cap at 20
           });
 
-          // Trigger streak quest if active
-          const quests = get().dailyQuests;
-          const streakQuest = quests.find(q => q.type === 'STREAK' && !q.completed);
-          if (streakQuest) {
-            get().updateQuestProgress(streakQuest.id, newStreak);
-          }
+          // Trigger streak quest tracking (after daily quests are initialized)
+          setTimeout(() => {
+            get().trackQuestEvent('STREAK');
+          }, 0);
 
           return true;
         }
