@@ -169,7 +169,7 @@ function StatusBadge({ status }: { status: CardStatus }) {
   );
 }
 
-function DeckSelectionScreen({ onSelectDeck, onEditDeck, onNewDeck }: { onSelectDeck: (deckId: string) => void; onEditDeck: (deckId: string) => void; onNewDeck: () => void }) {
+function DeckSelectionScreen({ onSelectDeck, onEditDeck, onNewDeck, onClose }: { onSelectDeck: (deckId: string) => void; onEditDeck: (deckId: string) => void; onNewDeck: () => void; onClose: () => void }) {
   const { decks, activeDeckId, ownedCards, ownedPokemon, fusedPokemon } = useCollectionStore();
 
   // Filter decks that have at least 3 cards
@@ -198,14 +198,14 @@ function DeckSelectionScreen({ onSelectDeck, onEditDeck, onNewDeck }: { onSelect
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: '#0d0d1a' }}>
       <div className="flex items-center gap-4 p-4 border-b border-white/10">
-        <button onClick={onNewDeck} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#1a1a2e' }}>
+        <button onClick={onClose} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#1a1a2e' }}>
           <ArrowLeft className="w-5 h-5 text-white" />
         </button>
         <h2 className="text-lg font-black text-white flex-1">📋 Pilih Deck</h2>
-        <button onClick={onNewDeck}
-          className="px-4 py-2 rounded-xl text-sm font-bold text-white"
-          style={{ backgroundColor: '#6c5ce7' }}>
-          + Deck Baru
+        <button onClick={onClose}
+          className="w-10 h-10 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: '#1a1a2e' }}>
+          ✕
         </button>
       </div>
 
@@ -1346,6 +1346,7 @@ function BattlePageContent() {
             onSelectDeck={handleSelectDeck}
             onEditDeck={handleEditDeck}
             onNewDeck={handleNewDeck}
+            onClose={() => router.push('/')}
           />
         )}
         {editDeckId && (
