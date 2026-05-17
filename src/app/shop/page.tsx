@@ -314,7 +314,7 @@ function BottomNav() {
 // ============================================================
 export default function ShopPage() {
   const router = useRouter();
-  const { coins, diamonds, energy, scrolls, spendDiamonds, spendCoins, spendEnergy, addEnergy, addScrolls, addDiamonds } = useCollectionStore();
+  const { coins, diamonds, energy, scrolls, stardust, spendDiamonds, spendCoins, spendEnergy, addEnergy, addScrolls, addDiamonds, addStardust } = useCollectionStore();
   const [buying, setBuying] = useState(false);
 
   const handleBuy = (currency: '💎' | '💰' | '⚡', price: number, action: () => void) => {
@@ -492,6 +492,63 @@ export default function ShopPage() {
               description="10 kartu + bonus"
               color="#4bddb7"
               onBuy={() => handleBuy('💎', 200, () => {})}
+              highlight
+            />
+          </div>
+        </section>
+
+        {/* ✨ Stardust */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">✨</span>
+              <h2 className="text-sm font-bold text-white">Stardust</h2>
+            </div>
+            <span className="text-xs font-bold text-amber-400">✨ {stardust.toLocaleString()}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <ShopItem
+              name="+1 Stardust"
+              price={50}
+              currency="💎"
+              emoji="✨"
+              description="Untuk Evolution"
+              color="#f0bf63"
+              onBuy={() => handleBuy('💎', 50, () => addStardust(1))}
+            />
+            <ShopItem
+              name="+5 Stardust"
+              price={220}
+              currency="💎"
+              emoji="✨"
+              description="Hemat 30💎"
+              color="#ffd700"
+              tag="HEMAT"
+              tagColor="bg-yellow-500/20 text-yellow-400"
+              onBuy={() => handleBuy('💎', 220, () => addStardust(5))}
+              highlight
+            />
+            <ShopItem
+              name="+10 Stardust"
+              price={400}
+              currency="💎"
+              emoji="✨"
+              description="Hemat 100💎"
+              color="#ff8c00"
+              tag="MEGA"
+              tagColor="bg-orange-500/20 text-orange-400"
+              onBuy={() => handleBuy('💎', 400, () => addStardust(10))}
+            />
+            <ShopItem
+              name="+25 Stardust"
+              price={900}
+              currency="💎"
+              emoji="✨"
+              description="Hemat 350💎"
+              color="#c0c0c0"
+              tag="BEST"
+              tagColor="bg-gray-500/20 text-gray-300"
+              onBuy={() => handleBuy('💎', 900, () => addStardust(25))}
               highlight
             />
           </div>
