@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useSettingsStore, type Theme, type Language } from '@/store/settingsStore';
+import { useCollectionStore } from '@/store/collectionStore';
 
 const colors = {
   background: '#0a1519',
@@ -368,8 +369,14 @@ export default function SettingsPage() {
           className="w-full px-4 py-4 flex items-center justify-center gap-2 rounded-2xl mt-4"
           style={{ backgroundColor: `${colors.coral}20` }}
           onClick={() => {
+            // Clear auth store
             useAuthStore.getState().logout();
-            router.push('/');
+            // Clear localStorage for both stores to fully reset state
+            localStorage.removeItem('kanjimon-auth');
+            localStorage.removeItem('kanjimon-collection');
+            localStorage.removeItem('kanjimon-settings');
+            // Force hard redirect to /auth to reinitialize stores
+            window.location.href = '/auth';
           }}
         >
           <span className="text-2xl">🚪</span>
