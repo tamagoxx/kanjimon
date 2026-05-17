@@ -148,14 +148,31 @@ function pickTier(tiers: GachaBanner['tiers']): GachaTier {
 // ============================================================
 
 // Currency display
-function CurrencyBar({ diamonds, onBack }: { diamonds: number; onBack: () => void }) {
+function CurrencyBar({ diamonds, scrolls, pity, spark }: { diamonds: number; scrolls: number; pity: number; spark: number }) {
+  const PITY_MAX = 50;
   return (
     <div className="sticky top-0 z-40 px-4 h-[72px] flex items-center justify-between" style={{ backgroundColor: '#0a1519' }}>
-      <button onClick={onBack} className="text-white/60 hover:text-white">← Back</button>
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 px-4 py-2 rounded-full" style={{ backgroundColor: '#1a1a2e' }}>
-          <Gem className="w-4 h-4 text-cyan-400" />
-          <span className="text-sm font-bold text-cyan-400">{diamonds.toLocaleString()}</span>
+      <button onClick={() => window.history.back()} className="text-white/60 hover:text-white">← Back</button>
+      <div className="flex items-center gap-2">
+        {/* Scrolls */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full" style={{ backgroundColor: '#1a1a2e' }}>
+          <span className="text-sm">📜</span>
+          <span className="text-xs font-bold" style={{ color: '#c6bfff' }}>{scrolls}</span>
+        </div>
+        {/* Diamonds */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full" style={{ backgroundColor: '#1a1a2e' }}>
+          <Gem className="w-3.5 h-3.5 text-cyan-400" />
+          <span className="text-xs font-bold text-cyan-400">{diamonds.toLocaleString()}</span>
+        </div>
+        {/* Spark (every 5 pulls) */}
+        <div className="flex items-center gap-1 px-2 py-1 rounded-full" style={{ backgroundColor: '#1a1a2e' }} title="Spark: Setiap 5 pull, guaranteed RARE+">
+          <span className="text-xs">✨</span>
+          <span className="text-[10px] font-bold" style={{ color: '#ffd700' }}>{spark}/5</span>
+        </div>
+        {/* Pity (50 pulls = guaranteed UR) */}
+        <div className="flex items-center gap-1 px-2 py-1 rounded-full" style={{ backgroundColor: '#1a1a2e' }} title="Pity: Setelah 50 pull tanpa UR, pull berikutnya guaranteed ULTRA RARE">
+          <span className="text-xs">💎</span>
+          <span className="text-[10px] font-bold" style={{ color: pity >= PITY_MAX ? '#ff6b35' : '#a8a8a8' }}>{pity}/{PITY_MAX}</span>
         </div>
       </div>
     </div>
@@ -433,13 +450,18 @@ function DiamondInfo() {
 // ============================================================
 export default function GachaPage() {
   const router = useRouter();
-  const { diamonds, spendDiamonds, addDiamonds, ownedPokemon, catchPokemon, isPokemonCaught } = useCollectionStore();
+  const { diamonds, scrolls, spendDiamonds, spendScrolls, addDiamonds, ownedPokemon, catchPokemon, isPokemonCaught } = useCollectionStore();
 
   const [selectedBanner, setSelectedBanner] = useState<GachaBanner | null>(null);
   const [pulling, setPulling] = useState(false);
   const [pullResults, setPullResults] = useState<PullResult[] | null>(null);
   const [pokemonCache, setPokemonCache] = useState<PokemonCard[]>([]);
   const [loading, setLoading] = useState(false);
+  // Pity system: after PITY_THRESHOLD non-UR pulls, next pull is guaranteed UR
+  const PITY_THRESHOLD = 50;
+  const [pityCounter, setPityCounter] = useState(0);
+  // Spark counter: every 5 pulls gives a guaranteed rare+
+  const [sparkCounter, setSparkCounter] = useState(0);
 
   // Pre-fetch Pokemon for gacha
   const prefetchPokemon = useCallback(async (count: number = 20) => {
@@ -502,12 +524,18 @@ export default function GachaPage() {
 
   // Pull gacha
   const doPull = async (banner: GachaBanner) => {
-    if (diamonds < banner.cost) {
-      alert(`Tidak cukup 💎! Butuh ${banner.cost}, punya ${diamonds}`);
+    // Use scrolls if available, else diamonds
+    const useScrolls = scrolls >= 1;
+    if (!useScrolls && diamonds < banner.cost) {
+      alert(`Tidak cukup 💎! Butuh ${banner.cost}, punya ${diamonds}. Kumpulkan scroll di toko!`);
       return;
     }
 
-    if (!spendDiamonds(banner.cost)) return;
+    if (useScrolls) {
+      spendScrolls(1);
+    } else {
+      if (!spendDiamonds(banner.cost)) return;
+    }
 
     setPulling(true);
     setSelectedBanner(banner);
@@ -517,28 +545,49 @@ export default function GachaPage() {
 
     // Generate results
     const results: PullResult[] = [];
-    for (let i = 0; i < banner.attempts; i++) {
+
+    // Determine rarity with pity + spark
+    const isPity = pityCounter >= PITY_THRESHOLD;
+    const isSpark = sparkCounter >= 4; // Every 5th pull (0-indexed, so 4)
+
+    let rarity: Rarity;
+    if (isPity) {
+      rarity = 'ULTRA_RARE';
+      setPityCounter(0);
+    } else {
       const tier = pickTier(banner.tiers);
-      const rarity = getRarityFromTier(tier);
-      
+      rarity = getRarityFromTier(tier);
+      // Spark: force RARE+ on every 5th pull
+      if (isSpark && (rarity === 'COMMON' || rarity === 'UNCOMMON')) {
+        rarity = 'RARE';
+      }
+    }
+
+    // Increment counters
+    const newPity = rarity !== 'ULTRA_RARE' ? pityCounter + 1 : 0;
+    const newSpark = (sparkCounter + 1) % 5;
+    setPityCounter(newPity);
+    setSparkCounter(newSpark);
+
+    for (let i = 0; i < banner.attempts; i++) {
       // Get a random Pokemon from cache matching rarity
       let candidates = pokemonCache;
       if (rarity !== 'COMMON') {
         candidates = pokemonCache.filter(p => p.rarity === rarity);
       }
       if (candidates.length === 0) candidates = pokemonCache;
-      
+
       const pokemon = candidates[Math.floor(Math.random() * candidates.length)];
       if (!pokemon) continue;
 
       const isNew = !isPokemonCaught(pokemon.pokemonId);
-      
-      results.push({ pokemon, rarity, isNew, tier });
+
+      results.push({ pokemon, rarity, isNew, tier: rarity === 'ULTRA_RARE' ? 'diamond' : rarity === 'RARE' ? 'gold' : rarity === 'UNCOMMON' ? 'silver' : 'bronze' });
 
       // Auto-catch if new
       if (isNew) {
         catchPokemon(pokemon);
-        addDiamonds(2); // Earn 2 diamonds for catching
+        addDiamonds(3); // Earn 3 diamonds for catching new pokemon
       }
     }
 
@@ -559,7 +608,7 @@ export default function GachaPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#0d0d1a' }}>
-      <CurrencyBar diamonds={diamonds} onBack={() => router.push('/shop')} />
+      <CurrencyBar diamonds={diamonds} scrolls={scrolls} pity={pityCounter} spark={sparkCounter} />
 
       <main className="max-w-md mx-auto px-4 pt-4 pb-8 space-y-6">
         {/* Header */}

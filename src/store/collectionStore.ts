@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { OwnedCard, Deck, DailyQuest, JapaneseCard, FusedPokemon } from '@/types';
+import { useAuthStore } from './authStore';
 
 // Pokemon card type (from PokeAPI)
 export interface PokemonCard {
@@ -80,6 +81,7 @@ interface CollectionState {
   coins: number;
   diamonds: number;
   scrolls: number;
+  energy: number;
   totalDiamondsEarned: number;
   streakDays: number;
   lastLoginDate: string | null;
@@ -128,6 +130,8 @@ interface CollectionState {
   spendDiamonds: (amount: number) => boolean;
   addScrolls: (amount: number) => void;
   spendScrolls: (amount: number) => boolean;
+  addEnergy: (amount: number) => void;
+  spendEnergy: (amount: number) => boolean;
 
   // Daily login & streak
   checkDailyLogin: () => boolean;
@@ -150,6 +154,7 @@ export const useCollectionStore = create<CollectionState>()(
       coins: 500,
       diamonds: 0,
       scrolls: 3,
+      energy: 10,
       totalDiamondsEarned: 0,
       streakDays: 0,
       lastLoginDate: null,
@@ -323,8 +328,11 @@ export const useCollectionStore = create<CollectionState>()(
 
           console.log(`[Quest] ✓ Completing quest: ${quest.title} (${quest.type}). Claiming reward: ${quest.xpReward} XP + ${quest.diamondReward} 💎`);
 
+          // Give XP via authStore
+          useAuthStore.getState().addXP(quest.xpReward);
+
           return {
-            coins: state.coins + quest.xpReward,
+            coins: state.coins + 100,
             diamonds: state.diamonds + (quest.diamondReward || 0),
             totalDiamondsEarned: state.totalDiamondsEarned + (quest.diamondReward || 0),
             dailyQuests: state.dailyQuests.map(q =>
@@ -443,6 +451,17 @@ export const useCollectionStore = create<CollectionState>()(
         return true;
       },
 
+      addEnergy: (amount) => {
+        set(state => ({ energy: state.energy + amount }));
+      },
+
+      spendEnergy: (amount) => {
+        const { energy } = get();
+        if (energy < amount) return false;
+        set(state => ({ energy: state.energy - amount }));
+        return true;
+      },
+
       // Daily login
       checkDailyLogin: () => {
         const today = getTodayString();
@@ -458,8 +477,10 @@ export const useCollectionStore = create<CollectionState>()(
           set({
             lastLoginDate: today,
             streakDays: newStreak,
-            coins: get().coins + 10,
+            coins: get().coins + 50,
+            diamonds: get().diamonds + 5,
             scrolls: get().scrolls + 1,
+            energy: Math.min(get().energy + 5, 20), // refill 5, cap at 20
           });
 
           // Trigger streak quest if active
