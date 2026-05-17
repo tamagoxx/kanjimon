@@ -6,6 +6,11 @@ interface AuthState {
   user: UserProfile | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  // Stats
+  totalBattles: number;
+  totalWins: number;
+  totalCards: number;
+  studySessions: number;
   // Actions
   login: (userData: { username: string; email: string }) => void;
   register: (userData: { username: string; email: string }) => void;
@@ -13,6 +18,7 @@ interface AuthState {
   addXP: (amount: number) => void;
   addBadge: (badge: Badge) => void;
   updateProgress: (updates: Partial<UserProgress>) => void;
+  incrementStat: (stat: 'battles' | 'wins' | 'studySessions') => void;
   logout: () => void;
   // New user onboarding
   initNewUser: (userData: { username: string; email: string }, initCollection: () => void) => void;
@@ -24,6 +30,11 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       isLoading: true,
+      // Stats
+      totalBattles: 0,
+      totalWins: 0,
+      totalCards: 0,
+      studySessions: 0,
 
       login: (userData) => {
         const newUser: UserProfile = {
@@ -105,11 +116,22 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
+      incrementStat: (stat) => {
+        const s = get();
+        if (stat === 'battles') set({ totalBattles: s.totalBattles + 1 });
+        else if (stat === 'wins') set({ totalWins: s.totalWins + 1 });
+        else if (stat === 'studySessions') set({ studySessions: s.studySessions + 1 });
+      },
+
       logout: () =>
         set({
           user: null,
           isAuthenticated: false,
           isLoading: false,
+          totalBattles: 0,
+          totalWins: 0,
+          totalCards: 0,
+          studySessions: 0,
         }),
 
       initNewUser: (userData, initCollection) => {

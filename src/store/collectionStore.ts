@@ -83,6 +83,12 @@ interface CollectionState {
   totalDiamondsEarned: number;
   streakDays: number;
   lastLoginDate: string | null;
+  // Learning progress
+  hiraganaProgress: number;
+  katakanaProgress: number;
+  kanjiProgress: number;
+  vocabularyProgress: number;
+  grammarProgress: number;
 
   // Card actions (Japanese)
   addCard: (card: OwnedCard) => void;
@@ -147,6 +153,12 @@ export const useCollectionStore = create<CollectionState>()(
       totalDiamondsEarned: 0,
       streakDays: 0,
       lastLoginDate: null,
+      // Learning progress
+      hiraganaProgress: 0,
+      katakanaProgress: 0,
+      kanjiProgress: 0,
+      vocabularyProgress: 0,
+      grammarProgress: 0,
 
       // Japanese card actions
       addCard: (card) => {

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { useCollectionStore } from '@/store/collectionStore';
 
 const colors = {
   background: '#0a1519',
@@ -30,15 +31,15 @@ function getXPForLevel(level: number): number {
 function getLevelFromXP(xp: number): { level: number; currentXP: number; xpForNextLevel: number; progress: number } {
   let level = 1;
   let remainingXP = xp;
-  
+
   while (remainingXP >= getXPForLevel(level)) {
     remainingXP -= getXPForLevel(level);
     level++;
   }
-  
+
   const xpForNext = getXPForLevel(level);
   const progress = (remainingXP / xpForNext) * 100;
-  
+
   return { level, currentXP: remainingXP, xpForNextLevel: xpForNext, progress };
 }
 
@@ -446,65 +447,52 @@ function BottomNav() {
   );
 }
 
-// Demo data for recent battles
-const recentBattles = [
-  { opponent: 'Sensei Bot', result: 'WIN' as const, score: '2-1', time: '2 jam lalu' },
-  { opponent: 'Ninja Bot', result: 'WIN' as const, score: '2-0', time: '5 jam lalu' },
-  { opponent: 'Samurai Bot', result: 'LOSE' as const, score: '0-2', time: 'Kemarin' },
-  { opponent: 'Shogun Bot', result: 'LOSE' as const, score: '1-2', time: '3 hari lalu' },
-];
-
-// Demo decks
-const demoDecks = [
-  { name: 'Fire Storm', cards: 20, element: 'FIRE' as const, cardCount: 15 },
-  { name: 'Water Control', cards: 20, element: 'WATER' as const, cardCount: 18 },
-  { name: 'Grass Garden', cards: 20, element: 'GRASS' as const, cardCount: 12 },
-];
-
-// Demo achievements
-const achievements = [
-  { name: 'First Win', icon: '🏆', earned: true, description: 'Menang battle pertama' },
-  { name: 'Collector', icon: '🃏', earned: true, description: 'Kumpulkan 50 kartu' },
-  { name: 'Scholar', icon: '📚', earned: true, description: 'Selesaikan semua modul' },
-  { name: 'Master', icon: '👑', earned: false, description: ' capai Level 20' },
-  { name: 'Streak 7', icon: '🔥', earned: true, description: 'Belajar 7 hari berturut-turut' },
-  { name: 'Battle 50', icon: '⚔️', earned: false, description: '完成 50 battle' },
-  { name: 'Perfect', icon: '⭐', earned: false, description: 'Skor sempurna di kuis' },
-  { name: 'Legend', icon: '🌟', earned: false, description: 'Masuk Top 10 leaderboard' },
-];
-
-// Learning progress data
-const learningProgress = [
-  { module: 'Hiragana', progress: 100, status: 'completed' as const },
-  { module: 'Katakana', progress: 65, status: 'learning' as const },
-  { module: 'Kanji N5', progress: 0, status: 'locked' as const },
-  { module: 'Kosakata', progress: 0, status: 'locked' as const },
-  { module: 'Tata Bahasa', progress: 0, status: 'locked' as const },
-];
+// All possible badges (earned = from user.badges, unearned = not yet)
+function getAllBadges(badges: { id: string; name: string; icon: string; description: string; earnedAt?: string }[]) {
+  const badgeMap: Record<string, { id: string; name: string; icon: string; description: string; earned: boolean; earnedAt?: string }> = {
+    first_win: { id: 'first_win', name: 'First Win', icon: '🏆', description: 'Menang battle pertama', earned: false },
+    collector: { id: 'collector', name: 'Collector', icon: '🃏', description: 'Kumpulkan 50 kartu', earned: false },
+    scholar: { id: 'scholar', name: 'Scholar', icon: '📚', description: 'Selesaikan semua modul', earned: false },
+    master: { id: 'master', name: 'Master', icon: '👑', description: 'Capai Level 20', earned: false },
+    streak_7: { id: 'streak_7', name: 'Streak 7', icon: '🔥', description: 'Belajar 7 hari berturut-turut', earned: false },
+    battle_50: { id: 'battle_50', name: 'Battle 50', icon: '⚔️', description: 'Selesaikan 50 battle', earned: false },
+    perfect: { id: 'perfect', name: 'Perfect', icon: '⭐', description: 'Skor sempurna di kuis', earned: false },
+    legend: { id: 'legend', name: 'Legend', icon: '🌟', description: 'Masuk Top 10 leaderboard', earned: false },
+  };
+  // Mark earned badges
+  badges.forEach(b => {
+    if (badgeMap[b.id]) badgeMap[b.id].earned = true;
+  });
+  return Object.values(badgeMap);
+}
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, addXP, isAuthenticated } = useAuthStore();
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
+  const { user, isAuthenticated, totalBattles, totalWins, studySessions } = useAuthStore();
+  const { coins, diamonds, streakDays, ownedCards, ownedPokemon, fusedPokemon, decks, activeDeckId,
+    hiraganaProgress, katakanaProgress, kanjiProgress, vocabularyProgress, grammarProgress } = useCollectionStore();
 
-  // Demo XP values
-  const demoXP = 1250;
-  const levelInfo = getLevelFromXP(demoXP);
-
-  // Handle login redirect
+  // Redirect if not authenticated
   useEffect(() => {
-    // For demo, we auto-login with demo data
-    // In real app, would check isAuthenticated
-  }, []);
+    if (!isAuthenticated) router.replace('/auth');
+  }, [isAuthenticated, router]);
 
-  const handleDeckClick = (deckName: string) => {
-    router.push('/deck');
-  };
+  // Real data
+  const levelInfo = getLevelFromXP(user?.xp || 0);
+  const totalCardsOwned = ownedCards.length + ownedPokemon.length + fusedPokemon.length;
+  const earnedBadges = getAllBadges(user?.badges || []);
 
-  const handleProgressClick = (module: string) => {
-    router.push('/learn');
-  };
+  // Active deck preview
+  const myDecks = decks.slice(0, 3);
+
+  // Learning progress items (real from collectionStore)
+  const learningProgress = [
+    { module: 'Hiragana', progress: hiraganaProgress, status: hiraganaProgress >= 100 ? 'completed' as const : hiraganaProgress > 0 ? 'learning' as const : 'locked' as const },
+    { module: 'Katakana', progress: katakanaProgress, status: katakanaProgress >= 100 ? 'completed' as const : katakanaProgress > 0 ? 'learning' as const : 'locked' as const },
+    { module: 'Kanji N5', progress: kanjiProgress, status: kanjiProgress >= 100 ? 'completed' as const : kanjiProgress > 0 ? 'learning' as const : 'locked' as const },
+    { module: 'Kosakata', progress: vocabularyProgress, status: vocabularyProgress >= 100 ? 'completed' as const : vocabularyProgress > 0 ? 'learning' as const : 'locked' as const },
+    { module: 'Tata Bahasa', progress: grammarProgress, status: grammarProgress >= 100 ? 'completed' as const : grammarProgress > 0 ? 'learning' as const : 'locked' as const },
+  ];
 
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: colors.background }}>
@@ -518,18 +506,18 @@ export default function ProfilePage() {
           className="p-5 rounded-2xl text-center"
           style={{ backgroundColor: colors.cardBg }}
         >
-          <div 
+          <div
             className="w-20 h-20 mx-auto rounded-full flex items-center justify-center text-3xl font-bold text-white mb-3 cursor-pointer"
             style={{ backgroundColor: colors.lightPurple }}
-            onClick={() => setEditOpen(true)}
+            onClick={() => router.push('/settings')}
           >
-            {(user?.username || 'Tamago').charAt(0).toUpperCase()}
+            {(user?.username || 'T').charAt(0).toUpperCase()}
           </div>
           <h2 className="text-xl font-bold mb-1" style={{ color: colors.lightText }}>
             {user?.username || 'Tamago'}
           </h2>
-          <p className="text-sm mb-3" style={{ color: colors.darkText }}>Ninja Pemula</p>
-          
+          <p className="text-sm mb-3" style={{ color: colors.darkText }}>Level {levelInfo.level}</p>
+
           {/* Level & XP */}
           <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full" style={{ backgroundColor: colors.inputBg }}>
             <span className="px-2 py-0.5 rounded-full text-xs font-bold text-white" style={{ backgroundColor: colors.brand }}>
@@ -548,29 +536,35 @@ export default function ProfilePage() {
               {levelInfo.currentXP}/{levelInfo.xpForNextLevel} XP
             </span>
           </div>
-          
+
           <div className="flex items-center justify-center gap-4 mt-3">
             <div className="flex items-center gap-1">
               <span className="text-lg">💎</span>
-              <span className="text-sm font-bold" style={{ color: colors.gold }}>1,250</span>
+              <span className="text-sm font-bold" style={{ color: colors.gold }}>{diamonds}</span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-lg">🏆</span>
-              <span className="text-sm font-bold" style={{ color: colors.teal }}>28</span>
+              <span className="text-lg">🔥</span>
+              <span className="text-sm font-bold" style={{ color: colors.coral }}>{streakDays}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-lg">⭐</span>
+              <span className="text-sm font-bold" style={{ color: colors.teal }}>{coins}</span>
             </div>
           </div>
-          
-          <p className="text-xs mt-3" style={{ color: colors.darkText }}>Anggota sejak Januari 2025</p>
+
+          <p className="text-xs mt-3" style={{ color: colors.darkText }}>
+            Anggota sejak {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) : '-'}
+          </p>
         </motion.div>
 
         {/* Quick Stats */}
         <section>
           <h3 className="text-sm font-bold mb-3 tracking-wider" style={{ color: colors.darkText }}>STATISTIK</h3>
           <div className="grid grid-cols-4 gap-2">
-            <StatCard icon="⚔️" label="Battle" value="42" color={colors.coral} />
-            <StatCard icon="🃏" label="Kartu" value="87" color={colors.brand} />
-            <StatCard icon="🏆" label="Menang" value="28" color={colors.gold} />
-            <StatCard icon="📚" label="Belajar" value="15" color={colors.teal} />
+            <StatCard icon="⚔️" label="Battle" value={totalBattles} color={colors.coral} />
+            <StatCard icon="🃏" label="Kartu" value={totalCardsOwned} color={colors.brand} />
+            <StatCard icon="🏆" label="Menang" value={totalWins} color={colors.gold} />
+            <StatCard icon="📚" label="Belajar" value={studySessions} color={colors.teal} />
           </div>
         </section>
 
@@ -578,7 +572,7 @@ export default function ProfilePage() {
         <section>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold tracking-wider" style={{ color: colors.darkText }}>DECK SAYA</h3>
-            <button 
+            <button
               className="text-xs font-medium"
               style={{ color: colors.teal }}
               onClick={() => router.push('/deck')}
@@ -587,24 +581,29 @@ export default function ProfilePage() {
             </button>
           </div>
           <div className="space-y-2">
-            {demoDecks.map((deck, i) => (
+            {myDecks.length === 0 ? (
+              <div className="p-4 rounded-xl text-center" style={{ backgroundColor: colors.cardBg }}>
+                <p className="text-sm" style={{ color: colors.darkText }}>Belum punya deck</p>
+                <button onClick={() => router.push('/deck')} className="text-xs mt-1 font-medium" style={{ color: colors.teal }}>Buat deck pertama</button>
+              </div>
+            ) : myDecks.map((deck, i) => (
               <DeckPreviewCard
-                key={i}
+                key={deck.id}
                 name={deck.name}
-                cards={deck.cards}
-                element={deck.element}
-                cardCount={deck.cardCount}
-                onClick={() => handleDeckClick(deck.name)}
+                cards={deck.cardIds.length}
+                element="NORMAL"
+                cardCount={deck.cardIds.length}
+                onClick={() => router.push('/deck')}
               />
             ))}
           </div>
         </section>
 
-        {/* Recent Battles */}
+        {/* Battle Stats */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold tracking-wider" style={{ color: colors.darkText }}>BATTLE TERAKHIR</h3>
-            <button 
+            <h3 className="text-sm font-bold tracking-wider" style={{ color: colors.darkText }}>BATTLE STATS</h3>
+            <button
               className="text-xs font-medium"
               style={{ color: colors.brand }}
               onClick={() => router.push('/battle')}
@@ -612,16 +611,23 @@ export default function ProfilePage() {
               Lihat Semua
             </button>
           </div>
-          <div className="space-y-2">
-            {recentBattles.map((battle, i) => (
-              <RecentBattleCard
-                key={i}
-                opponent={battle.opponent}
-                result={battle.result}
-                score={battle.score}
-                time={battle.time}
-              />
-            ))}
+          <div className="p-4 rounded-2xl" style={{ backgroundColor: colors.cardBg }}>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div className="text-2xl font-bold" style={{ color: colors.teal }}>{totalBattles}</div>
+                <div className="text-xs" style={{ color: colors.darkText }}>Total Battle</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold" style={{ color: colors.gold }}>{totalWins}</div>
+                <div className="text-xs" style={{ color: colors.darkText }}>Menang</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold" style={{ color: colors.coral }}>
+                  {totalBattles > 0 ? Math.round((totalWins / totalBattles) * 100) : 0}%
+                </div>
+                <div className="text-xs" style={{ color: colors.darkText }}>Win Rate</div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -629,7 +635,7 @@ export default function ProfilePage() {
         <section>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold tracking-wider" style={{ color: colors.darkText }}>PROGRESS BELAJAR</h3>
-            <button 
+            <button
               className="text-xs font-medium"
               style={{ color: colors.brand }}
               onClick={() => router.push('/learn')}
@@ -644,7 +650,7 @@ export default function ProfilePage() {
                 module={item.module}
                 progress={item.progress}
                 status={item.status}
-                onClick={() => handleProgressClick(item.module)}
+                onClick={() => router.push('/learn')}
               />
             ))}
           </div>
@@ -654,12 +660,12 @@ export default function ProfilePage() {
         <section>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold tracking-wider" style={{ color: colors.darkText }}>PENCAPAIAN</h3>
-            <span className="text-xs" style={{ color: colors.darkText }}>4/8</span>
+            <span className="text-xs" style={{ color: colors.darkText }}>{earnedBadges.filter(b => b.earned).length}/{earnedBadges.length}</span>
           </div>
           <div className="grid grid-cols-4 gap-2">
-            {achievements.map((ach, i) => (
+            {earnedBadges.map((ach, i) => (
               <AchievementBadge
-                key={i}
+                key={ach.id}
                 name={ach.name}
                 icon={ach.icon}
                 earned={ach.earned}
@@ -670,13 +676,6 @@ export default function ProfilePage() {
         </section>
       </main>
 
-      <BottomNav />
-
-      {/* Settings Modal */}
-      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
-
-      {/* Edit Profile Modal */}
-      <EditProfileModal isOpen={editOpen} onClose={() => setEditOpen(false)} />
-    </div>
+      </div>
   );
 }
