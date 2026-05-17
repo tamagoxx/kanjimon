@@ -335,6 +335,18 @@ export default function ShopPage() {
 
       <main className="max-w-md mx-auto px-4 pt-4 space-y-5">
 
+        {/* Gacha CTA */}
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={() => router.push('/gacha')}
+          className="w-full py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-3"
+          style={{ background: 'linear-gradient(135deg, #6c5ce7, #4bddb7)', boxShadow: '0 4px 20px #6c5ce740' }}
+        >
+          <span className="text-2xl">🎰</span>
+          <span className="text-white">Buka Gacha!</span>
+          <span className="text-sm text-white/70">📜 1x pull</span>
+        </motion.button>
+
         {/* Daily Deal */}
         <DailyDeal />
 
