@@ -335,32 +335,27 @@ function BattlePageContent() {
           // Check owned Pokemon first (REST API Pokemon)
           const poke = useCollectionStore.getState().ownedPokemon.find(p => p.pokemonId === pokemonId);
           if (poke) battleCards.push(createBattleCard(poke, true));
-        } else if (cardId.startsWith('fused-')) {
-          // Handle fused Pokemon cards (fused-10001)
-          const fusedId = parseInt(cardId.replace('fused-', ''));
-          const fused = useCollectionStore.getState().fusedPokemon.find(f => f.pokemonId === fusedId);
-          if (fused) {
-            battleCards.push(createBattleCard({
-              id: `fused-${fused.pokemonId}`,
-              pokemonId: fused.pokemonId,
-              name: fused.name,
-              types: fused.types,
-              element: fused.element,
-              image: fused.image,
-              hp: fused.baseHp,
-              attack: fused.baseAttack,
-              defense: fused.baseDefense,
-              speed: fused.baseSpeed,
-              rarity: fused.rarity,
-              height: 0,
-              weight: 0,
-              ability: '',
-              flavorText: '',
-              color: '#6c5ce7',
-              shinyImage: '',
-            }, true));
-          }
-        }
+} else if (cardId.startsWith('fused-')) {
+              // Handle fused Pokemon cards (fused-{pokemonId} e.g. fused-10001)
+              const fusedId = parseInt(cardId.replace('fused-', ''));
+              const fused = useCollectionStore.getState().fusedPokemon.find(f => f.pokemonId === fusedId);
+              if (fused) {
+                battleCards.push(createBattleCard({
+                  id: `fused-${fused.pokemonId}`,
+                  pokemonId: fused.pokemonId,
+                  name: fused.name,
+                  types: fused.types,
+                  element: fused.element,
+                  image: fused.image,
+                  rarity: fused.rarity,
+                  // Map base stats to battle card fields
+                  hp: fused.baseHp,
+                  attack: fused.baseAttack,
+                  defense: fused.baseDefense,
+                  speed: fused.baseSpeed,
+                }, true));
+              }
+            }
       }
       if (battleCards.length >= 3) {
         setPlayerHand(shuffle(battleCards));

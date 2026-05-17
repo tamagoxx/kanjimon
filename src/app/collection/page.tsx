@@ -884,7 +884,7 @@ export default function CollectionPage() {
   const displayedJapanese = activeTab === 'japanese'
     ? filteredOwnedJapanese
     : activeTab === 'all'
-      ? allJapaneseCards.filter(card => ownedCardIds.has(card.id) || ownedPokemon.some(p => p.id === card.id)).slice(0, 6)
+      ? allJapaneseCards.filter(card => ownedCardIds.has(card.id)).slice(0, 6)
       : filteredOwnedJapanese;
 
   const totalOwned = ownedCards.length + ownedPokemon.length;

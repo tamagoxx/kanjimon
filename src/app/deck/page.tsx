@@ -254,7 +254,7 @@ const navItems = [
 
 export default function DeckBuilderPage() {
   const router = useRouter();
-  const { ownedPokemon, createDeck } = useCollectionStore();
+  const { ownedPokemon, fusedPokemon, createDeck } = useCollectionStore();
 
   const [deckName, setDeckName] = useState('Deck Baru');
   const [deckCards, setDeckCards] = useState<DeckCard[]>([]);
@@ -300,6 +300,21 @@ export default function DeckBuilderPage() {
           image: poke.image,
         });
       });
+
+      // Add fused Pokemon (pokemonId >= 10001) to deck builder
+      fusedPokemon.forEach(fused => {
+        cards.push({
+          id: `fused-${fused.pokemonId}`,
+          type: 'pokemon',
+          name: fused.name,
+          element: fused.element,
+          rarity: fused.rarity,
+          attack: fused.baseAttack,
+          defense: fused.baseDefense,
+          hp: fused.baseHp,
+          image: fused.image,
+        });
+      });
     }
 
     // Sort
@@ -311,7 +326,7 @@ export default function DeckBuilderPage() {
     }
 
     return cards;
-  }, [activeTab, sortBy, allJapaneseCards, ownedPokemon]);
+  }, [activeTab, sortBy, allJapaneseCards, ownedPokemon, fusedPokemon]);
 
   const addToDeck = (card: DeckCard) => {
     if (deckCards.length >= 30) return;
