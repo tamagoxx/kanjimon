@@ -66,7 +66,7 @@ function formatAbilityName(name: string): string {
   return name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
-type Phase = 'select-opponent' | 'intro' | 'battle' | 'result';
+type Phase = 'select-deck' | 'select-opponent' | 'intro' | 'battle' | 'result';
 
 // ============================================================
 // Constants
@@ -165,6 +165,315 @@ function StatusBadge({ status }: { status: CardStatus }) {
     <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
       style={{ backgroundColor: colors[status] || '#aaa' }}>
       {status[0].toUpperCase()}
+    </div>
+  );
+}
+
+function DeckSelectionScreen({ onSelectDeck, onEditDeck, onNewDeck }: { onSelectDeck: (deckId: string) => void; onEditDeck: (deckId: string) => void; onNewDeck: () => void }) {
+  const { decks, activeDeckId, ownedCards, ownedPokemon, fusedPokemon } = useCollectionStore();
+
+  // Filter decks that have at least 3 cards
+  const validDecks = decks.filter(d => d.cardIds.length >= 3);
+
+  // Build card preview for a deck
+  const getDeckPreview = (deck: typeof decks[0]) => {
+    return deck.cardIds.slice(0, 5).map(id => {
+      if (id.startsWith('poke-')) {
+        const pokemonId = parseInt(id.replace('poke-', ''));
+        const p = ownedPokemon.find(p => p.pokemonId === pokemonId);
+        return p ? { name: p.name, element: p.types?.[0] || 'NORMAL', image: p.image } : null;
+      } else if (id.startsWith('fused-')) {
+        const fusedId = parseInt(id.replace('fused-', ''));
+        const f = fusedPokemon.find(f => f.pokemonId === fusedId);
+        return f ? { name: f.name, element: f.element, image: f.image } : null;
+      } else if (id.startsWith('jp-')) {
+        const cardIdOnly = id.replace('jp-', '');
+        const oc = ownedCards.find(o => o.cardId === cardIdOnly);
+        return oc ? { name: oc.card.japanese, element: oc.card.element } : null;
+      }
+      return null;
+    }).filter(Boolean);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: '#0d0d1a' }}>
+      <div className="flex items-center gap-4 p-4 border-b border-white/10">
+        <button onClick={onNewDeck} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#1a1a2e' }}>
+          <ArrowLeft className="w-5 h-5 text-white" />
+        </button>
+        <h2 className="text-lg font-black text-white flex-1">📋 Pilih Deck</h2>
+        <button onClick={onNewDeck}
+          className="px-4 py-2 rounded-xl text-sm font-bold text-white"
+          style={{ backgroundColor: '#6c5ce7' }}>
+          + Deck Baru
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {validDecks.length === 0 && (
+          <div className="text-center py-16">
+            <div className="text-5xl mb-4">🃏</div>
+            <p className="text-white/40 text-sm mb-2">Belum punya deck</p>
+            <p className="text-white/20 text-xs mb-6">Buat deck baru dengan minimal 3 kartu</p>
+            <button onClick={onNewDeck}
+              className="px-6 py-3 rounded-xl bg-[#6c5ce7] text-white font-bold text-sm">
+              + Buat Deck Pertama
+            </button>
+          </div>
+        )}
+
+        {validDecks.map(deck => {
+          const preview = getDeckPreview(deck);
+          const isActive = deck.id === activeDeckId;
+          return (
+            <div key={deck.id} className="rounded-2xl p-4" style={{ backgroundColor: '#1a1a2e', border: isActive ? '2px solid #6c5ce7' : '2px solid transparent' }}>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="font-bold text-white">{deck.name}</p>
+                  <p className="text-xs text-white/40">{deck.cardIds.length} kartu{isActive ? ' • ACTIVE' : ''}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => onEditDeck(deck.id)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold text-white/60 border border-white/20">
+                    ✏️ Edit
+                  </button>
+                  <button onClick={() => onSelectDeck(deck.id)}
+                    className="px-4 py-1.5 rounded-lg text-xs font-bold text-white"
+                    style={{ backgroundColor: '#6c5ce7' }}>
+                    Pilih
+                  </button>
+                </div>
+              </div>
+              {preview.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto">
+                  {preview.map((card: any, i: number) => (
+                    <div key={i} className="flex-shrink-0 w-10 h-12 rounded-lg flex items-center justify-center overflow-hidden" style={{ backgroundColor: (ELEMENT_COLORS[card.element] || '#aaa') + '30' }}>
+                      {card.image ? (
+                        <img src={card.image} alt={card.name} className="w-8 h-8 object-contain" />
+                      ) : (
+                        <span className="text-lg" style={{ color: ELEMENT_COLORS[card.element] || '#aaa' }}>⬡</span>
+                      )}
+                    </div>
+                  ))}
+                  {deck.cardIds.length > 5 && <span className="text-xs text-white/30 self-center">+{deck.cardIds.length - 5}</span>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {validDecks.length > 0 && (
+        <div className="p-4 border-t border-white/10">
+          <button onClick={onNewDeck}
+            className="w-full py-3 rounded-xl text-sm font-bold text-white/60 border border-dashed border-white/20">
+            + Buat Deck Baru
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DeckEditScreen({ deckId, onBack }: { deckId: string; onBack: () => void }) {
+  const router = useRouter();
+  const { decks, ownedCards, ownedPokemon, fusedPokemon, updateDeck } = useCollectionStore();
+  const deck = decks.find(d => d.id === deckId);
+
+  const [name, setName] = useState(deck?.name || '');
+  const [selectedIds, setSelectedIds] = useState<string[]>(deck?.cardIds || []);
+
+  if (!deck) return null;
+
+  // Collect all available cards
+  const availableCards: { id: string; name: string; element: string; image?: string; type: 'poke' | 'fused' | 'jp' }[] = [];
+
+  ownedPokemon.forEach(p => {
+    availableCards.push({
+      id: `poke-${p.pokemonId}`,
+      name: p.name,
+      element: p.types?.[0] || 'NORMAL',
+      image: p.image,
+      type: 'poke',
+    });
+  });
+
+  fusedPokemon.forEach(f => {
+    availableCards.push({
+      id: `fused-${f.pokemonId}`,
+      name: f.name,
+      element: f.element,
+      image: f.image,
+      type: 'fused',
+    });
+  });
+
+  ownedCards.forEach(oc => {
+    availableCards.push({
+      id: `jp-${oc.cardId}`,
+      name: oc.card.japanese,
+      element: oc.card.element,
+      type: 'jp',
+    });
+  });
+
+  const toggleCard = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const handleSave = () => {
+    if (!name.trim() || selectedIds.length < 3) return;
+    updateDeck(deckId, selectedIds);
+    onBack();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: '#0d0d1a' }}>
+      <div className="flex items-center gap-4 p-4 border-b border-white/10">
+        <button onClick={onBack} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#1a1a2e' }}>
+          <ArrowLeft className="w-5 h-5 text-white" />
+        </button>
+        <input
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="Nama deck..."
+          className="flex-1 bg-transparent text-lg font-bold text-white outline-none placeholder:text-white/30"
+        />
+        <button onClick={handleSave} disabled={!name.trim() || selectedIds.length < 3}
+          className="px-4 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-40"
+          style={{ backgroundColor: '#6c5ce7' }}>
+          Simpan
+        </button>
+      </div>
+
+      <div className="px-4 py-2 flex items-center gap-2" style={{ backgroundColor: '#1a1a2e' }}>
+        <span className="text-xs text-white/40">{selectedIds.length} kartu dipilih</span>
+        {selectedIds.length < 3 && <span className="text-xs text-red-400">(min. 3)</span>}
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="grid grid-cols-4 gap-2">
+          {availableCards.map(card => {
+            const sel = selectedIds.includes(card.id);
+            return (
+              <button key={card.id} onClick={() => toggleCard(card.id)}
+                className={`relative rounded-xl p-2 flex flex-col items-center transition-all ${sel ? 'ring-2 ring-white' : ''}`}
+                style={{ backgroundColor: (ELEMENT_COLORS[card.element] || '#aaa') + '20', border: `2px solid ${sel ? '#fff' : 'transparent'}` }}>
+                {card.image ? (
+                  <img src={card.image} alt={card.name} className="w-10 h-10 object-contain" />
+                ) : (
+                  <span className="text-2xl" style={{ color: ELEMENT_COLORS[card.element] || '#aaa' }}>⬡</span>
+                )}
+                <span className="text-[9px] text-white/60 mt-1 truncate w-full text-center">{card.name}</span>
+                {sel && <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-white flex items-center justify-center"><span className="text-[8px] text-black font-bold">✓</span></div>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NewDeckScreen({ onBack }: { onBack: () => void }) {
+  const router = useRouter();
+  const { ownedCards, ownedPokemon, fusedPokemon, createDeck } = useCollectionStore();
+  const [name, setName] = useState('');
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const availableCards: { id: string; name: string; element: string; image?: string }[] = [];
+
+  ownedPokemon.forEach(p => {
+    availableCards.push({
+      id: `poke-${p.pokemonId}`,
+      name: p.name,
+      element: p.types?.[0] || 'NORMAL',
+      image: p.image,
+    });
+  });
+
+  fusedPokemon.forEach(f => {
+    availableCards.push({
+      id: `fused-${f.pokemonId}`,
+      name: f.name,
+      element: f.element,
+      image: f.image,
+    });
+  });
+
+  ownedCards.forEach(oc => {
+    availableCards.push({
+      id: `jp-${oc.cardId}`,
+      name: oc.card.japanese,
+      element: oc.card.element,
+    });
+  });
+
+  const toggleCard = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const handleCreate = () => {
+    if (!name.trim() || selectedIds.length < 3) return;
+    createDeck(name.trim(), selectedIds);
+    onBack();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: '#0d0d1a' }}>
+      <div className="flex items-center gap-4 p-4 border-b border-white/10">
+        <button onClick={onBack} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#1a1a2e' }}>
+          <ArrowLeft className="w-5 h-5 text-white" />
+        </button>
+        <input
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="Nama deck baru..."
+          className="flex-1 bg-transparent text-lg font-bold text-white outline-none placeholder:text-white/30"
+        />
+        <button onClick={handleCreate} disabled={!name.trim() || selectedIds.length < 3}
+          className="px-4 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-40"
+          style={{ backgroundColor: '#6c5ce7' }}>
+          Buat
+        </button>
+      </div>
+
+      <div className="px-4 py-2 flex items-center gap-2" style={{ backgroundColor: '#1a1a2e' }}>
+        <span className="text-xs text-white/40">{selectedIds.length} kartu dipilih</span>
+        {selectedIds.length < 3 && <span className="text-xs text-red-400">(min. 3)</span>}
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4">
+        {availableCards.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="text-4xl mb-4">🃏</div>
+            <p className="text-white/40 text-sm">Belum punya kartu</p>
+            <p className="text-white/20 text-xs mt-1">Kumpulkan kartu dari battle atau toko</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-4 gap-2">
+            {availableCards.map(card => {
+              const sel = selectedIds.includes(card.id);
+              return (
+                <button key={card.id} onClick={() => toggleCard(card.id)}
+                  className={`relative rounded-xl p-2 flex flex-col items-center transition-all ${sel ? 'ring-2 ring-white' : ''}`}
+                  style={{ backgroundColor: (ELEMENT_COLORS[card.element] || '#aaa') + '20', border: `2px solid ${sel ? '#fff' : 'transparent'}` }}>
+                  {card.image ? (
+                    <img src={card.image} alt={card.name} className="w-10 h-10 object-contain" />
+                  ) : (
+                    <span className="text-2xl" style={{ color: ELEMENT_COLORS[card.element] || '#aaa' }}>⬡</span>
+                  )}
+                  <span className="text-[9px] text-white/60 mt-1 truncate w-full text-center">{card.name}</span>
+                  {sel && <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-white flex items-center justify-center"><span className="text-[8px] text-black font-bold">✓</span></div>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -371,7 +680,10 @@ function BattlePageContent() {
   const battleMode: 'card' | 'janken' | null = modeParam === 'janken' ? 'janken' : modeParam === 'card' ? 'card' : null;
 
   // Core state
-  const [phase, setPhase] = useState<Phase>('select-opponent');
+  const [phase, setPhase] = useState<Phase>('select-deck');
+  const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
+  const [editDeckId, setEditDeckId] = useState<string | null>(null);
+  const [showNewDeck, setShowNewDeck] = useState(false);
   const [opponent, setOpponent] = useState<any>(null);
   const [log, setLog] = useState<string[]>([]);
   
@@ -418,25 +730,27 @@ function BattlePageContent() {
   useEffect(() => { stateRef.current = { phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerEnergy, combo, lastElem, processing }; }, [phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerEnergy, combo, lastElem, processing]);
 
   // Initialize hand — only after Zustand is ready (prevents stale persisted state)
+  // and only when a deck has been selected
   useEffect(() => {
     if (!ready) return;
+    if (!selectedDeckId) return; // Wait for deck selection
 
-    const activeDeck = useCollectionStore.getState().getActiveDeck();
-    const { ownedCards, ownedPokemon, fusedPokemon } = useCollectionStore.getState();
+    const { ownedCards, ownedPokemon, fusedPokemon, decks } = useCollectionStore.getState();
+    const selectedDeck = decks.find(d => d.id === selectedDeckId);
 
-    if (activeDeck && activeDeck.cardIds.length > 0) {
+    if (selectedDeck && selectedDeck.cardIds.length > 0) {
       // Use deck cards for battle
       const battleCards: BattleCard[] = [];
-      for (const cardId of activeDeck.cardIds) {
+      for (const cardId of selectedDeck.cardIds) {
         if (cardId.startsWith('poke-')) {
           const pokemonId = parseInt(cardId.replace('poke-', ''));
           // Check owned Pokemon first (REST API Pokemon)
-          const poke = useCollectionStore.getState().ownedPokemon.find(p => p.pokemonId === pokemonId);
+          const poke = ownedPokemon.find(p => p.pokemonId === pokemonId);
           if (poke) battleCards.push(createBattleCard(poke, true));
         } else if (cardId.startsWith('fused-')) {
           // Handle fused Pokemon cards (fused-{pokemonId} e.g. fused-10001)
           const fusedId = parseInt(cardId.replace('fused-', ''));
-          const fused = useCollectionStore.getState().fusedPokemon.find(f => f.pokemonId === fusedId);
+          const fused = fusedPokemon.find(f => f.pokemonId === fusedId);
           if (fused) {
             battleCards.push(createBattleCard({
               id: `fused-${fused.pokemonId}`,
@@ -473,41 +787,46 @@ function BattlePageContent() {
         setPlayerHand(shuffle(battleCards));
         return;
       }
-      // Not enough from deck — try owned Pokemon
+      // Not enough from deck — fallback to active deck or owned Pokemon
+      const activeDeck = useCollectionStore.getState().getActiveDeck();
+      if (activeDeck && activeDeck.cardIds.length >= 3) {
+        // Fallback to active deck
+        const fallbackCards: BattleCard[] = [];
+        for (const cardId of activeDeck.cardIds) {
+          if (cardId.startsWith('poke-')) {
+            const pokemonId = parseInt(cardId.replace('poke-', ''));
+            const poke = ownedPokemon.find(p => p.pokemonId === pokemonId);
+            if (poke) fallbackCards.push(createBattleCard(poke, true));
+          } else if (cardId.startsWith('jp-')) {
+            const cardIdOnly = cardId.replace('jp-', '');
+            const owned = ownedCards.find(oc => oc.cardId === cardIdOnly);
+            if (owned) fallbackCards.push(createBattleCard({
+              id: cardId,
+              name: owned.card.japanese,
+              element: owned.card.element,
+              hp: owned.card.hp,
+              attack: owned.card.attackPower,
+              defense: owned.card.defenseRating,
+            }, true));
+          }
+        }
+        if (fallbackCards.length >= 3) {
+          setPlayerHand(shuffle(fallbackCards));
+          return;
+        }
+      }
+      // Final fallback: use owned Pokemon
       if (ownedPokemon.length >= 3) {
         setPlayerHand(shuffle(ownedPokemon.slice(0, 5)).map(p => createBattleCard(p, true)));
         return;
       }
-      // Not enough from deck or Pokemon — try owned Japanese cards
-      if (ownedCards.length >= 3) {
-        setPlayerHand(shuffle(ownedCards.slice(0, 5).map(oc => createBattleCard({
-          id: `jp-${oc.cardId}`,
-          name: oc.card.japanese,
-          element: oc.card.element,
-          hp: oc.card.hp,
-          attack: oc.card.attackPower,
-          defense: oc.card.defenseRating,
-        }, true))));
-        return;
-      }
       // Fallback to demo
       useDemoDeck(setPlayerHand);
-    } else if (ownedPokemon.length >= 3) {
-      setPlayerHand(shuffle(ownedPokemon.slice(0, 5)).map(p => createBattleCard(p, true)));
-    } else if (ownedCards.length >= 3) {
-      // No deck, no enough Pokemon — use owned Japanese cards for battle
-      setPlayerHand(shuffle(ownedCards.slice(0, 5).map(oc => createBattleCard({
-        id: `jp-${oc.cardId}`,
-        name: oc.card.japanese,
-        element: oc.card.element,
-        hp: oc.card.hp,
-        attack: oc.card.attackPower,
-        defense: oc.card.defenseRating,
-      }, true))));
     } else {
+      // No deck selected or empty deck
       useDemoDeck(setPlayerHand);
     }
-  }, [ready]);
+  }, [ready, selectedDeckId]);
 
   // ============================================================
   // Battle Logic Functions
@@ -871,15 +1190,41 @@ function BattlePageContent() {
 
   // Back handler
   const handleBack = () => {
-    if (phase === 'battle') {
+    if (phase === 'battle' || phase === 'intro') {
       setPhase('select-opponent');
       setOpponent(null);
       setPlayerActive(null);
       setOppActive(null);
+    } else if (phase === 'select-opponent') {
+      setPhase('select-deck');
+      setOpponent(null);
     } else {
       // No mode selected → go to collection
       router.push('/');
     }
+  };
+
+  // Handle deck selection
+  const handleSelectDeck = (deckId: string) => {
+    setSelectedDeckId(deckId);
+    setEditDeckId(null);
+    setShowNewDeck(false);
+    setPhase('select-opponent');
+  };
+
+  const handleEditDeck = (deckId: string) => {
+    setEditDeckId(deckId);
+    setShowNewDeck(false);
+  };
+
+  const handleNewDeck = () => {
+    setEditDeckId(null);
+    setShowNewDeck(true);
+  };
+
+  const handleDeckEditBack = () => {
+    setEditDeckId(null);
+    setShowNewDeck(false);
   };
 
   // Auto attack
@@ -986,9 +1331,22 @@ function BattlePageContent() {
       </button>
 
       <AnimatePresence>
-        {phase === 'select-opponent' && <OpponentSelectModal onSelect={startBattle} onClose={() => router.push('/')} />}
+        {phase === 'select-deck' && !editDeckId && !showNewDeck && (
+          <DeckSelectionScreen
+            onSelectDeck={handleSelectDeck}
+            onEditDeck={handleEditDeck}
+            onNewDeck={handleNewDeck}
+          />
+        )}
+        {editDeckId && (
+          <DeckEditScreen deckId={editDeckId} onBack={handleDeckEditBack} />
+        )}
+        {showNewDeck && (
+          <NewDeckScreen onBack={handleDeckEditBack} />
+        )}
+        {phase === 'select-opponent' && <OpponentSelectModal onSelect={startBattle} onClose={() => setPhase('select-deck')} />}
       </AnimatePresence>
-      <AnimatePresence>{result && <ResultModal win={result.win} xpGained={result.xp} diamondsGained={result.diamonds} onClose={() => { setResult(null); setPhase('select-opponent'); }} />}</AnimatePresence>
+      <AnimatePresence>{result && <ResultModal win={result.win} xpGained={result.xp} diamondsGained={result.diamonds} onClose={() => { setResult(null); setPhase('select-deck'); setSelectedDeckId(null); }} />}</AnimatePresence>
       <AnimatePresence>{showStudy && playerActive && <HealModal card={playerActive} onHeal={() => answerHeal('heal')} onSkip={() => answerHeal('skip')} />}</AnimatePresence>
 
       {phase === 'intro' && opponent && (
