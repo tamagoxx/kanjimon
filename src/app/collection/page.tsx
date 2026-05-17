@@ -46,7 +46,7 @@ const rarityColors: Record<string, string> = {
   ULTRA_RARE: '#f0bf63',
 };
 
-const allJapaneseCards = ALL_CARDS;
+const allJapaneseCards = Object.values(CARDS_BY_ID);
 
 type TabType = 'all' | 'japanese' | 'pokemon' | 'fusion' | 'battle';
 type FilterType = 'all' | 'verbs' | 'nouns' | 'adjectives' | 'particles';
