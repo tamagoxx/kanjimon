@@ -924,7 +924,7 @@ function BattlePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { ownedPokemon, addCoins, addDiamonds, addStardust, addElementEssence, trackQuestEvent, addBattleWin, recordBossDefeat, addJapaneseCardFromBoss, battleWins, defeatedBosses } = useCollectionStore();
-  const { addXP, incrementStat, totalWins } = useAuthStore();
+  const { addXP, incrementStat, totalWins, user } = useAuthStore();
 
   // Zustand ready check — prevent reading stale persisted state
   const [ready, setReady] = useState(false);
@@ -961,6 +961,7 @@ function BattlePageContent() {
   
   // Player state
   const [playerHp, setPlayerHp] = useState(100);
+  const [playerMaxHp, setPlayerMaxHp] = useState(100);
   const [playerHand, setPlayerHand] = useState<BattleCard[]>([]);
   const [playerActive, setPlayerActive] = useState<BattleCard | null>(null);
   const [playerEnergy, setPlayerEnergy] = useState(3);
@@ -999,11 +1000,11 @@ function BattlePageContent() {
 
 // Refs for functions that need current values in callbacks
   const stateRef = useRef({
-    phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerEnergy, combo, lastElem,
+    phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem,
     processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths,
     bossCharging, bossBerserkCount, burnStacks, playerBuffed,
   });
-  useEffect(() => { stateRef.current = { phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed }; }, [phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed]);
+  useEffect(() => { stateRef.current = { phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed }; }, [phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed]);
 
   // Initialize hand — only after Zustand is ready (prevents stale persisted state)
   // and only when a deck has been selected
@@ -1136,7 +1137,10 @@ function BattlePageContent() {
     setOpponent(opp);
     setOppHp(opp.hp);
     setOppMaxHp(opp.hp);
-    setPlayerHp(100);
+    const level = user?.level || 1;
+    const baseHp = 100 + (level - 1) * 10;
+    setPlayerHp(baseHp);
+    setPlayerMaxHp(baseHp);
     setPlayerEnergy(3);
     setOppEnergy(3);
     setTurn(1);
