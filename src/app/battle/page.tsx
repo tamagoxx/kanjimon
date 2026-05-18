@@ -1443,9 +1443,11 @@ function BattlePageContent() {
     addLog(`💀 ${selectedBoss.description}`);
     addLog('🎯 Pilih kartu dari tanganmu');
     setPhase('boss-intro');
-    resetCardTimer();
 
-    setTimeout(() => setPhase('boss-battle'), 2000);
+    setTimeout(() => {
+      setPhase('boss-battle');
+      resetCardTimer();
+    }, 2000);
   };
 
   // Select card from hand
@@ -2179,7 +2181,7 @@ if (newOppHp <= 0) {
 
   // Auto attack
   useEffect(() => {
-    if (!autoMode || !isPlayerTurn || phase !== 'battle' || processing) return;
+    if (!autoMode || !isPlayerTurn || (phase !== 'battle' && phase !== 'boss-battle') || processing) return;
     if (!playerActive) {
       // Auto-select best card if none selected
       const best = [...playerHand].filter(c => c.hp > 0).sort((a, b) => (b.attack + b.defense) - (a.attack + a.defense))[0];
@@ -2195,7 +2197,7 @@ if (newOppHp <= 0) {
 
   // Battle max 2 minutes timer
   useEffect(() => {
-    if (phase !== 'battle') return;
+    if (phase !== 'battle' && phase !== 'boss-battle') return;
     battleTimerRef.current = setInterval(() => {
       setBattleTimeLeft(prev => {
         if (prev <= 1) {
@@ -2214,7 +2216,7 @@ if (newOppHp <= 0) {
 
   // Card select countdown display (visual only — actual timeout in resetCardTimer)
   useEffect(() => {
-    if (!isPlayerTurn || phase !== 'battle' || cardSelectTimer <= 0) return;
+    if (!isPlayerTurn || (phase !== 'battle' && phase !== 'boss-battle') || cardSelectTimer <= 0) return;
     const t = setInterval(() => setCardSelectTimer(prev => prev > 0 ? prev - 1 : 0), 1000);
     return () => clearInterval(t);
   }, [isPlayerTurn, phase, cardSelectTimer]);
