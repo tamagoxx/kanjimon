@@ -973,7 +973,7 @@ function BattleBackground({ phase, opponent, boss, attackingCard }: { phase: str
         <motion.div
           className="absolute pointer-events-none"
           style={{
-            top: '20%',
+            top: '30%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
             fontSize: '14rem',
@@ -1000,7 +1000,7 @@ function BattleBackground({ phase, opponent, boss, attackingCard }: { phase: str
         <motion.div
           className="absolute pointer-events-none rounded-full"
           style={{
-            top: '20%',
+            top: '30%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
             width: 180,
