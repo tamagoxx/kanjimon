@@ -120,6 +120,7 @@ interface Boss {
   rewardDiamonds: number;
   guaranteedJpCard: boolean;
   description: string;
+  element: 'FIRE' | 'WATER' | 'GRASS' | 'ELECTRIC' | 'PSYCHIC' | 'NORMAL';
 }
 
 const BOSSES: Boss[] = [
@@ -135,6 +136,7 @@ const BOSSES: Boss[] = [
     rewardStardust: 30,
     rewardDiamonds: 20,
     guaranteedJpCard: true,
+    element: 'NORMAL',
     phases: [
       { name: 'Guard', hpThreshold: 100, attackMultiplier: 1.0, defenseMultiplier: 1.5, specialAbility: 'DEBUFF', specialDesc: 'Reduce ATK -20% for 2 turns' },
       { name: 'Rage', hpThreshold: 50, attackMultiplier: 1.3, defenseMultiplier: 1.0, specialAbility: 'CHARGE', specialDesc: 'Charging heavy strike...' },
@@ -153,6 +155,7 @@ const BOSSES: Boss[] = [
     rewardStardust: 50,
     rewardDiamonds: 35,
     guaranteedJpCard: true,
+    element: 'FIRE',
     phases: [
       { name: 'Inferno', hpThreshold: 100, attackMultiplier: 1.0, defenseMultiplier: 1.0, specialAbility: 'BURN', specialDesc: 'Burn: 15 dmg/turn for 3 turns' },
       { name: 'Blast', hpThreshold: 60, attackMultiplier: 1.2, defenseMultiplier: 1.0, specialAbility: 'AOE', specialDesc: 'AoE: Deal 25 to player HP directly' },
@@ -171,6 +174,7 @@ const BOSSES: Boss[] = [
     rewardStardust: 80,
     rewardDiamonds: 50,
     guaranteedJpCard: true,
+    element: 'WATER',
     phases: [
       { name: 'Freeze', hpThreshold: 100, attackMultiplier: 1.0, defenseMultiplier: 1.0, specialAbility: 'DEBUFF', specialDesc: 'Freeze: Skip 1 turn' },
       { name: 'Frost', hpThreshold: 60, attackMultiplier: 1.3, defenseMultiplier: 1.2, specialAbility: 'HEAL', specialDesc: 'Heal 15% max HP' },
@@ -189,6 +193,7 @@ const BOSSES: Boss[] = [
     rewardStardust: 120,
     rewardDiamonds: 80,
     guaranteedJpCard: true,
+    element: 'PSYCHIC',
     phases: [
       { name: 'Dark', hpThreshold: 100, attackMultiplier: 1.0, defenseMultiplier: 1.0, specialAbility: 'DEBUFF', specialDesc: 'Curse: 20% more damage taken' },
       { name: 'Void', hpThreshold: 65, attackMultiplier: 1.4, defenseMultiplier: 1.0, specialAbility: 'CHARGE', specialDesc: 'Charge: 200% damage next hit' },
@@ -858,6 +863,199 @@ function HandCard({ card, idx, sel, onClick, disabled }: { card: BattleCard; idx
       </div>
       <StatusBadge status={card.status} />
     </motion.div>
+  );
+}
+
+// Animated Battle Background - Pokemon fighting scene
+function BattleBackground({ phase, opponent, boss, attackingCard }: { phase: string; opponent?: any; boss?: Boss | null; attackingCard?: 'player' | 'opponent' | null }) {
+  const isBoss = phase === 'boss-battle' || phase === 'boss-intro';
+  const isBattle = phase === 'battle' || phase === 'boss-battle';
+  const isIntro = phase === 'intro' || phase === 'boss-intro';
+
+  // Pick background theme based on opponent/boss element
+  const bgTheme = isBoss && boss ? boss.element.toLowerCase() : opponent?.element?.toLowerCase() || 'normal';
+  const themes: Record<string, { primary: string; secondary: string; accent: string; particle: string }> = {
+    fire: { primary: '#1a0505', secondary: '#2d0a0a', accent: '#ff6b35', particle: '🔥' },
+    water: { primary: '#050a1a', secondary: '#0a1a2d', accent: '#4bddb7', particle: '💧' },
+    grass: { primary: '#050a05', secondary: '#0a1a0a', accent: '#4bddb7', particle: '🍃' },
+    electric: { primary: '#0a0a05', secondary: '#1a1a05', accent: '#ffd93d', particle: '⚡' },
+    psychic: { primary: '#0a051a', secondary: '#150a2d', accent: '#c77dff', particle: '🔮' },
+    normal: { primary: '#0d0d1a', secondary: '#1a1a2e', accent: '#6c5ce7', particle: '✨' },
+  };
+  const theme = themes[bgTheme] || themes.normal;
+
+  return (
+    <>
+      {/* Base gradient background */}
+      <div
+        className="absolute inset-0 transition-all duration-1000"
+        style={{
+          background: `radial-gradient(ellipse at 50% 100%, ${theme.secondary} 0%, ${theme.primary} 60%, #0a0a12 100%)`,
+        }}
+      />
+
+      {/* Animated particles - floating elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(12)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute text-2xl opacity-20"
+            initial={{
+              x: `${10 + (i * 73) % 80}%`,
+              y: '110%',
+              rotate: Math.random() * 360,
+            }}
+            animate={{
+              y: ['110%', '-10%'],
+              x: [`${10 + (i * 73) % 80}%`, `${10 + ((i * 73 + 40) % 80)}%`],
+              rotate: [Math.random() * 360, Math.random() * 360 + 360],
+            }}
+            transition={{
+              duration: 8 + (i % 4) * 2,
+              repeat: Infinity,
+              delay: i * 0.7,
+              ease: 'linear',
+            }}
+          >
+            {theme.particle}
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Ground/platform effect */}
+      {isBattle && (
+        <motion.div
+          className="absolute bottom-0 left-0 right-0 h-48 pointer-events-none"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          style={{
+            background: 'linear-gradient(to top, rgba(108,92,231,0.15) 0%, transparent 100%)',
+          }}
+        >
+          {/* Floating platform lights */}
+          <div className="absolute bottom-8 left-1/4 w-32 h-1 rounded-full" style={{ background: `linear-gradient(90deg, transparent, ${theme.accent}50, transparent)` }} />
+          <div className="absolute bottom-16 right-1/3 w-24 h-1 rounded-full" style={{ background: `linear-gradient(90deg, transparent, ${theme.accent}30, transparent)` }} />
+        </motion.div>
+      )}
+
+      {/* Energy ripple effect during battle */}
+      {isBattle && (
+        <div className="absolute inset-0 pointer-events-none">
+          {[...Array(3)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute rounded-full border"
+              style={{
+                borderColor: `${theme.accent}20`,
+                width: 200,
+                height: 200,
+                left: '50%',
+                top: '50%',
+                x: '-50%',
+                y: '-50%',
+              }}
+              animate={{
+                scale: [1, 2.5],
+                opacity: [0.3, 0],
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                delay: i * 1.3,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Opponent Pokemon shadow/silhouette */}
+      {isBattle && (opponent || boss) && (
+        <motion.div
+          className="absolute pointer-events-none"
+          style={{
+            top: '15%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            fontSize: '8rem',
+            filter: 'blur(2px) brightness(0.3)',
+            opacity: 0.15,
+          }}
+          animate={{
+            y: [0, -10, 0],
+          }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+        >
+          {boss?.emoji || opponent?.emoji}
+        </motion.div>
+      )}
+
+      {/* Energy crackling lines during boss battle */}
+      {isBoss && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {[...Array(5)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-px h-20"
+              style={{
+                background: 'linear-gradient(to bottom, transparent, #c77dff60, transparent)',
+                left: `${15 + i * 18}%`,
+                top: '0%',
+              }}
+              animate={{
+                height: [0, 80, 0],
+                opacity: [0, 1, 0],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                delay: i * 0.5,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Pulsing glow behind active battle area */}
+      {isBattle && (
+        <motion.div
+          className="absolute pointer-events-none rounded-full"
+          style={{
+            width: 300,
+            height: 300,
+            left: '50%',
+            top: '35%',
+            x: '-50%',
+            y: '-50%',
+            background: `radial-gradient(circle, ${theme.accent}15 0%, transparent 70%)`,
+          }}
+          animate={{
+            scale: [0.9, 1.1, 0.9],
+            opacity: [0.5, 0.8, 0.5],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+          }}
+        />
+      )}
+
+      {/* Flash effect on attack */}
+      <AnimatePresence>
+        {(phase === 'battle' || phase === 'boss-battle') && attackingCard && (
+          <motion.div
+            className="absolute inset-0 pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.15 }}
+            exit={{ opacity: 0 }}
+            style={{ backgroundColor: theme.accent }}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -2051,7 +2249,10 @@ if (newOppHp <= 0) {
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#0d0d1a' }}>
       <div className="absolute inset-0 bg-gradient-to-b from-purple-900/10 via-transparent to-orange-900/10" />
-      
+
+      {/* Animated Battle Background */}
+      <BattleBackground phase={phase} opponent={opponent} boss={boss} attackingCard={attackingCard} />
+
       <button onClick={handleBack} className="absolute top-4 left-4 w-10 h-10 rounded-full flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
         <ArrowLeft className="w-5 h-5 text-white" />
       </button>
