@@ -2187,7 +2187,13 @@ if (newOppHp <= 0) {
       }
       return;
     }
-    const timer = setTimeout(() => executePlayerAttack(), 800);
+    const timer = setTimeout(() => {
+      if (phase === 'boss-battle') {
+        executeBossPlayerAttack();
+      } else {
+        executePlayerAttack();
+      }
+    }, 800);
     return () => clearTimeout(timer);
   }, [autoMode, isPlayerTurn, phase, processing, playerActive, turn]);
 
