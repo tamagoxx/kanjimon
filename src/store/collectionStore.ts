@@ -294,6 +294,15 @@ export const useCollectionStore = create<CollectionState>()(
         const fused = state.fusedPokemon.find(fp => fp.id === fusedId);
         if (!fused) return false;
 
+        // Migrate old fused Pokemon (no evolutionTier) to 'NONE'
+        if (!fused.evolutionTier) {
+          set(s => ({
+            fusedPokemon: s.fusedPokemon.map(fp =>
+              fp.id === fusedId ? { ...fp, evolutionTier: 'NONE' } : fp
+            ),
+          }));
+        }
+
         // Remove sacrificed Japanese cards
         let updatedCards = [...state.ownedCards];
         for (const cardId of sacrificedCardIds) {
@@ -307,11 +316,12 @@ export const useCollectionStore = create<CollectionState>()(
         }
 
         // Update the fused Pokemon's tier and stats
-        const statBonus = {
+        const statBonus: Record<string, { hp: number; attack: number; defense: number; speed: number }> = {
           LIMITED_EDITION: { hp: 15, attack: 10, defense: 2, speed: 5 },
           LEGENDARY: { hp: 25, attack: 18, defense: 4, speed: 10 },
           MYTHICAL: { hp: 40, attack: 30, defense: 8, speed: 15 },
-        }[newTier];
+        };
+        const bonus = statBonus[newTier] || { hp: 15, attack: 10, defense: 2, speed: 5 };
 
         set(state => ({
           ownedCards: updatedCards,
@@ -320,12 +330,12 @@ export const useCollectionStore = create<CollectionState>()(
             if (fp.id !== fusedId) return fp;
             return {
               ...fp,
-              evolutionTier: newTier,
+              evolutionTier: fp.evolutionTier || 'NONE',
               rarity: newTier as any,
-              baseHp: fp.baseHp + statBonus.hp,
-              baseAttack: fp.baseAttack + statBonus.attack,
-              baseDefense: fp.baseDefense + statBonus.defense,
-              baseSpeed: fp.baseSpeed + statBonus.speed,
+              baseHp: fp.baseHp + bonus.hp,
+              baseAttack: fp.baseAttack + bonus.attack,
+              baseDefense: fp.baseDefense + bonus.defense,
+              baseSpeed: fp.baseSpeed + bonus.speed,
               fusionCount: fp.fusionCount + 1,
             };
           }),

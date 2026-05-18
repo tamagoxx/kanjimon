@@ -217,7 +217,7 @@ export default function FusionPageContent() {
 
   // Fused Pokemon eligible for evolution (tier < MYTHICAL)
   const evolvableFused = fusedPokemon.filter(fp =>
-    fp.evolutionTier !== 'MYTHICAL'
+    fp.evolutionTier !== 'MYTHICAL' && fp.rarity !== 'COMMON' && fp.rarity !== 'UNCOMMON'
   );
 
   // ===== FUSION =====
@@ -258,7 +258,7 @@ export default function FusionPageContent() {
   };
 
   // ===== EVOLUTION =====
-  const nextTier = evolveTarget ? NEXT_TIER[evolveTarget.evolutionTier] : null;
+  const nextTier = evolveTarget ? (NEXT_TIER[evolveTarget.evolutionTier || 'NONE'] || null) : null;
   const requirements = nextTier ? EVOLUTION_REQUIREMENTS[nextTier as keyof typeof EVOLUTION_REQUIREMENTS] : null;
 
   const canEvolve = () => {
@@ -776,7 +776,7 @@ export default function FusionPageContent() {
                         {selectedCards.length} / {requirements.japaneseCardCount}
                       </span>
                     </div>
-                    <div className="grid grid-cols={ownedCards.length > 5 ? 6 : 5} gap-1.5">
+                    <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-1.5">
                       {ownedCards.slice(0, 12).map(oc => {
                         const isSelected = selectedCards.includes(oc.cardId);
                         return (
@@ -786,7 +786,7 @@ export default function FusionPageContent() {
                             className={`relative rounded-lg overflow-hidden transition-all ${isSelected ? 'ring-2 ring-yellow-400 scale-110' : 'hover:scale-105'}`}
                             style={{ backgroundColor: '#1a1a2e' }}
                           >
-                            <div className="aspect-square flex items-center justify-center text-xl" style={{ backgroundColor: ELEMENT_COLORS[oc.card.element] + '20' }}>
+                            <div className="aspect-square flex items-center justify-center text-base sm:text-xl" style={{ backgroundColor: ELEMENT_COLORS[oc.card.element] + '20' }}>
                               {oc.card.japanese}
                             </div>
                             {isSelected && (
@@ -859,7 +859,7 @@ export default function FusionPageContent() {
                           {selectedEssence ? `1 ${ESSENCE_LABELS[selectedEssence]}` : '0 / 1'}
                         </span>
                       </div>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                         {(Object.keys(elementEssences) as ElementEssence[]).map(ess => (
                           <button
                             key={ess}
