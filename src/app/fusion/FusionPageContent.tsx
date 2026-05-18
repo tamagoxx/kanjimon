@@ -39,6 +39,14 @@ const TIER_LABELS: Record<string, string> = {
   NONE: 'Standard', LIMITED_EDITION: 'Limited', LEGENDARY: 'Legendary', MYTHICAL: 'Mythical',
 };
 
+// Map battle rarity → evolution tier for fusion result display
+const RARITY_TO_TIER: Record<string, string> = {
+  COMMON: 'LIMITED_EDITION',
+  UNCOMMON: 'LEGENDARY',
+  RARE: 'LEGENDARY',
+  ULTRA_RARE: 'MYTHICAL',
+};
+
 const TIER_ICONS: Record<string, string> = {
   NONE: '⚡', LIMITED_EDITION: '🌟', LEGENDARY: '🏆', MYTHICAL: '💎',
 };
@@ -483,11 +491,9 @@ export default function FusionPageContent() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-center gap-2">
                         <span className="text-xs text-white/60">Hasil:</span>
-                        <span
-                          className="px-3 py-1 rounded-full text-sm font-black"
-                          style={{ backgroundColor: RARITY_COLORS[fusionCheck.resultRarity as keyof typeof RARITY_COLORS], color: '#000' }}
-                        >
-                          {TIER_ICONS['LIMITED_EDITION']} {fusionCheck.resultRarity}
+                        <span className="px-3 py-1 rounded-full text-sm font-black"
+                          style={{ backgroundColor: RARITY_COLORS[fusionCheck.resultRarity as keyof typeof RARITY_COLORS], color: '#000' }}>
+                          {TIER_ICONS[RARITY_TO_TIER[fusionCheck.resultRarity ?? 'COMMON'] || 'NONE']} {fusionCheck.resultRarity}
                         </span>
                       </div>
                       <div className="flex items-center justify-center gap-3 text-xs">
@@ -540,7 +546,7 @@ export default function FusionPageContent() {
                     className="absolute top-4 right-4 px-2 py-1 rounded-full text-xs font-black"
                     style={{ backgroundColor: RARITY_COLORS[fuseSuccess.rarity as keyof typeof RARITY_COLORS], color: '#000' }}
                   >
-                    {TIER_ICONS[fuseSuccess.evolutionTier]} {fuseSuccess.rarity}
+                    {TIER_ICONS[RARITY_TO_TIER[fuseSuccess.rarity ?? 'COMMON'] || 'NONE']} {fuseSuccess.evolutionTier}
                   </div>
                 </div>
                 <p className="text-lg font-bold text-white mb-1">🎉 Fusion Berhasil!</p>
