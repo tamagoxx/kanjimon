@@ -924,7 +924,7 @@ function BattlePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { ownedPokemon, addCoins, addDiamonds, addStardust, addElementEssence, trackQuestEvent, addBattleWin, recordBossDefeat, addJapaneseCardFromBoss, battleWins, defeatedBosses } = useCollectionStore();
-  const { addXP, incrementStat } = useAuthStore();
+  const { addXP, incrementStat, totalWins } = useAuthStore();
 
   // Zustand ready check — prevent reading stale persisted state
   const [ready, setReady] = useState(false);
@@ -1163,6 +1163,7 @@ function BattlePageContent() {
   };
 
   const startBossBattle = (selectedBoss: Boss) => {
+    resetBossState(); // Reset first (clears previous boss)
     setBoss(selectedBoss);
     setBossHp(selectedBoss.maxHp);
     setBossMaxHp(selectedBoss.maxHp);
@@ -1190,12 +1191,10 @@ function BattlePageContent() {
     setBattleTimeLeft(180); // Boss battle = 3 min
     setCardSelectTimer(0);
 
-    addLog(`🐉 BOSS BATTLE vs ${selectedBoss.name}!`);
+    // addLog(`🐉 BOSS BATTLE vs ${selectedBoss.name}!`);
     addLog(`💀 ${selectedBoss.description}`);
     addLog('🎯 Pilih kartu dari tanganmu');
     setPhase('boss-intro');
-
-    resetBossState();
     resetCardTimer();
 
     setTimeout(() => setPhase('boss-battle'), 2000);
