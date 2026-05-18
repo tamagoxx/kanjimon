@@ -2189,9 +2189,9 @@ if (newOppHp <= 0) {
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-28 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
-                    <motion.div className="h-full rounded-full" animate={{ width: `${playerHp}%` }} style={{ backgroundColor: playerHp > 50 ? '#4bddb7' : playerHp > 25 ? '#ffd93d' : '#ff6b35' }} />
+                    <motion.div className="h-full rounded-full" animate={{ width: `${Math.min(100, (playerHp / playerMaxHp) * 100)}%` }} style={{ backgroundColor: playerHp / playerMaxHp > 0.5 ? '#4bddb7' : playerHp / playerMaxHp > 0.25 ? '#ffd93d' : '#ff6b35' }} />
                   </div>
-                  <span className="text-sm font-bold text-white">{playerHp}/100 HP</span>
+                  <span className="text-sm font-bold text-white">{playerHp}/{playerMaxHp} HP</span>
                 </div>
               </div>
 
@@ -2242,9 +2242,9 @@ if (newOppHp <= 0) {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-24 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
-                      <motion.div className="h-full rounded-full" animate={{ width: `${playerHp}%` }} style={{ backgroundColor: '#4bddb7' }} />
+                      <motion.div className="h-full rounded-full" animate={{ width: `${Math.min(100, (playerHp / playerMaxHp) * 100)}%` }} style={{ backgroundColor: '#4bddb7' }} />
                     </div>
-                    <span className="text-sm font-bold text-white">{playerHp}/100</span>
+                    <span className="text-sm font-bold text-white">{playerHp}/{playerMaxHp}</span>
                   </div>
                 </div>
               )}
