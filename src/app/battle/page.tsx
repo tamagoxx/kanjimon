@@ -2466,36 +2466,36 @@ if (newOppHp <= 0) {
             <>
               {/* Active Cards Row - centered with corner HP bars */}
               <div className="relative flex-1">
-                {/* Corner HP - Bottom Left (Opponent) */}
+                {/* Corner HP - Left (Player) */}
                 {opponent && (
-                  <div className="absolute bottom-2 left-0 right-12 flex items-center gap-2 px-2 py-1 rounded-xl" style={{ backgroundColor: '#1a1a2e90' }}>
-                    <span className="text-lg">{opponent.emoji}</span>
+                  <div className="absolute bottom-2 left-0 right-12 flex items-center gap-1.5 px-1.5 py-1 rounded-lg" style={{ backgroundColor: '#1a1a2e80' }}>
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center font-bold text-white text-[8px]" style={{ backgroundColor: '#6c5ce7' }}>T</div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-xs font-bold text-white">{opponent.name}</span>
-                        <span className="text-[9px] text-white/40">{oppHp}/{oppMaxHp}</span>
+                        <span className="text-[10px] font-bold text-white">You</span>
+                        <span className="text-[8px] text-white/40">{playerHp}/{playerMaxHp}</span>
                       </div>
-                      <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
-                        <motion.div className="h-full rounded-full" animate={{ width: `${(oppHp / oppMaxHp) * 100}%` }}
-                          style={{ backgroundColor: oppHp / oppMaxHp > 0.5 ? '#4bddb7' : oppHp / oppMaxHp > 0.25 ? '#ffd93d' : '#ff6b35' }} />
+                      <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
+                        <motion.div className="h-full rounded-full" animate={{ width: `${Math.min(100, (playerHp / playerMaxHp) * 100)}%` }} style={{ backgroundColor: '#4bddb7' }} />
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* Corner HP - Bottom Right (Player) */}
+                {/* Corner HP - Right (Opponent) */}
                 {opponent && (
-                  <div className="absolute bottom-2 right-0 left-12 flex items-center gap-2 px-2 py-1 rounded-xl" style={{ backgroundColor: '#1a1a2e90' }}>
+                  <div className="absolute bottom-2 right-0 left-12 flex items-center gap-1.5 px-1.5 py-1 rounded-lg" style={{ backgroundColor: '#1a1a2e80' }}>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-xs font-bold text-white">You</span>
-                        <span className="text-[9px] text-white/40">{playerHp}/{playerMaxHp}</span>
+                        <span className="text-[10px] font-bold text-white">{opponent.name}</span>
+                        <span className="text-[8px] text-white/40">{oppHp}/{oppMaxHp}</span>
                       </div>
-                      <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
-                        <motion.div className="h-full rounded-full" animate={{ width: `${Math.min(100, (playerHp / playerMaxHp) * 100)}%` }} style={{ backgroundColor: '#4bddb7' }} />
+                      <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
+                        <motion.div className="h-full rounded-full" animate={{ width: `${(oppHp / oppMaxHp) * 100}%` }}
+                          style={{ backgroundColor: oppHp / oppMaxHp > 0.5 ? '#4bddb7' : oppHp / oppMaxHp > 0.25 ? '#ffd93d' : '#ff6b35' }} />
                       </div>
                     </div>
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-white text-[10px]" style={{ backgroundColor: '#6c5ce7' }}>T</div>
+                    <span className="text-sm">{opponent.emoji}</span>
                   </div>
                 )}
 
