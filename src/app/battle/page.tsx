@@ -2334,10 +2334,10 @@ if (newOppHp <= 0) {
       )}
 
       <main className="relative z-10 flex flex-col h-screen">
-        <div className="px-4 py-3 flex items-center justify-between" style={{ backgroundColor: '#162125' }}>
+        <div className="px-4 py-2 flex items-center justify-between" style={{ backgroundColor: '#162125' }}>
           <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-white">⚔️ Battle</span>
-            {opponent && <span className="text-sm text-white/40">vs {opponent.name}</span>}
+            <span className="text-base font-bold text-white">⚔️ Battle</span>
+            {opponent && <span className="text-xs text-white/40">vs {opponent.name}</span>}
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-white/40">Turn: <span className="text-white font-bold">{turn}</span></span>
@@ -2347,7 +2347,7 @@ if (newOppHp <= 0) {
           </div>
         </div>
 
-        <div className="px-4 py-2 flex items-center gap-3" style={{ backgroundColor: '#1a1a2e' }}>
+        <div className="px-4 py-1.5 flex items-center gap-3" style={{ backgroundColor: '#1a1a2e' }}>
           <Zap className="w-4 h-4 text-yellow-400" />
           <div className="flex-1 flex gap-1">
             {[0, 1, 2].map(i => (
@@ -2377,7 +2377,7 @@ if (newOppHp <= 0) {
           </button>
         </div>
 
-        <div className="flex-1 px-4 py-2 space-y-2 overflow-hidden">
+        <div className="flex-1 px-4 py-1 space-y-2 overflow-hidden">
           {/* BOSS BATTLE AREA - boss top, player/boss cards center, player HP left edge, boss HP right edge */}
           {phase === 'boss-battle' && boss && (
             <>
@@ -2518,7 +2518,7 @@ if (newOppHp <= 0) {
         </div>
 
         {(phase === 'battle' || phase === 'boss-battle') && (
-          <div className="px-4 pb-3 pt-1" style={{ backgroundColor: '#0f1923' }}>
+          <div className="px-4 pb-2 pt-1 flex-shrink-0" style={{ backgroundColor: '#0f1923' }}>
             <div className="flex gap-2 overflow-x-auto pb-1">
               {playerHand.map((card, i) => (
                 <HandCard key={card.id} card={card} idx={i} sel={playerActive?.id === card.id}
