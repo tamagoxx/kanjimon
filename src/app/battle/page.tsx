@@ -973,12 +973,12 @@ function BattleBackground({ phase, opponent, boss, attackingCard }: { phase: str
         <motion.div
           className="absolute pointer-events-none"
           style={{
-            top: '25%',
+            top: '15%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            fontSize: '10rem',
-            filter: 'blur(1px) brightness(0.1)',
-            opacity: 0.1,
+            fontSize: '8rem',
+            filter: 'blur(1px) brightness(0.08)',
+            opacity: 0.08,
             zIndex: 1,
           }}
           animate={{
@@ -1000,11 +1000,11 @@ function BattleBackground({ phase, opponent, boss, attackingCard }: { phase: str
         <motion.div
           className="absolute pointer-events-none rounded-full"
           style={{
-            top: '25%',
+            top: '15%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: 180,
-            height: 180,
+            width: 100,
+            height: 100,
             background: `radial-gradient(circle, ${theme.accent}12 0%, transparent 70%)`,
             zIndex: 1,
           }}
@@ -1051,17 +1051,17 @@ function BattleBackground({ phase, opponent, boss, attackingCard }: { phase: str
         <motion.div
           className="absolute pointer-events-none rounded-full"
           style={{
-            width: 150,
-            height: 150,
+            width: 80,
+            height: 80,
             left: '50%',
-            top: '25%',
+            top: '15%',
             x: '-50%',
             y: '-50%',
             background: `radial-gradient(circle, ${theme.accent}15 0%, transparent 70%)`,
           }}
           animate={{
             scale: [0.9, 1.1, 0.9],
-            opacity: [0.2, 0.4, 0.2],
+            opacity: [0.1, 0.2, 0.1],
           }}
           transition={{
             duration: 4,
@@ -2333,7 +2333,7 @@ if (newOppHp <= 0) {
         </motion.div>
       )}
 
-      <main className="relative z-10 flex flex-col h-screen">
+      <main className="relative z-10 flex flex-col h-screen overflow-hidden">
         <div className="px-4 py-2 flex items-center justify-between" style={{ backgroundColor: '#162125' }}>
           <div className="flex items-center gap-2">
             <span className="text-base font-bold text-white">⚔️ Battle</span>
