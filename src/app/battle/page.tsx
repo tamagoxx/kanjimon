@@ -2409,7 +2409,7 @@ if (newOppHp <= 0) {
               </div>
 
               {/* Player HP - Left edge, horizontal bar - below header */}
-              <div className="absolute left-0 top-16 flex items-center gap-1 px-1 z-20" style={{ pointerEvents: 'none', height: '24px' }}>
+              <div className="absolute left-0 top-20 flex items-center gap-1 px-1 z-20" style={{ pointerEvents: 'none', height: '24px' }}>
                 <div className="w-5 h-5 rounded-full flex items-center justify-center font-bold text-white text-[7px]" style={{ backgroundColor: '#6c5ce7' }}>T</div>
                 <div className="w-8 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
                   <motion.div className="h-full rounded-full" animate={{ width: `${Math.min(100, (playerHp / playerMaxHp) * 100)}%` }}
@@ -2419,7 +2419,7 @@ if (newOppHp <= 0) {
               </div>
 
               {/* Boss HP - Right edge, horizontal bar - below header */}
-              <div className="absolute right-0 top-16 flex items-center gap-1 px-1 z-20" style={{ pointerEvents: 'none', height: '24px' }}>
+              <div className="absolute right-0 top-20 flex items-center gap-1 px-1 z-20" style={{ pointerEvents: 'none', height: '24px' }}>
                 <span className="text-[10px]">{boss.emoji}</span>
                 <div className="w-8 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
                   <motion.div className="h-full rounded-full" animate={{ width: `${(bossHp / bossMaxHp) * 100}%` }}
@@ -2465,7 +2465,7 @@ if (newOppHp <= 0) {
             <>
               {/* Player HP - Left edge, horizontal bar - below header */}
               {opponent && (
-                <div className="absolute left-0 top-16 flex items-center gap-1 px-1 z-20" style={{ pointerEvents: 'none', height: '24px' }}>
+                <div className="absolute left-0 top-20 flex items-center gap-1 px-1 z-20" style={{ pointerEvents: 'none', height: '24px' }}>
                   <div className="w-5 h-5 rounded-full flex items-center justify-center font-bold text-white text-[7px]" style={{ backgroundColor: '#6c5ce7' }}>T</div>
                   <div className="w-8 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
                     <motion.div className="h-full rounded-full" animate={{ width: `${Math.min(100, (playerHp / playerMaxHp) * 100)}%` }} style={{ backgroundColor: '#4bddb7' }} />
@@ -2476,7 +2476,7 @@ if (newOppHp <= 0) {
 
               {/* Opponent HP - Right edge, horizontal bar - below header */}
               {opponent && (
-                <div className="absolute right-0 top-16 flex items-center gap-1 px-1 z-20" style={{ pointerEvents: 'none', height: '24px' }}>
+                <div className="absolute right-0 top-20 flex items-center gap-1 px-1 z-20" style={{ pointerEvents: 'none', height: '24px' }}>
                   <span className="text-[10px]">{opponent.emoji}</span>
                   <div className="w-8 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
                     <motion.div className="h-full rounded-full" animate={{ width: `${(oppHp / oppMaxHp) * 100}%` }}
