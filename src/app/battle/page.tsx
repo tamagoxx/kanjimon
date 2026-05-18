@@ -973,12 +973,12 @@ function BattleBackground({ phase, opponent, boss, attackingCard }: { phase: str
         <motion.div
           className="absolute pointer-events-none"
           style={{
-            top: '35%',
+            top: '20%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            fontSize: '18rem',
-            filter: 'blur(2px) brightness(0.15)',
-            opacity: 0.2,
+            fontSize: '14rem',
+            filter: 'blur(1px) brightness(0.1)',
+            opacity: 0.15,
             zIndex: 1,
           }}
           animate={{
@@ -1000,11 +1000,11 @@ function BattleBackground({ phase, opponent, boss, attackingCard }: { phase: str
         <motion.div
           className="absolute pointer-events-none rounded-full"
           style={{
-            top: '35%',
+            top: '20%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: 240,
-            height: 240,
+            width: 180,
+            height: 180,
             background: `radial-gradient(circle, ${theme.accent}12 0%, transparent 70%)`,
             zIndex: 1,
           }}
