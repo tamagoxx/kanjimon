@@ -1863,6 +1863,7 @@ if (newOppHp <= 0) {
         addXP(xp);
         incrementStat('battles');
         incrementStat('wins');
+        addBattleWin();
         setResult({ win: true, xp, diamonds, stardust: stardustReward });
         trackQuestEvent('BATTLE');
         return;
