@@ -1729,20 +1729,21 @@ function BattlePageContent() {
         }
       }
 
-      // Damage to player overall HP
-      const newPlayerHp = Math.max(0, s.playerHp - Math.floor(damage * 0.3));
-      setPlayerHp(newPlayerHp);
-
-      // Check lose
-      if (newPlayerHp <= 0) {
-        setResult({ win: false, xp: 0, diamonds: 0 });
-        addLog(`💀 DEFEAT!`);
-        incrementStat('battles');
-        setPhase('result');
-        return;
-      }
-
-      setTimeout(() => doEndAITurn(), 500);
+      // Damage to player overall HP — use functional update to get current state
+      setPlayerHp(current => {
+        const newPlayerHp = Math.max(0, current - Math.floor(damage * 0.3));
+        if (newPlayerHp <= 0) {
+          setTimeout(() => {
+            setResult({ win: false, xp: 0, diamonds: 0 });
+            addLog(`💀 DEFEAT!`);
+            incrementStat('battles');
+            setPhase('result');
+          }, 50);
+          return newPlayerHp;
+        }
+        setTimeout(() => doEndAITurn(), 500);
+        return newPlayerHp;
+      });
     }, 700);
   };
 
