@@ -1002,9 +1002,9 @@ function BattlePageContent() {
   const stateRef = useRef({
     phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem,
     processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths,
-    bossCharging, bossBerserkCount, burnStacks, playerBuffed,
+    bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, playerHand,
   });
-  useEffect(() => { stateRef.current = { phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed }; }, [phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed]);
+  useEffect(() => { stateRef.current = { phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, playerHand }; }, [phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, playerHand]);
 
   // Initialize hand — only after Zustand is ready (prevents stale persisted state)
   // and only when a deck has been selected
@@ -1115,12 +1115,29 @@ function BattlePageContent() {
     setCardSelectTimer(5);
     timerRef.current = setTimeout(() => {
       // Time's up — skip attack automatically
-      if (stateRef.current.isPlayerTurn && stateRef.current.phase === 'battle' && !stateRef.current.processing) {
+      const s = stateRef.current;
+      const isBattle = s.phase === 'battle' || s.phase === 'boss-battle';
+      if (s.isPlayerTurn && isBattle && !s.processing) {
         addLog(`⏰ Waktu habis! Skip attack...`);
-        // Auto-skip: defend instead
+        // Auto-select best card if in auto mode
+        if (s.autoMode && s.playerHand.length > 0) {
+          // Find best card by attack
+          const sorted = [...s.playerHand].filter(c => c.hp > 0).sort((a, b) => b.attack - a.attack);
+          const best = sorted[0];
+          if (best && s.playerEnergy >= best.cost) {
+            addLog(`🤖 Auto: pilih ${best.name}`);
+            setTimeout(() => selectCard(s.playerHand.indexOf(best)), 100);
+            return;
+          }
+        }
+        // Otherwise defend
         setPlayerEnergy(0);
         setPlayerActive(null);
-        doEndPlayerTurn();
+        if (s.phase === 'boss-battle') {
+          doEndBossPlayerTurn();
+        } else {
+          doEndPlayerTurn();
+        }
       }
     }, 5000);
   };
@@ -1179,7 +1196,10 @@ function BattlePageContent() {
     setPlayerBuffed(false);
     setBossCharging(false);
     setBossBerserkCount(0);
-    setPlayerHp(100);
+    const level = user?.level || 1;
+    const baseHp = 100 + (level - 1) * 10;
+    setPlayerHp(baseHp);
+    setPlayerMaxHp(baseHp);
     setPlayerEnergy(3);
     setOppEnergy(3);
     setTurn(1);
