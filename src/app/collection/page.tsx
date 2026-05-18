@@ -85,62 +85,64 @@ function JapaneseCardItem({ card, index }: { card: any; index: number }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.03 }}
-      className="relative rounded-2xl overflow-hidden"
-      style={{ backgroundColor: colors.cardBg, aspectRatio: '3/4' }}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.04, duration: 0.25, ease: 'easeOut' }}
+      className="relative rounded-xl overflow-hidden"
+      style={{ backgroundColor: '#1a1a2e' }}
+      whileHover={{ y: -2 }}
     >
-      <div className="absolute inset-0 p-3 flex flex-col">
-        {/* Top: Element Badge + Rarity */}
-        <div className="flex items-start justify-between">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-xs"
-            style={{ backgroundColor: `${elementColor}20`, color: elementColor }}
-          >
+      {/* Rarity top bar */}
+      <div className={`h-0.5 ${
+        card.rarity === 'ULTRA_RARE' ? 'bg-gradient-to-r from-[#ffd700] to-[#ff8c00]' :
+        card.rarity === 'RARE' ? 'bg-[#c77dff]' :
+        card.rarity === 'UNCOMMON' ? 'bg-[#4facfe]' : 'bg-white/10'
+      }`} />
+
+      <div className="p-2">
+        {/* Top: Element icon + Rarity badge */}
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-xs" style={{ color: elementColor }}>
             {card.element === 'FIRE' ? '🔥' :
              card.element === 'WATER' ? '💧' :
              card.element === 'GRASS' ? '🌱' :
              card.element === 'ELECTRIC' ? '⚡' :
              card.element === 'PSYCHIC' ? '🔮' : '📝'}
-          </div>
-          <div
-            className="px-2 py-1 rounded text-[10px] font-bold"
-            style={{ backgroundColor: `${rarityColors[card.rarity]}20`, color: rarityColors[card.rarity] }}
-          >
-            {card.rarity.replace('_', ' ')}
-          </div>
+          </span>
+          {card.rarity !== 'COMMON' && (
+            <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold"
+              style={{ backgroundColor: `${rarityColors[card.rarity]}25`, color: rarityColors[card.rarity] }}>
+              {card.rarity === 'ULTRA_RARE' ? 'UR' : card.rarity === 'RARE' ? 'R' : 'U'}
+            </span>
+          )}
         </div>
 
         {/* Center: Kanji Character */}
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-4xl font-bold text-white">{card.japanese}</div>
+        <div className="flex items-center justify-center py-1">
+          <div className="text-2xl font-bold text-white">{card.japanese}</div>
         </div>
 
-        {/* Bottom: Reading + Meaning + Stats */}
-        <div className="space-y-1">
-          <div className="text-xs text-[#d8e4ea] font-medium text-center">{card.reading}</div>
-          <div className="text-xs text-[#c8c4d7] text-center truncate">{card.meaning}</div>
-          <div className="flex items-center justify-center gap-3 pt-1">
-            <div className="text-xs">
-              <span className="text-[#ffb4ab] font-bold">{card.attackPower}</span>
-              <span className="text-[#c8c4d7]/50 ml-0.5">ATK</span>
+        {/* Bottom: Reading + Meaning + Stats compact */}
+        <div className="mt-1.5 space-y-0.5">
+          <p className="text-[10px] text-white/60 text-center font-medium truncate">{card.reading}</p>
+          <p className="text-[9px] text-white/30 text-center truncate">{card.meaning}</p>
+          <div className="flex items-center justify-center gap-2 pt-0.5">
+            <div className="flex items-center gap-0.5">
+              <Swords className="w-2.5 h-2.5 text-orange-400" />
+              <span className="text-[9px] text-white/50">{card.attackPower}</span>
             </div>
-            <div className="w-px h-3 bg-[#2b363b]" />
-            <div className="text-xs">
-              <span className="text-[#4bddb7] font-bold">{card.defenseRating}</span>
-              <span className="text-[#c8c4d7]/50 ml-0.5">DEF</span>
+            <div className="w-px h-2.5 bg-white/10" />
+            <div className="flex items-center gap-0.5">
+              <Shield className="w-2.5 h-2.5 text-blue-400" />
+              <span className="text-[9px] text-white/50">{card.defenseRating}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Rarity glow */}
+      {/* Rarity glow for ultra rare */}
       {card.rarity === 'ULTRA_RARE' && (
-        <div className="absolute inset-0 rounded-2xl ring-2 ring-[#f0bf63]/50 animate-pulse" />
-      )}
-      {card.rarity === 'RARE' && (
-        <div className="absolute inset-0 rounded-2xl ring-1 ring-[#6c5ce7]/50" />
+        <div className="absolute inset-0 rounded-xl ring-1 ring-[#f0bf63]/40 animate-pulse pointer-events-none" />
       )}
     </motion.div>
   );
@@ -551,70 +553,72 @@ function BattleContent() {
 
 function PokemonCardItem({ card, index, onClick }: { card: PokemonCard; index: number; onClick?: (card: PokemonCard) => void }) {
   const typeColor = TYPE_COLORS[card.types[0]] || '#a8a8a8';
+  const elColor = elementColors[card.types[0] as keyof typeof elementColors] || '#a8a8a8';
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.03 }}
-      className="relative rounded-2xl overflow-hidden cursor-pointer"
-      style={{ backgroundColor: colors.cardBg, aspectRatio: '3/4' }}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.04, duration: 0.25, ease: 'easeOut' }}
+      className="relative rounded-xl overflow-hidden cursor-pointer"
+      style={{ backgroundColor: '#1a1a2e' }}
       onClick={() => onClick?.(card)}
-      whileTap={{ scale: 0.95 }}
+      whileTap={{ scale: 0.96 }}
+      whileHover={{ y: -2 }}
     >
-      {/* Rarity top bar */}
-      <div className={`h-1 ${
+      {/* Rarity top bar - thin accent line */}
+      <div className={`h-0.5 ${
         card.rarity === 'ULTRA_RARE' ? 'bg-gradient-to-r from-[#ffd700] to-[#ff8c00]' :
         card.rarity === 'RARE' ? 'bg-[#c77dff]' :
-        card.rarity === 'UNCOMMON' ? 'bg-[#4facfe]' : 'bg-white/20'
+        card.rarity === 'UNCOMMON' ? 'bg-[#4facfe]' : 'bg-white/10'
       }`} />
 
-      <div className="absolute inset-0 p-3 flex flex-col">
-        {/* Top: Type badges + Rarity */}
-        <div className="flex items-start justify-between mb-1">
-          <div className="flex flex-col gap-1">
-            {card.types.map(t => (
-              <span key={t} className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase text-white"
-                style={{ backgroundColor: TYPE_COLORS[t] + 'cc' }}>{t}</span>
-            ))}
+      <div className="p-2">
+        {/* Top row: Type icon + ID */}
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-1">
+            <span className="text-xs" style={{ color: elColor }}>
+              {card.types[0] === 'FIRE' ? '🔥' :
+               card.types[0] === 'WATER' ? '💧' :
+               card.types[0] === 'GRASS' ? '🌱' :
+               card.types[0] === 'ELECTRIC' ? '⚡' :
+               card.types[0] === 'PSYCHIC' ? '🔮' : '✨'}
+            </span>
+            <span className="text-[9px] text-white/30 font-medium">#{card.pokemonId.toString().padStart(3, '0')}</span>
           </div>
-          <div
-            className="px-2 py-1 rounded text-[10px] font-bold"
-            style={{ backgroundColor: `${rarityColors[card.rarity]}20`, color: rarityColors[card.rarity] }}
-          >
-            {card.rarity.replace('_', ' ')}
-          </div>
+          {card.rarity !== 'COMMON' && (
+            <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold"
+              style={{ backgroundColor: `${rarityColors[card.rarity]}25`, color: rarityColors[card.rarity] }}>
+              {card.rarity === 'ULTRA_RARE' ? 'UR' : card.rarity === 'RARE' ? 'R' : 'U'}
+            </span>
+          )}
         </div>
 
         {/* Pokemon Image */}
-        <div className="flex-1 flex items-center justify-center" style={{ background: `linear-gradient(180deg, ${typeColor}15 0%, transparent 100%)` }}>
-          <img src={card.image} alt={card.name} className="w-20 h-20 object-contain" loading="lazy" />
+        <div className="flex items-center justify-center py-1" style={{ background: `linear-gradient(180deg, ${typeColor}10 0%, transparent 100%)` }}>
+          <img src={card.image} alt={card.name} className="w-14 h-14 object-contain" loading="lazy" />
         </div>
 
-        {/* Bottom: Name + Stats */}
-        <div className="space-y-1">
-          <p className="text-[10px] text-white/40 font-medium text-center">#{card.pokemonId.toString().padStart(3, '0')}</p>
-          <div className="text-xs font-bold text-white text-center capitalize truncate">{card.name}</div>
-          <div className="flex items-center justify-center gap-2 pt-1">
-            <div className="flex items-center gap-1 text-[10px]">
-              <Heart className="w-3 h-3 text-red-400" />
-              <span className="text-white/70">{card.hp}</span>
+        {/* Name + Stats compact */}
+        <div className="mt-1.5 space-y-0.5">
+          <p className="text-[10px] font-bold text-white text-center capitalize truncate leading-tight">{card.name}</p>
+          <div className="flex items-center justify-center gap-1.5">
+            <div className="flex items-center gap-0.5">
+              <Heart className="w-2.5 h-2.5 text-red-400" />
+              <span className="text-[9px] text-white/50">{card.hp}</span>
             </div>
-            <div className="flex items-center gap-1 text-[10px]">
-              <Swords className="w-3 h-3 text-orange-400" />
-              <span className="text-white/70">{card.attack}</span>
+            <div className="w-px h-2.5 bg-white/10" />
+            <div className="flex items-center gap-0.5">
+              <Swords className="w-2.5 h-2.5 text-orange-400" />
+              <span className="text-[9px] text-white/50">{card.attack}</span>
             </div>
-            <div className="flex items-center gap-1 text-[10px]">
-              <Shield className="w-3 h-3 text-blue-400" />
-              <span className="text-white/70">{card.defense}</span>
+            <div className="w-px h-2.5 bg-white/10" />
+            <div className="flex items-center gap-0.5">
+              <Shield className="w-2.5 h-2.5 text-blue-400" />
+              <span className="text-[9px] text-white/50">{card.defense}</span>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Tap indicator */}
-      <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <span className="text-xs text-white/30">tap</span>
       </div>
     </motion.div>
   );
