@@ -2378,73 +2378,72 @@ if (newOppHp <= 0) {
         </div>
 
         <div className="flex-1 px-4 py-3 space-y-2 overflow-hidden">
-          {/* BOSS BATTLE AREA - compact, HP bars at corners, notifications above hand cards */}
+          {/* BOSS BATTLE AREA - boss top, player/boss cards center, player HP left edge, boss HP right edge */}
           {phase === 'boss-battle' && boss && (
             <>
-              {/* Boss HP - minimal bar at top */}
-              <div className="px-3 py-1.5 rounded-xl" style={{ background: 'linear-gradient(135deg, #1a1a2e80 0%, #2d1a1a80 100%)', borderTop: '2px solid #ff6b3560' }}>
-                <div className="flex items-center justify-between mb-1">
+              {/* Boss HP - top bar */}
+              <div className="px-3 py-1 rounded-xl" style={{ background: 'linear-gradient(135deg, #1a1a2e80 0%, #2d1a1a80 100%)', borderTop: '2px solid #ff6b3560' }}>
+                <div className="flex items-center justify-between mb-0.5">
                   <div className="flex items-center gap-2">
-                    <motion.span className="text-2xl" animate={bossCharging ? { scale: [1, 1.15, 1] } : {}}>{boss.emoji}</motion.span>
-                    <div>
-                      <p className="font-bold text-white text-xs">{boss.name}</p>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        {boss.phases.map((p, i) => (
-                          <span key={i} className={`text-[8px] px-1 py-0.5 rounded-full font-bold ${bossPhase === i ? 'bg-red-600 text-white' : 'bg-white/10 text-white/40'}`}>{p.name}</span>
-                        ))}
-                      </div>
+                    <motion.span className="text-xl" animate={bossCharging ? { scale: [1, 1.15, 1] } : {}}>{boss.emoji}</motion.span>
+                    <span className="font-bold text-white text-xs">{boss.name}</span>
+                    <div className="flex items-center gap-1">
+                      {boss.phases.map((p, i) => (
+                        <span key={i} className={`text-[7px] px-1 py-0.5 rounded-full font-bold ${bossPhase === i ? 'bg-red-600 text-white' : 'bg-white/10 text-white/40'}`}>{p.name}</span>
+                      ))}
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    {bossCharging && <span className="text-orange-400 animate-pulse text-xs">⚡</span>}
-                    {burnStacks > 0 && <span className="text-orange-500 text-xs">🔥{burnStacks}</span>}
-                    {bossBerserkCount > 0 && <span className="text-red-500 text-xs">👊{bossBerserkCount}</span>}
-                    {playerBuffed && <span className="text-purple-400 text-xs">😈</span>}
+                    {bossCharging && <span className="text-orange-400 animate-pulse text-[9px]">⚡</span>}
+                    {burnStacks > 0 && <span className="text-orange-500 text-[9px]">🔥{burnStacks}</span>}
+                    {bossBerserkCount > 0 && <span className="text-red-500 text-[9px]">👊{bossBerserkCount}</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
+                  <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
                     <motion.div className="h-full rounded-full" animate={{ width: `${(bossHp / bossMaxHp) * 100}%` }}
                       style={{ backgroundColor: bossHp / bossMaxHp > 0.5 ? '#ff6b35' : bossHp / bossMaxHp > 0.25 ? '#ffd93d' : '#ff3333' }} />
                   </div>
-                  <span className="text-[9px] font-bold text-white/40">{bossHp}/{bossMaxHp}</span>
+                  <span className="text-[8px] text-white/40">{bossHp}/{bossMaxHp}</span>
                 </div>
               </div>
 
-              {/* Cards area with corner HP bars */}
-              <div className="relative flex-1">
-                {/* Corner HP - Bottom Right (Player) */}
-                <div className="absolute bottom-2 right-0 left-12 flex items-center gap-2 px-2 py-1 rounded-xl" style={{ backgroundColor: '#1a1a2e90' }}>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-0.5">
-                      <span className="text-xs font-bold text-white">You</span>
-                      <span className="text-[9px] text-white/40">{playerHp}/{playerMaxHp}</span>
-                    </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
-                      <motion.div className="h-full rounded-full" animate={{ width: `${Math.min(100, (playerHp / playerMaxHp) * 100)}%` }}
-                        style={{ backgroundColor: playerHp / playerMaxHp > 0.5 ? '#4bddb7' : playerHp / playerMaxHp > 0.25 ? '#ffd93d' : '#ff6b35' }} />
-                    </div>
+              {/* Player HP - Left edge vertical bar */}
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-8 flex flex-col items-center gap-1 py-4 z-20" style={{ pointerEvents: 'none' }}>
+                <div className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-white text-[8px]" style={{ backgroundColor: '#6c5ce7' }}>T</div>
+                <div className="w-1.5 h-20 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
+                  <motion.div className="w-full rounded-full" animate={{ height: `${Math.min(100, (playerHp / playerMaxHp) * 100)}%` }}
+                    style={{ backgroundColor: playerHp / playerMaxHp > 0.5 ? '#4bddb7' : playerHp / playerMaxHp > 0.25 ? '#ffd93d' : '#ff6b35' }} />
+                </div>
+                <span className="text-[7px] text-white/40">{playerHp}</span>
+              </div>
+
+              {/* Boss HP - Right edge vertical bar */}
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-8 flex flex-col items-center gap-1 py-4 z-20" style={{ pointerEvents: 'none' }}>
+                <span className="text-sm">{boss.emoji}</span>
+                <div className="w-1.5 h-20 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
+                  <motion.div className="w-full rounded-full" animate={{ height: `${(bossHp / bossMaxHp) * 100}%` }}
+                    style={{ backgroundColor: bossHp / bossMaxHp > 0.5 ? '#ff6b35' : bossHp / bossMaxHp > 0.25 ? '#ffd93d' : '#ff3333' }} />
+                </div>
+                <span className="text-[7px] text-white/40">{bossHp}</span>
+              </div>
+
+              {/* Cards center */}
+              <div className="flex items-center justify-center gap-4 h-full">
+                {playerActive && (
+                  <div className="flex flex-col items-center">
+                    <ActiveCard card={playerActive} isPlayer={true} attacking={attackingCard === 'player'} hit={hitCard === 'player'} />
+                    {playerActive && <AnimatePresence>{showDmg && dmgVal > 0 && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
                   </div>
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-white text-[10px]" style={{ backgroundColor: '#6c5ce7' }}>T</div>
-                </div>
-
-                {/* Cards - center */}
-                <div className="flex items-center justify-center gap-3 h-full py-2">
-                  {playerActive && (
-                    <div className="flex flex-col items-center">
-                      <ActiveCard card={playerActive} isPlayer={true} attacking={attackingCard === 'player'} hit={hitCard === 'player'} />
-                      {playerActive && <AnimatePresence>{showDmg && dmgVal > 0 && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
-                    </div>
-                  )}
-                  <div className="text-white/15 text-xl font-black">🐉⚔</div>
-                  <div className="w-16 h-16 rounded-xl flex items-center justify-center text-4xl" style={{ backgroundColor: '#1a1a2e80', border: '2px solid #ff6b3540' }}>{boss.emoji}</div>
-                </div>
+                )}
+                <div className="text-white/15 text-xl font-black">🐉⚔</div>
+                <div className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl" style={{ backgroundColor: '#1a1a2e80', border: '2px solid #ff6b3540' }}>{boss.emoji}</div>
               </div>
 
-              {/* Burn notification */}
+              {/* Status effects */}
               {burnStacks > 0 && (
                 <div className="mx-4 py-1 rounded-lg text-center" style={{ backgroundColor: '#ff6b3520' }}>
-                  <span className="text-xs text-orange-400 font-bold animate-pulse">🔥 Burn: -{burnStacks * 15} HP/turn</span>
+                  <span className="text-[10px] text-orange-400 font-bold animate-pulse">🔥 Burn: -{burnStacks * 15}/turn</span>
                 </div>
               )}
 
@@ -2461,60 +2460,47 @@ if (newOppHp <= 0) {
             </>
           )}
 
-          {/* REGULAR BATTLE AREA - compact, HP bars at corners, notifications below */}
+          {/* REGULAR BATTLE AREA - cards center, HP bars at left/right edges vertically */}
           {phase === 'battle' && (
             <>
-              {/* Active Cards Row - centered with corner HP bars */}
-              <div className="relative flex-1">
-                {/* Corner HP - Left (Player) */}
-                {opponent && (
-                  <div className="absolute bottom-2 left-0 right-12 flex items-center gap-1.5 px-1.5 py-1 rounded-lg" style={{ backgroundColor: '#1a1a2e80' }}>
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center font-bold text-white text-[8px]" style={{ backgroundColor: '#6c5ce7' }}>T</div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-[10px] font-bold text-white">You</span>
-                        <span className="text-[8px] text-white/40">{playerHp}/{playerMaxHp}</span>
-                      </div>
-                      <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
-                        <motion.div className="h-full rounded-full" animate={{ width: `${Math.min(100, (playerHp / playerMaxHp) * 100)}%` }} style={{ backgroundColor: '#4bddb7' }} />
-                      </div>
-                    </div>
+              {/* Player HP - Left edge, vertical bar */}
+              {opponent && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-8 flex flex-col items-center gap-1 py-4 z-20" style={{ pointerEvents: 'none' }}>
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-white text-[8px]" style={{ backgroundColor: '#6c5ce7' }}>T</div>
+                  <div className="w-1.5 h-20 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
+                    <motion.div className="w-full rounded-full" animate={{ height: `${Math.min(100, (playerHp / playerMaxHp) * 100)}%` }} style={{ backgroundColor: '#4bddb7' }} />
                   </div>
-                )}
-
-                {/* Corner HP - Right (Opponent) */}
-                {opponent && (
-                  <div className="absolute bottom-2 right-0 left-12 flex items-center gap-1.5 px-1.5 py-1 rounded-lg" style={{ backgroundColor: '#1a1a2e80' }}>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-[10px] font-bold text-white">{opponent.name}</span>
-                        <span className="text-[8px] text-white/40">{oppHp}/{oppMaxHp}</span>
-                      </div>
-                      <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
-                        <motion.div className="h-full rounded-full" animate={{ width: `${(oppHp / oppMaxHp) * 100}%` }}
-                          style={{ backgroundColor: oppHp / oppMaxHp > 0.5 ? '#4bddb7' : oppHp / oppMaxHp > 0.25 ? '#ffd93d' : '#ff6b35' }} />
-                      </div>
-                    </div>
-                    <span className="text-sm">{opponent.emoji}</span>
-                  </div>
-                )}
-
-                {/* Cards center */}
-                <div className="flex items-center justify-center gap-3 h-full py-2">
-                  {oppActive && (
-                    <div className="flex flex-col items-center">
-                      <ActiveCard card={oppActive} isPlayer={false} attacking={attackingCard === 'opponent'} hit={hitCard === 'opponent'} />
-                      {oppActive && <AnimatePresence>{showDmg && dmgVal > 0 && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
-                    </div>
-                  )}
-                  <div className="text-white/15 text-2xl font-black">⚔</div>
-                  {playerActive && (
-                    <div className="flex flex-col items-center">
-                      <ActiveCard card={playerActive} isPlayer={true} attacking={attackingCard === 'player'} hit={hitCard === 'player'} />
-                      {playerActive && <AnimatePresence>{showDmg && dmgVal > 0 && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
-                    </div>
-                  )}
+                  <span className="text-[7px] text-white/40">{playerHp}</span>
                 </div>
+              )}
+
+              {/* Opponent HP - Right edge, vertical bar */}
+              {opponent && (
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-8 flex flex-col items-center gap-1 py-4 z-20" style={{ pointerEvents: 'none' }}>
+                  <span className="text-sm">{opponent.emoji}</span>
+                  <div className="w-1.5 h-20 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
+                    <motion.div className="w-full rounded-full" animate={{ height: `${(oppHp / oppMaxHp) * 100}%` }}
+                      style={{ backgroundColor: oppHp / oppMaxHp > 0.5 ? '#4bddb7' : oppHp / oppMaxHp > 0.25 ? '#ffd93d' : '#ff6b35' }} />
+                  </div>
+                  <span className="text-[7px] text-white/40">{oppHp}</span>
+                </div>
+              )}
+
+              {/* Cards center */}
+              <div className="flex items-center justify-center gap-4 h-full">
+                {oppActive && (
+                  <div className="flex flex-col items-center">
+                    <ActiveCard card={oppActive} isPlayer={false} attacking={attackingCard === 'opponent'} hit={hitCard === 'opponent'} />
+                    {oppActive && <AnimatePresence>{showDmg && dmgVal > 0 && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
+                  </div>
+                )}
+                <div className="text-white/15 text-2xl font-black">⚔</div>
+                {playerActive && (
+                  <div className="flex flex-col items-center">
+                    <ActiveCard card={playerActive} isPlayer={true} attacking={attackingCard === 'player'} hit={hitCard === 'player'} />
+                    {playerActive && <AnimatePresence>{showDmg && dmgVal > 0 && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
+                  </div>
+                )}
               </div>
 
               {/* Battle Notifications - above hand cards */}
