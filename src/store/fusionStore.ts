@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Rarity } from '@/types';
+import type { Rarity, FusedPokemon } from '@/types';
 import { POKEMON_FUSION_RECIPES as RECIPES } from '@/types';
 import { useCollectionStore } from './collectionStore';
 
@@ -23,7 +23,7 @@ interface FusionCheck {
 
 interface FuseResult {
   success: boolean;
-  fusedPokemonId?: string;
+  fusedPokemon?: FusedPokemon;
   error?: string;
 }
 
@@ -142,7 +142,7 @@ export const useFusionStore = create<FusionState>()(
         // Add fused Pokemon to collection
         collection.addFusedPokemon(fusedPokemon);
 
-        return { success: true, fusedPokemonId: fusedId };
+        return { success: true, fusedPokemon };
       },
     }),
     {
