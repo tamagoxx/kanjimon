@@ -968,17 +968,17 @@ function BattleBackground({ phase, opponent, boss, attackingCard }: { phase: str
         </div>
       )}
 
-      {/* Large background Pokemon - visible behind battle area */}
+      {/* Large background Pokemon - visible behind battle area, positioned higher */}
       {isBattle && (opponent || boss) && (
         <motion.div
           className="absolute pointer-events-none"
           style={{
-            top: '50%',
+            top: '35%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            fontSize: '22rem',
-            filter: 'blur(3px) brightness(0.2)',
-            opacity: 0.25,
+            fontSize: '18rem',
+            filter: 'blur(2px) brightness(0.15)',
+            opacity: 0.2,
             zIndex: 1,
           }}
           animate={{
@@ -1000,12 +1000,12 @@ function BattleBackground({ phase, opponent, boss, attackingCard }: { phase: str
         <motion.div
           className="absolute pointer-events-none rounded-full"
           style={{
-            top: '50%',
+            top: '35%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: 280,
-            height: 280,
-            background: `radial-gradient(circle, ${theme.accent}15 0%, transparent 70%)`,
+            width: 240,
+            height: 240,
+            background: `radial-gradient(circle, ${theme.accent}12 0%, transparent 70%)`,
             zIndex: 1,
           }}
           animate={{
