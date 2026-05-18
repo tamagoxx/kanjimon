@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, usePathname } from 'next/navigation';
 import { useCollectionStore, PokemonCard } from '@/store/collectionStore';
 import { CARDS_BY_ID, ALL_CARDS } from '@/data/cards';
@@ -549,7 +549,7 @@ function BattleContent() {
   );
 }
 
-function PokemonCardItem({ card, index }: { card: PokemonCard; index: number }) {
+function PokemonCardItem({ card, index, onClick }: { card: PokemonCard; index: number; onClick?: (card: PokemonCard) => void }) {
   const typeColor = TYPE_COLORS[card.types[0]] || '#a8a8a8';
 
   return (
@@ -557,8 +557,10 @@ function PokemonCardItem({ card, index }: { card: PokemonCard; index: number }) 
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.03 }}
-      className="relative rounded-2xl overflow-hidden"
+      className="relative rounded-2xl overflow-hidden cursor-pointer"
       style={{ backgroundColor: colors.cardBg, aspectRatio: '3/4' }}
+      onClick={() => onClick?.(card)}
+      whileTap={{ scale: 0.95 }}
     >
       {/* Rarity top bar */}
       <div className={`h-1 ${
@@ -609,6 +611,187 @@ function PokemonCardItem({ card, index }: { card: PokemonCard; index: number }) 
           </div>
         </div>
       </div>
+
+      {/* Tap indicator */}
+      <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="text-xs text-white/30">tap</span>
+      </div>
+    </motion.div>
+  );
+}
+
+// Pokemon Detail Modal
+function PokemonDetailModal({ card, onClose }: { card: PokemonCard; onClose: () => void }) {
+  const typeColor = TYPE_COLORS[card.types[0]] || '#a8a8a8';
+  const elementColor = elementColors[card.types[0] as keyof typeof elementColors] || '#a8a8a8';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        className="w-full max-w-sm rounded-3xl overflow-hidden"
+        style={{ backgroundColor: '#1a1a2e' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Rarity top bar */}
+        <div className={`h-1.5 ${
+          card.rarity === 'ULTRA_RARE' ? 'bg-gradient-to-r from-[#ffd700] to-[#ff8c00]' :
+          card.rarity === 'RARE' ? 'bg-[#c77dff]' :
+          card.rarity === 'UNCOMMON' ? 'bg-[#4facfe]' : 'bg-white/20'
+        }`} />
+
+        {/* Header with image */}
+        <div className="relative p-6 flex flex-col items-center" style={{ background: `linear-gradient(180deg, ${typeColor}20 0%, #1a1a2e 100%)` }}>
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: '#162125' }}
+          >
+            <X className="w-4 h-4 text-white/60" />
+          </button>
+
+          {/* Pokemon ID + Name */}
+          <p className="text-sm text-white/40 font-medium mb-1">#{card.pokemonId.toString().padStart(4, '0')}</p>
+          <h2 className="text-xl font-black text-white capitalize mb-2">{card.name}</h2>
+
+          {/* Type badges */}
+          <div className="flex gap-2 mb-4">
+            {card.types.map(t => (
+              <span key={t} className="px-3 py-1 rounded-full text-xs font-bold uppercase text-white"
+                style={{ backgroundColor: TYPE_COLORS[t] + 'dd' }}>{t}</span>
+            ))}
+          </div>
+
+          {/* Pokemon Image */}
+          <div className="w-40 h-40 flex items-center justify-center">
+            <img src={card.image} alt={card.name} className="w-full h-full object-contain" />
+          </div>
+
+          {/* Rarity badge */}
+          <div
+            className="mt-3 px-3 py-1 rounded-full text-xs font-bold"
+            style={{ backgroundColor: `${rarityColors[card.rarity]}20`, color: rarityColors[card.rarity] }}
+          >
+            {card.rarity.replace('_', ' ')}
+          </div>
+        </div>
+
+        {/* Stats Section */}
+        <div className="p-5 space-y-4">
+          <h3 className="text-sm font-bold text-white/60 uppercase tracking-wider">Statistik</h3>
+
+          {/* HP */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 flex items-center justify-center">
+              <Heart className="w-5 h-5 text-red-400" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-white/60">HP</span>
+                <span className="text-sm font-bold text-white">{card.hp}</span>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#0a0a1a' }}>
+                <motion.div
+                  className="h-full rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(100, (card.hp / 255) * 100)}%` }}
+                  style={{ backgroundColor: '#ff6b6b' }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Attack */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 flex items-center justify-center">
+              <Swords className="w-5 h-5 text-orange-400" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-white/60">Attack</span>
+                <span className="text-sm font-bold text-white">{card.attack}</span>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#0a0a1a' }}>
+                <motion.div
+                  className="h-full rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(100, (card.attack / 255) * 100)}%` }}
+                  style={{ backgroundColor: '#ffa500' }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Defense */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-blue-400" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-white/60">Defense</span>
+                <span className="text-sm font-bold text-white">{card.defense}</span>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#0a0a1a' }}>
+                <motion.div
+                  className="h-full rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(100, (card.defense / 255) * 100)}%` }}
+                  style={{ backgroundColor: '#4facfe' }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Speed (if available) */}
+          {'speed' in card && card.speed && (
+            <div className="flex items-center gap-3">
+              <div className="w-10 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-yellow-400" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-white/60">Speed</span>
+                  <span className="text-sm font-bold text-white">{card.speed}</span>
+                </div>
+                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#0a0a1a' }}>
+                  <motion.div
+                    className="h-full rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, ((card.speed as number) / 255) * 100)}%` }}
+                    style={{ backgroundColor: '#ffd93d' }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Element */}
+          <div className="flex items-center gap-3 pt-2 border-t border-white/10">
+            <div className="w-10 flex items-center justify-center">
+              <span className="text-lg" style={{ color: elementColor }}>
+                {card.types[0] === 'FIRE' ? '🔥' :
+                 card.types[0] === 'WATER' ? '💧' :
+                 card.types[0] === 'GRASS' ? '🌱' :
+                 card.types[0] === 'ELECTRIC' ? '⚡' :
+                 card.types[0] === 'PSYCHIC' ? '🔮' : '⭐'}
+              </span>
+            </div>
+            <div className="flex-1">
+              <span className="text-xs text-white/60">Element</span>
+              <p className="text-sm font-bold text-white capitalize">{card.types[0].toLowerCase()}</p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
     </motion.div>
   );
 }
@@ -652,6 +835,7 @@ export default function CollectionPage() {
   const { ownedPokemon, coins, ownedCards } = useCollectionStore();
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [categoryFilter, setCategoryFilter] = useState<FilterType>('all');
+  const [selectedPokemon, setSelectedPokemon] = useState<PokemonCard | null>(null);
 
   // For Japanese tab: show owned cards directly from ownedCards store
   // (starter cards jp_starter_1-5 are NOT in CARDS_BY_ID, they exist only in ownedCards)
@@ -796,7 +980,7 @@ export default function CollectionPage() {
               ) : (
                 <div className="grid grid-cols-3 gap-2">
                   {ownedPokemon.map((card, i) => (
-                    <PokemonCardItem key={card.id} card={card} index={i} />
+                    <PokemonCardItem key={card.id} card={card} index={i} onClick={setSelectedPokemon} />
                   ))}
                 </div>
               )}
@@ -825,6 +1009,13 @@ export default function CollectionPage() {
           )}
         </div>
       </main>
+
+      {/* Pokemon Detail Modal */}
+      <AnimatePresence>
+        {selectedPokemon && (
+          <PokemonDetailModal card={selectedPokemon} onClose={() => setSelectedPokemon(null)} />
+        )}
+      </AnimatePresence>
 
       <BottomNav />
     </div>
