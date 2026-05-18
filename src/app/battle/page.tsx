@@ -832,32 +832,32 @@ function HandCard({ card, idx, sel, onClick, disabled }: { card: BattleCard; idx
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.06 }}
       whileHover={disabled ? {} : { y: -10, scale: 1.05 }} whileTap={disabled ? {} : { scale: 0.95 }}
       onClick={disabled ? undefined : onClick}
-      className={`relative w-[56px] h-[80px] rounded-lg p-1 flex flex-col items-center justify-center cursor-pointer transition-all flex-shrink-0 ${
+      className={`relative w-[64px] h-[88px] rounded-lg p-1.5 flex flex-col items-center justify-center cursor-pointer transition-all flex-shrink-0 ${
         sel ? 'ring-2 ring-white shadow-xl' : ''
       } ${disabled ? 'opacity-40' : ''}`}
       style={{ background: `linear-gradient(135deg, #1a1a2e 0%, ${col}22 100%)`, border: `2px solid ${sel ? '#fff' : col + '60'}` }}>
-      <div className="absolute top-0.5 right-0.5 w-3 h-3 rounded-full bg-black/60 flex items-center justify-center">
-        <span className="text-[8px] font-bold text-white">{card.cost}</span>
+      <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center">
+        <span className="text-[9px] font-bold text-white">{card.cost}</span>
       </div>
       {card.image ? (
-        <img src={card.image} alt={card.name} className="w-7 h-7 object-contain" />
+        <img src={card.image} alt={card.name} className="w-10 h-10 object-contain" />
       ) : (
-        <span className="text-xl" style={{ color: col }}>⬡</span>
+        <span className="text-2xl" style={{ color: col }}>⬡</span>
       )}
       {card.ability && (
         <div
-          className="absolute top-0.5 left-0.5 px-0.5 py-0.5 rounded text-[6px] font-bold flex items-center gap-0.5"
+          className="absolute top-1 left-1 px-1 py-0.5 rounded text-[7px] font-bold flex items-center gap-0.5"
           style={{ backgroundColor: abilityStyle.bg, color: abilityStyle.text }}
           title={formatAbilityName(card.ability)}
         >
           <span>{abilityStyle.icon}</span>
         </div>
       )}
-      <span className="text-[8px] text-white/60 capitalize mt-0.5 truncate w-full text-center">{card.name}</span>
-      <div className="w-full mt-0.5 h-0.5 rounded-full bg-black/40 overflow-hidden">
+      <span className="text-[9px] text-white/60 capitalize mt-0.5 truncate w-full text-center">{card.name}</span>
+      <div className="w-full mt-1 h-1 rounded-full bg-black/40 overflow-hidden">
         <div className="h-full rounded-full" style={{ width: `${hpPct * 100}%`, backgroundColor: hpPct > 0.5 ? '#4bddb7' : hpPct > 0.25 ? '#ffd93d' : '#ff6b35' }} />
       </div>
-      <div className="flex items-center gap-0.5 text-[7px] mt-0.5">
+      <div className="flex items-center gap-0.5 text-[8px] mt-0.5">
         <span className="text-red-400">{card.attack}</span>
         <span className="text-blue-400">{card.defense}</span>
       </div>
@@ -1103,10 +1103,10 @@ function ActiveCard({ card, isPlayer, attacking, hit }: { card: BattleCard; isPl
       transition={attacking ? { duration: 0.15, ease: 'easeOut' } : hit ? { duration: 0.4 } : {}}
       className={`rounded-lg overflow-hidden ${isPlayer ? 'border-t-2' : 'border-b-2'}`}
       style={{ borderColor: col, background: 'linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%)' }}>
-      <div className="p-1.5 flex items-center gap-1.5">
-        <div className="w-8 h-10 rounded-md flex items-center justify-center overflow-hidden relative" style={{ backgroundColor: col + '25' }}>
-          {card.image ? <img src={card.image} alt={card.name} className="w-7 h-7 object-contain" /> : (
-            <span className="text-xl" style={{ color: col }}>⬡</span>
+      <div className="p-2 flex items-center gap-2">
+        <div className="w-12 h-14 rounded-lg flex items-center justify-center overflow-hidden relative" style={{ backgroundColor: col + '25' }}>
+          {card.image ? <img src={card.image} alt={card.name} className="w-10 h-10 object-contain" /> : (
+            <span className="text-3xl" style={{ color: col }}>⬡</span>
           )}
           <StatusBadge status={card.status} />
         </div>
