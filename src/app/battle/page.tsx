@@ -968,29 +968,56 @@ function BattleBackground({ phase, opponent, boss, attackingCard }: { phase: str
         </div>
       )}
 
-      {/* Opponent Pokemon shadow/silhouette */}
+      {/* Large background Pokemon - visible behind battle area */}
       {isBattle && (opponent || boss) && (
         <motion.div
           className="absolute pointer-events-none"
           style={{
-            top: '15%',
+            top: '50%',
             left: '50%',
-            transform: 'translateX(-50%)',
-            fontSize: '8rem',
-            filter: 'blur(2px) brightness(0.3)',
-            opacity: 0.15,
+            transform: 'translate(-50%, -50%)',
+            fontSize: '22rem',
+            filter: 'blur(3px) brightness(0.2)',
+            opacity: 0.25,
+            zIndex: 1,
           }}
           animate={{
-            y: [0, -10, 0],
+            y: [0, -15, 0],
+            scale: [1, 1.03, 1],
           }}
           transition={{
-            duration: 3,
+            duration: 4,
             repeat: Infinity,
             ease: 'easeInOut',
           }}
         >
           {boss?.emoji || opponent?.emoji}
         </motion.div>
+      )}
+
+      {/* Element glow ring behind background Pokemon */}
+      {isBattle && (opponent || boss) && (
+        <motion.div
+          className="absolute pointer-events-none rounded-full"
+          style={{
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 280,
+            height: 280,
+            background: `radial-gradient(circle, ${theme.accent}15 0%, transparent 70%)`,
+            zIndex: 1,
+          }}
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [0.4, 0.8, 0.4],
+          }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+        />
       )}
 
       {/* Energy crackling lines during boss battle */}
@@ -1074,41 +1101,40 @@ function ActiveCard({ card, isPlayer, attacking, hit }: { card: BattleCard; isPl
         x: attacking ? (isPlayer ? 20 : -20) : hit ? [0, -15, 15, -10, 10, 0] : 0,
       }}
       transition={attacking ? { duration: 0.15, ease: 'easeOut' } : hit ? { duration: 0.4 } : {}}
-      className={`rounded-xl overflow-hidden ${isPlayer ? 'border-t-4' : 'border-b-4'}`}
+      className={`rounded-lg overflow-hidden ${isPlayer ? 'border-t-2' : 'border-b-2'}`}
       style={{ borderColor: col, background: 'linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%)' }}>
-      <div className="p-3 flex items-center gap-3">
-        <div className="w-14 h-16 rounded-lg flex items-center justify-center overflow-hidden relative" style={{ backgroundColor: col + '25' }}>
-          {card.image ? <img src={card.image} alt={card.name} className="w-12 h-12 object-contain" /> : (
-            <span className="text-3xl" style={{ color: col }}>⬡</span>
+      <div className="p-2 flex items-center gap-2">
+        <div className="w-10 h-12 rounded-lg flex items-center justify-center overflow-hidden relative" style={{ backgroundColor: col + '25' }}>
+          {card.image ? <img src={card.image} alt={card.name} className="w-9 h-9 object-contain" /> : (
+            <span className="text-2xl" style={{ color: col }}>⬡</span>
           )}
           <StatusBadge status={card.status} />
         </div>
         <div className="flex-1">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-white capitalize">{card.name}</span>
+          <div className="flex items-center justify-between mb-0.5">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-white capitalize">{card.name}</span>
               {card.ability && (
                 <div
-                  className="px-2 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-1"
+                  className="px-1.5 py-0.5 rounded-full text-[8px] font-bold flex items-center gap-0.5"
                   style={{ backgroundColor: abilityStyle.bg, color: abilityStyle.text }}
                   title={formatAbilityName(card.ability)}
                 >
                   <span>{abilityStyle.icon}</span>
-                  <span>{formatAbilityName(card.ability)}</span>
                 </div>
               )}
             </div>
-            <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: col + '30', color: col }}>{card.element}</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: col + '30', color: col }}>{card.element}</span>
           </div>
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-2 text-[9px]">
             <span className="text-red-400">⚔️ {card.attack}</span>
             <span className="text-blue-400">🛡️ {card.defense}</span>
           </div>
-          <div className="mt-1.5 h-2 rounded-full overflow-hidden bg-black/50">
+          <div className="mt-1 h-1.5 rounded-full overflow-hidden bg-black/50">
             <motion.div className="h-full rounded-full" animate={{ width: `${hpPct * 100}%` }}
               style={{ backgroundColor: hpPct > 0.5 ? '#4bddb7' : hpPct > 0.25 ? '#ffd93d' : '#ff6b35' }} />
           </div>
-          <span className="text-[10px] text-white/40">{card.hp}/{card.maxHp} HP</span>
+          <span className="text-[9px] text-white/40">{card.hp}/{card.maxHp}</span>
         </div>
       </div>
     </motion.div>
@@ -2352,75 +2378,74 @@ if (newOppHp <= 0) {
         </div>
 
         <div className="flex-1 px-4 py-3 space-y-2 overflow-hidden">
-          {/* BOSS BATTLE AREA */}
+          {/* BOSS BATTLE AREA - compact to show background Pokemon */}
           {phase === 'boss-battle' && boss && (
             <>
-              {/* Boss Display */}
-              <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #2d1a1a 100%)', borderTop: '3px solid #ff6b35' }}>
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <motion.span className="text-5xl" animate={bossCharging ? { scale: [1, 1.2, 1] } : {}}>{boss.emoji}</motion.span>
-                      <div>
-                        <p className="font-black text-white text-lg">{boss.name}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {boss.phases.map((p, i) => (
-                            <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${bossPhase === i ? 'bg-red-600 text-white' : 'bg-white/10 text-white/40'}`}>{p.name}</span>
-                          ))}
-                        </div>
+              {/* Boss HP - minimal bar */}
+              <div className="px-3 py-2 rounded-xl" style={{ background: 'linear-gradient(135deg, #1a1a2e80 0%, #2d1a1a80 100%)', borderTop: '2px solid #ff6b3560' }}>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <motion.span className="text-3xl" animate={bossCharging ? { scale: [1, 1.15, 1] } : {}}>{boss.emoji}</motion.span>
+                    <div>
+                      <p className="font-bold text-white text-sm">{boss.name}</p>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        {boss.phases.map((p, i) => (
+                          <span key={i} className={`text-[8px] px-1 py-0.5 rounded-full font-bold ${bossPhase === i ? 'bg-red-600 text-white' : 'bg-white/10 text-white/40'}`}>{p.name}</span>
+                        ))}
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-1 text-xs">
-                        {bossCharging && <span className="text-orange-400 animate-pulse">⚡ CHARGING</span>}
-                        {burnStacks > 0 && <span className="text-orange-500">🔥 Burn({burnStacks})</span>}
-                        {bossBerserkCount > 0 && <span className="text-red-500">👊 Berserk({bossBerserkCount})</span>}
-                        {playerBuffed && <span className="text-purple-400">😈 Curse</span>}
-                      </div>
-                      <p className="text-xs text-white/30 mt-1">ATK ×{bossAtkMultiplier.toFixed(1)} / DEF ×{bossDefMultiplier.toFixed(1)}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-3 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
-                      <motion.div className="h-full rounded-full" animate={{ width: `${(bossHp / bossMaxHp) * 100}%` }}
-                        style={{ backgroundColor: bossHp / bossMaxHp > 0.5 ? '#ff6b35' : bossHp / bossMaxHp > 0.25 ? '#ffd93d' : '#ff3333' }} />
-                    </div>
-                    <span className="text-sm font-bold text-white">{bossHp}/{bossMaxHp}</span>
+                  <div className="flex items-center gap-1">
+                    {bossCharging && <span className="text-orange-400 animate-pulse text-xs">⚡</span>}
+                    {burnStacks > 0 && <span className="text-orange-500 text-xs">🔥{burnStacks}</span>}
+                    {bossBerserkCount > 0 && <span className="text-red-500 text-xs">👊{bossBerserkCount}</span>}
+                    {playerBuffed && <span className="text-purple-400 text-xs">😈</span>}
                   </div>
                 </div>
-                <AnimatePresence>{showDmg && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
+                    <motion.div className="h-full rounded-full" animate={{ width: `${(bossHp / bossMaxHp) * 100}%` }}
+                      style={{ backgroundColor: bossHp / bossMaxHp > 0.5 ? '#ff6b35' : bossHp / bossMaxHp > 0.25 ? '#ffd93d' : '#ff3333' }} />
+                  </div>
+                  <span className="text-xs font-bold text-white/60">{bossHp}/{bossMaxHp}</span>
+                </div>
+                <p className="text-[9px] text-white/30 mt-0.5">ATK×{bossAtkMultiplier.toFixed(1)} / DEF×{bossDefMultiplier.toFixed(1)}</p>
               </div>
 
-              <div className="flex items-center gap-2 py-1"><div className="flex-1 h-px bg-white/10" /><span className="text-xs text-white/30">🐉 VS 🃏</span><div className="flex-1 h-px bg-white/10" /></div>
-
-              {/* Player Active Card */}
-              {playerActive && <ActiveCard card={playerActive} isPlayer={true} attacking={attackingCard === 'player'} hit={hitCard === 'player'} />}
-              {playerActive && <AnimatePresence>{showDmg && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
-
-              {/* Player HP Bar */}
-              <div className="flex items-center justify-between px-4 py-2 rounded-xl" style={{ backgroundColor: '#1a1a2e' }}>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white" style={{ backgroundColor: '#6c5ce7' }}>T</div>
-                  <div>
-                    <p className="text-sm font-bold text-white">Tamago</p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      {burnStacks > 0 && <span className="text-xs text-orange-500">🔥</span>}
-                      {playerBuffed && <span className="text-xs text-purple-400">😈</span>}
-                    </div>
+              {/* Active Cards Row - compact, side by side */}
+              <div className="flex items-center justify-center gap-4 py-1">
+                {playerActive && (
+                  <div className="flex flex-col items-center">
+                    <ActiveCard card={playerActive} isPlayer={true} attacking={attackingCard === 'player'} hit={hitCard === 'player'} />
+                    {playerActive && <AnimatePresence>{showDmg && dmgVal > 0 && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
                   </div>
+                )}
+                <div className="text-white/20 text-2xl font-black">🐉⚔🃏</div>
+                <div className="flex flex-col items-center">
+                  <div className="w-20 h-20 rounded-xl flex items-center justify-center text-5xl" style={{ backgroundColor: '#1a1a2e80', border: '2px solid #ff6b3540' }}>{boss.emoji}</div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-28 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
+              </div>
+
+              {/* Player HP bar - compact */}
+              <div className="flex items-center justify-between px-3 py-1.5 rounded-xl" style={{ backgroundColor: '#1a1a2e80' }}>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-white text-[10px]" style={{ backgroundColor: '#6c5ce7' }}>T</div>
+                  <span className="text-sm font-bold text-white">You</span>
+                  {burnStacks > 0 && <span className="text-orange-500 text-xs">🔥</span>}
+                  {playerBuffed && <span className="text-purple-400 text-xs">😈</span>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
                     <motion.div className="h-full rounded-full" animate={{ width: `${Math.min(100, (playerHp / playerMaxHp) * 100)}%` }} style={{ backgroundColor: playerHp / playerMaxHp > 0.5 ? '#4bddb7' : playerHp / playerMaxHp > 0.25 ? '#ffd93d' : '#ff6b35' }} />
                   </div>
-                  <span className="text-sm font-bold text-white">{playerHp}/{playerMaxHp} HP</span>
+                  <span className="text-xs font-bold text-white/60">{playerHp}/{playerMaxHp} HP</span>
                 </div>
               </div>
 
               {/* Burn notification */}
               {burnStacks > 0 && (
-                <div className="px-3 py-1.5 rounded-lg text-center" style={{ backgroundColor: '#ff6b3520' }}>
-                  <span className="text-xs text-orange-400 font-bold animate-pulse">🔥 Burn: -{burnStacks * 15} HP per turn! ({burnStacks} stacks)</span>
+                <div className="px-3 py-1 rounded-lg text-center" style={{ backgroundColor: '#ff6b3520' }}>
+                  <span className="text-xs text-orange-400 font-bold animate-pulse">🔥 Burn: -{burnStacks * 15} HP/turn</span>
                 </div>
               )}
             </>
@@ -2429,44 +2454,52 @@ if (newOppHp <= 0) {
           {/* REGULAR BATTLE AREA */}
           {phase === 'battle' && (
             <>
-              {oppActive && <ActiveCard card={oppActive} isPlayer={false} attacking={attackingCard === 'opponent'} hit={hitCard === 'opponent'} />}
-              {oppActive && <AnimatePresence>{showDmg && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
-
+              {/* Opponent info - compact */}
               {opponent && (
-                <div className="flex items-center justify-between px-4 py-2 rounded-xl" style={{ backgroundColor: '#1a1a2e' }}>
+                <div className="flex items-center justify-between px-3 py-1.5 rounded-xl" style={{ backgroundColor: '#1a1a2e80' }}>
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">{opponent.emoji}</span>
+                    <span className="text-xl">{opponent.emoji}</span>
                     <span className="text-sm font-bold text-white">{opponent.name}</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-24 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
                       <motion.div className="h-full rounded-full" animate={{ width: `${(oppHp / oppMaxHp) * 100}%` }}
                         style={{ backgroundColor: oppHp / oppMaxHp > 0.5 ? '#4bddb7' : oppHp / oppMaxHp > 0.25 ? '#ffd93d' : '#ff6b35' }} />
                     </div>
-                    <span className="text-sm font-bold text-white">{oppHp}/{oppMaxHp}</span>
+                    <span className="text-xs font-bold text-white/60">{oppHp}/{oppMaxHp}</span>
                   </div>
                 </div>
               )}
 
-              {opponent && <div className="flex items-center gap-2 py-1"><div className="flex-1 h-px bg-white/10" /><span className="text-xs text-white/30">VS</span><div className="flex-1 h-px bg-white/10" /></div>}
-
-              {playerActive && <ActiveCard card={playerActive} isPlayer={true} attacking={attackingCard === 'player'} hit={hitCard === 'player'} />}
-              {playerActive && <AnimatePresence>{showDmg && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
-
-              {opponent && (
-                <div className="flex items-center justify-between px-4 py-2 rounded-xl" style={{ backgroundColor: '#1a1a2e' }}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white" style={{ backgroundColor: '#6c5ce7' }}>T</div>
-                    <div>
-                      <p className="text-sm font-bold text-white">Tamago</p>
-                      <p className="text-xs text-white/40">{playerHand.length} kartu di tangan</p>
-                    </div>
+              {/* Active Cards Row - smaller, side by side */}
+              <div className="flex items-center justify-center gap-4 py-1">
+                {oppActive && (
+                  <div className="flex flex-col items-center">
+                    <ActiveCard card={oppActive} isPlayer={false} attacking={attackingCard === 'opponent'} hit={hitCard === 'opponent'} />
+                    {oppActive && <AnimatePresence>{showDmg && dmgVal > 0 && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-24 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
+                )}
+                <div className="text-white/20 text-2xl font-black">⚔</div>
+                {playerActive && (
+                  <div className="flex flex-col items-center">
+                    <ActiveCard card={playerActive} isPlayer={true} attacking={attackingCard === 'player'} hit={hitCard === 'player'} />
+                    {playerActive && <AnimatePresence>{showDmg && dmgVal > 0 && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
+                  </div>
+                )}
+              </div>
+
+              {/* Player HP bar - compact */}
+              {opponent && (
+                <div className="flex items-center justify-between px-3 py-1.5 rounded-xl" style={{ backgroundColor: '#1a1a2e80' }}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-white text-[10px]" style={{ backgroundColor: '#6c5ce7' }}>T</div>
+                    <span className="text-sm font-bold text-white">You</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
                       <motion.div className="h-full rounded-full" animate={{ width: `${Math.min(100, (playerHp / playerMaxHp) * 100)}%` }} style={{ backgroundColor: '#4bddb7' }} />
                     </div>
-                    <span className="text-sm font-bold text-white">{playerHp}/{playerMaxHp}</span>
+                    <span className="text-xs font-bold text-white/60">{playerHp}/{playerMaxHp} HP</span>
                   </div>
                 </div>
               )}
