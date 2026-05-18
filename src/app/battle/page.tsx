@@ -1476,12 +1476,8 @@ function BattlePageContent() {
     if (timerRef.current) clearTimeout(timerRef.current);
     setCardSelectTimer(0);
 
-    // Route attack based on battle type
-    if (phase === 'boss-battle' && autoMode) {
-      setTimeout(() => executeBossPlayerAttack(), 500);
-    } else if (autoMode) {
-      setTimeout(() => executePlayerAttack(), 500);
-    }
+    // Route attack based on battle type — auto mode triggers execute from here
+    // (useEffect handles auto attack after card selection, not from selectCard)
   };
 
   // Answer heal (player) — heal action triggered instead of study
