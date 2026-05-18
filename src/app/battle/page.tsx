@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCollectionStore, PokemonCard } from '@/store/collectionStore';
 import { useAuthStore } from '@/store/authStore';
+import type { ElementEssence } from '@/types';
 import { Swords, Shield, ArrowLeft, Zap, Flame, Droplets, Leaf, Eye, Sparkles, CircleDot } from 'lucide-react';
 import JankenGame from '@/components/battle/JankenGame';
 
@@ -519,19 +520,26 @@ function OpponentSelectModal({ onSelect, onClose }: { onSelect: any; onClose: ()
   );
 }
 
-function ResultModal({ win, xpGained, diamondsGained, onClose }: { win: boolean; xpGained: number; diamondsGained?: number; onClose: () => void }) {
+function ResultModal({ win, xpGained, diamondsGained, stardustGained, onClose }: { win: boolean; xpGained: number; diamondsGained?: number; stardustGained?: number; onClose: () => void }) {
+  const ELEMENT_ICONS: Record<string, string> = {
+    FIRE_ESSENCE: '🔥', WATER_ESSENCE: '💧', GRASS_ESSENCE: '🌿',
+    ELECTRIC_ESSENCE: '⚡', PSYCHIC_ESSENCE: '🔮', NORMAL_ESSENCE: '⚪',
+  };
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }} className="text-center p-8">
+      <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }} className="text-center p-8 max-w-sm w-full">
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1.5 }} transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
           className="text-7xl mb-4">{win ? '🏆' : '💀'}</motion.div>
         <h2 className="text-3xl font-black text-white mb-2">{win ? 'VICTORY!' : 'DEFEAT'}</h2>
         {win ? (
-          <div className="space-y-1 mb-4">
+          <div className="space-y-2 mb-4">
             <p className="text-white/60">+{xpGained} XP earned!</p>
             {diamondsGained && diamondsGained > 0 && (
-              <p className="text-white/60">+{diamondsGained} 💎 Diamond!</p>
+              <p className="text-cyan-400 font-bold">+{diamondsGained} 💎</p>
+            )}
+            {stardustGained && stardustGained > 0 && (
+              <p className="text-amber-400 font-bold">+{stardustGained} ✨ Stardust</p>
             )}
           </div>
         ) : <p className="text-white/60 mb-4">Coba lagi!</p>}
@@ -675,7 +683,7 @@ function ActiveCard({ card, isPlayer, attacking, hit }: { card: BattleCard; isPl
 function BattlePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { ownedPokemon, addCoins, addDiamonds, addStardust, trackQuestEvent } = useCollectionStore();
+  const { ownedPokemon, addCoins, addDiamonds, addStardust, addElementEssence, trackQuestEvent } = useCollectionStore();
   const { addXP, incrementStat } = useAuthStore();
 
   // Zustand ready check — prevent reading stale persisted state
@@ -728,7 +736,7 @@ function BattlePageContent() {
   const [hitCard, setHitCard] = useState<'player' | 'opponent' | null>(null); // hit shake animation
   const [showStudy, setShowStudy] = useState(false); // ...
   const [studyQ, setStudyQ] = useState<{ q: string; opts: string[]; ans: string } | null>(null);
-  const [result, setResult] = useState<{ win: boolean; xp: number; diamonds: number } | null>(null);
+  const [result, setResult] = useState<{ win: boolean; xp: number; diamonds: number; stardust?: number } | null>(null);
   const [autoMode, setAutoMode] = useState(false);
   const [processing, setProcessing] = useState(false);
 
@@ -1177,21 +1185,28 @@ function BattlePageContent() {
       const newOppHp = Math.max(0, s.oppHp - damage);
       setOppHp(newOppHp);
 
-      if (newOppHp <= 0) {
+if (newOppHp <= 0) {
         const xp = 10 + (s.opponent?.level || 1) * 5;
         const diamonds = 5 + (s.opponent?.level || 1) * 2;
         const stardustReward = 5 + (s.opponent?.level || 1) * 2;
         addCoins(xp);
         addDiamonds(diamonds);
         addStardust(stardustReward);
+
+        // Award random element essence on victory (higher chance for higher level)
+        const essenceTypes: ElementEssence[] = ['FIRE_ESSENCE', 'WATER_ESSENCE', 'GRASS_ESSENCE', 'ELECTRIC_ESSENCE', 'PSYCHIC_ESSENCE', 'NORMAL_ESSENCE'];
+        if (Math.random() < 0.3 + (s.opponent?.level || 1) * 0.1) {
+          const randomEssence = essenceTypes[Math.floor(Math.random() * essenceTypes.length)];
+          addElementEssence(randomEssence, 1);
+          addLog(`🏆 VICTORY! +${xp} XP +${diamonds} 💎 +${stardustReward} ✨ +1 ${randomEssence.replace('_ESSENCE', '')} 🌟`);
+        } else {
+          addLog(`🏆 VICTORY! +${xp} XP +${diamonds} 💎 +${stardustReward} ✨`);
+        }
+
         addXP(xp);
         incrementStat('battles');
         incrementStat('wins');
-        setResult({ win: true, xp, diamonds });
-        addLog(`🏆 VICTORY! +${xp} XP +${diamonds} 💎 +${stardustReward} ✨`);
-        setPhase('result');
-
-        // Update BATTLE quest progress
+        setResult({ win: true, xp, diamonds, stardust: stardustReward });
         trackQuestEvent('BATTLE');
         return;
       }
@@ -1359,7 +1374,7 @@ function BattlePageContent() {
         )}
         {phase === 'select-opponent' && <OpponentSelectModal onSelect={startBattle} onClose={() => setPhase('select-deck')} />}
       </AnimatePresence>
-      <AnimatePresence>{result && <ResultModal win={result.win} xpGained={result.xp} diamondsGained={result.diamonds} onClose={() => { setResult(null); setPhase('select-deck'); setSelectedDeckId(null); }} />}</AnimatePresence>
+      <AnimatePresence>{result && <ResultModal win={result.win} xpGained={result.xp} diamondsGained={result.diamonds} stardustGained={result.stardust} onClose={() => { setResult(null); setPhase('select-deck'); setSelectedDeckId(null); }} />}</AnimatePresence>
       <AnimatePresence>{showStudy && playerActive && <HealModal card={playerActive} onHeal={() => answerHeal('heal')} onSkip={() => answerHeal('skip')} />}</AnimatePresence>
 
       {phase === 'intro' && opponent && (
