@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCollectionStore, PokemonCard } from '@/store/collectionStore';
 import { useAuthStore } from '@/store/authStore';
-import type { ElementEssence } from '@/types';
+import type { ElementEssence, JapaneseCard } from '@/types';
 import { Swords, Shield, ArrowLeft, Zap, Flame, Droplets, Leaf, Eye, Sparkles, CircleDot } from 'lucide-react';
 import JankenGame from '@/components/battle/JankenGame';
 
@@ -67,7 +67,7 @@ function formatAbilityName(name: string): string {
   return name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
-type Phase = 'select-deck' | 'select-opponent' | 'intro' | 'battle' | 'result';
+type Phase = 'select-deck' | 'select-opponent' | 'intro' | 'battle' | 'result' | 'boss-select' | 'boss-intro' | 'boss-battle' | 'boss-result';
 
 // ============================================================
 // Constants
@@ -94,6 +94,112 @@ const OPPONENTS = [
   { id: 'shogun', name: 'Shogun Bot', emoji: '🛡️', atk: 60, def: 40, hp: 130, level: 20, strategy: 'smart' },
   { id: 'dragon', name: 'Dragon Bot', emoji: '🐉', atk: 85, def: 30, hp: 160, level: 35, strategy: 'boss' },
 ];
+
+// ============================================================
+// Boss Battle Data
+// ============================================================
+interface BossPhase {
+  name: string;
+  hpThreshold: number; // % of max HP to trigger this phase
+  attackMultiplier: number;
+  defenseMultiplier: number;
+  specialAbility: 'AOE' | 'CHARGE' | 'ENRAGE' | 'HEAL' | 'DEBUFF' | 'BERSERK' | 'BURN' | 'FREEZE' | null;
+  specialDesc: string;
+}
+
+interface Boss {
+  id: string;
+  name: string;
+  emoji: string;
+  level: number;
+  maxHp: number;
+  baseAtk: number;
+  baseDef: number;
+  phases: BossPhase[];
+  rewardStardust: number;
+  rewardDiamonds: number;
+  guaranteedJpCard: boolean;
+  description: string;
+}
+
+const BOSSES: Boss[] = [
+  {
+    id: 'onyx',
+    name: 'Onyx Guardian',
+    emoji: '🪨',
+    level: 40,
+    maxHp: 400,
+    baseAtk: 55,
+    baseDef: 70,
+    description: 'Stoneshield Guardian - blocks and counters',
+    rewardStardust: 30,
+    rewardDiamonds: 20,
+    guaranteedJpCard: true,
+    phases: [
+      { name: 'Guard', hpThreshold: 100, attackMultiplier: 1.0, defenseMultiplier: 1.5, specialAbility: 'DEBUFF', specialDesc: 'Reduce ATK -20% for 2 turns' },
+      { name: 'Rage', hpThreshold: 50, attackMultiplier: 1.3, defenseMultiplier: 1.0, specialAbility: 'CHARGE', specialDesc: 'Charging heavy strike...' },
+      { name: 'Final', hpThreshold: 20, attackMultiplier: 1.8, defenseMultiplier: 0.8, specialAbility: 'ENRAGE', specialDesc: 'ENRAGE! ATK +80%, DEF -40%' },
+    ],
+  },
+  {
+    id: 'blaze',
+    name: 'Blaze Wyrm',
+    emoji: '🔥',
+    level: 50,
+    maxHp: 500,
+    baseAtk: 80,
+    baseDef: 40,
+    description: 'Fire Dragon - burns and AoE attacks',
+    rewardStardust: 50,
+    rewardDiamonds: 35,
+    guaranteedJpCard: true,
+    phases: [
+      { name: 'Inferno', hpThreshold: 100, attackMultiplier: 1.0, defenseMultiplier: 1.0, specialAbility: 'BURN', specialDesc: 'Burn: 15 dmg/turn for 3 turns' },
+      { name: 'Blast', hpThreshold: 60, attackMultiplier: 1.2, defenseMultiplier: 1.0, specialAbility: 'AOE', specialDesc: 'AoE: Deal 25 to player HP directly' },
+      { name: 'Wyrm', hpThreshold: 30, attackMultiplier: 1.5, defenseMultiplier: 1.0, specialAbility: 'BERSERK', specialDesc: 'BERSERK! Next 3 attacks deal +50%' },
+    ],
+  },
+  {
+    id: 'arctic',
+    name: 'Arctic Leviathan',
+    emoji: '❄️',
+    level: 60,
+    maxHp: 650,
+    baseAtk: 70,
+    baseDef: 60,
+    description: 'Ice Colossus - freezes and heals',
+    rewardStardust: 80,
+    rewardDiamonds: 50,
+    guaranteedJpCard: true,
+    phases: [
+      { name: 'Freeze', hpThreshold: 100, attackMultiplier: 1.0, defenseMultiplier: 1.0, specialAbility: 'DEBUFF', specialDesc: 'Freeze: Skip 1 turn' },
+      { name: 'Frost', hpThreshold: 60, attackMultiplier: 1.3, defenseMultiplier: 1.2, specialAbility: 'HEAL', specialDesc: 'Heal 15% max HP' },
+      { name: 'Avalanche', hpThreshold: 25, attackMultiplier: 1.6, defenseMultiplier: 1.0, specialAbility: 'AOE', specialDesc: 'AoE: 40 dmg + freeze chance' },
+    ],
+  },
+  {
+    id: 'void',
+    name: 'Void Emperor',
+    emoji: '👁️',
+    level: 75,
+    maxHp: 800,
+    baseAtk: 90,
+    baseDef: 50,
+    description: 'Cosmic Overlord - psychic destroys',
+    rewardStardust: 120,
+    rewardDiamonds: 80,
+    guaranteedJpCard: true,
+    phases: [
+      { name: 'Dark', hpThreshold: 100, attackMultiplier: 1.0, defenseMultiplier: 1.0, specialAbility: 'DEBUFF', specialDesc: 'Curse: 20% more damage taken' },
+      { name: 'Void', hpThreshold: 65, attackMultiplier: 1.4, defenseMultiplier: 1.0, specialAbility: 'CHARGE', specialDesc: 'Charge: 200% damage next hit' },
+      { name: 'Collapse', hpThreshold: 30, attackMultiplier: 1.8, defenseMultiplier: 0.8, specialAbility: 'AOE', specialDesc: 'Collapse: 60 dmg + clear all buffs' },
+    ],
+  },
+];
+
+// Boss-only damage types (for phase transition text)
+const BOSS_SPECIAL_DAMAGE_TYPES = ['AOE', 'CHARGE', 'ENRAGE', 'HEAL', 'DEBUFF', 'BURN', 'BERSERK', 'FREEZE'] as const;
+type BossSpecialType = typeof BOSS_SPECIAL_DAMAGE_TYPES[number];
 
 // ============================================================
 // Utilities
@@ -489,7 +595,7 @@ function NewDeckScreen({ onBack }: { onBack: () => void }) {
   );
 }
 
-function OpponentSelectModal({ onSelect, onClose }: { onSelect: any; onClose: () => void }) {
+function OpponentSelectModal({ onSelect, onClose, onBossBattle }: { onSelect: any; onClose: () => void; onBossBattle: () => void }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={onClose}>
@@ -513,8 +619,142 @@ function OpponentSelectModal({ onSelect, onClose }: { onSelect: any; onClose: ()
               </button>
             ))}
           </div>
+          <button onClick={onBossBattle}
+            className="w-full mt-4 p-4 rounded-2xl flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95"
+            style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #2d1a1a 100%)', border: '2px solid #ff6b3560' }}>
+            <span className="text-4xl">🐉</span>
+            <div className="flex-1 text-left">
+              <p className="font-bold text-white">Boss Battle</p>
+              <p className="text-xs text-white/40">Kalahkan boss, dapat Japanese card!</p>
+            </div>
+            <span style={{ color: '#ff6b35' }}>›</span>
+          </button>
         </div>
         <button onClick={onClose} className="w-full py-4 border-t border-white/10 text-white/40 text-sm font-bold">Batal</button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function BossSelectModal({ onSelect, onClose, battleWins, defeatedBosses }: { onSelect: (boss: Boss) => void; onClose: () => void; battleWins: number; defeatedBosses: string[] }) {
+  const BOSS_UNLOCK_REQUIREMENT = 5; // need 5 wins to access boss battle
+  const canFight = battleWins >= BOSS_UNLOCK_REQUIREMENT;
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[55] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={onClose}>
+      <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
+        className="w-full max-w-md mx-4 rounded-3xl overflow-hidden" style={{ background: '#0f1923', borderTop: '3px solid #ff6b35' }}
+        onClick={e => e.stopPropagation()}>
+        <div className="p-6">
+          <div className="text-center mb-1">
+            <h2 className="text-xl font-black text-white">🐉 Boss Battle</h2>
+            <p className="text-xs text-white/40 mt-1">Kalahkan boss dan dapatkan Japanese Card!</p>
+            {!canFight && (
+              <div className="mt-3 px-4 py-2 rounded-xl" style={{ backgroundColor: '#ff6b3520' }}>
+                <p className="text-sm text-orange-400 font-bold">🔒 Perlu {BOSS_UNLOCK_REQUIREMENT} wins untuk akses Boss Battle</p>
+                <p className="text-xs text-white/40 mt-1">Kamu baru punya {battleWins} win</p>
+              </div>
+            )}
+            {canFight && (
+              <p className="text-xs text-green-400 mt-2">✅ Kamu punya akses Boss Battle! ({battleWins} wins)</p>
+            )}
+          </div>
+
+          {canFight ? (
+            <div className="mt-4 space-y-3">
+              {BOSSES.map((boss) => {
+                const isDefeated = defeatedBosses.includes(boss.id);
+                return (
+                  <button key={boss.id} onClick={() => onSelect(boss)}
+                    className="w-full p-4 rounded-2xl flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95"
+                    style={{ backgroundColor: isDefeated ? '#1a1a2e80' : '#1a1a2e', border: isDefeated ? '2px solid #4bddb740' : '2px solid #ff6b3540' }}>
+                    <span className="text-4xl">{boss.emoji}</span>
+                    <div className="flex-1 text-left">
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-white">{boss.name}</p>
+                        {isDefeated && <span className="text-xs px-2 py-0.5 rounded-full bg-green-600/30 text-green-400 font-bold">DEFEATED</span>}
+                      </div>
+                      <p className="text-xs text-white/40">{boss.description}</p>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-xs text-orange-400">⚔️ Lv.{boss.level}</span>
+                        <span className="text-xs text-red-400">❤️ {boss.maxHp} HP</span>
+                        <span className="text-xs text-amber-400">✨ {boss.rewardStardust} Stardust</span>
+                      </div>
+                      <div className="mt-1 flex items-center gap-1">
+                        {boss.phases.map((p, i) => (
+                          <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-white/50">{p.name}</span>
+                        ))}
+                      </div>
+                    </div>
+                    {isDefeated ? (
+                      <span className="text-green-400 text-xl">✓</span>
+                    ) : (
+                      <span style={{ color: '#ff6b35' }}>›</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="mt-4 grid grid-cols-4 gap-2">
+              {BOSSES.map((boss) => (
+                <div key={boss.id} className="rounded-xl p-2 flex flex-col items-center" style={{ backgroundColor: '#1a1a2e60' }}>
+                  <span className="text-2xl opacity-30">{boss.emoji}</span>
+                  <span className="text-[8px] text-white/30 mt-1">{boss.name.split(' ')[0]}</span>
+                  <span className="text-[8px] text-orange-400/30">🔒</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <button onClick={onClose} className="w-full py-4 border-t border-white/10 text-white/40 text-sm font-bold">Kembali</button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function BossResultModal({ boss, win, xp, diamonds, stardust, onClose }: { boss: Boss; win: boolean; xp: number; diamonds: number; stardust: number; onClose: () => void }) {
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-sm">
+      <motion.div initial={{ scale: 0.6, y: 30 }} animate={{ scale: 1, y: 0 }} className="text-center max-w-sm w-full mx-4">
+        <motion.div
+          initial={{ scale: 0, rotate: -180 }}
+          animate={{ scale: win ? 1.5 : 1, rotate: 0 }}
+          transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+          className="text-8xl mb-4">{win ? '🏆' : '💀'}</motion.div>
+
+        <h2 className="text-3xl font-black text-white mb-1">{win ? 'VICTORY!' : 'DEFEAT'}</h2>
+        <p className="text-white/60 text-sm mb-4">vs {boss.name}</p>
+
+        {win ? (
+          <>
+            <div className="rounded-2xl p-4 mb-4" style={{ backgroundColor: '#1a1a2e', border: '2px solid #ff6b3560' }}>
+              <p className="text-sm text-white/40 mb-2">🏆 Boss Rewards</p>
+              <div className="space-y-1">
+                <p className="text-white font-bold">+{xp} XP</p>
+                <p className="text-amber-400 font-bold">+{diamonds} 💎</p>
+                <p className="text-orange-400 font-bold">+{stardust} ✨ Stardust</p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl p-4 mb-4" style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #2d1a3e 100%)', border: '2px solid #c77dff60' }}>
+              <p className="text-2xl mb-1">🎁</p>
+              <p className="text-purple-400 font-black text-sm">Japanese Card obtained!</p>
+              <p className="text-white/40 text-xs mt-1">Check your collection to see the card</p>
+            </div>
+
+            <p className="text-xs text-green-400 font-bold">✅ Boss defeated! Badge earned.</p>
+          </>
+        ) : (
+          <p className="text-white/60 mb-4">Coba lagi! Study boss patterns and build a stronger deck.</p>
+        )}
+
+        <button onClick={onClose}
+          className="mt-4 px-8 py-3 rounded-2xl bg-[#ff6b35] text-white font-bold active:scale-95 hover:bg-[#ff5722] transition-colors">
+          {win ? 'Claim Rewards!' : 'Try Again'}
+        </button>
       </motion.div>
     </motion.div>
   );
@@ -683,7 +923,7 @@ function ActiveCard({ card, isPlayer, attacking, hit }: { card: BattleCard; isPl
 function BattlePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { ownedPokemon, addCoins, addDiamonds, addStardust, addElementEssence, trackQuestEvent } = useCollectionStore();
+  const { ownedPokemon, addCoins, addDiamonds, addStardust, addElementEssence, trackQuestEvent, addBattleWin, recordBossDefeat, addJapaneseCardFromBoss, battleWins, defeatedBosses } = useCollectionStore();
   const { addXP, incrementStat } = useAuthStore();
 
   // Zustand ready check — prevent reading stale persisted state
@@ -704,6 +944,20 @@ function BattlePageContent() {
   const [showNewDeck, setShowNewDeck] = useState(false);
   const [opponent, setOpponent] = useState<any>(null);
   const [log, setLog] = useState<string[]>([]);
+
+  // Boss battle state
+  const [boss, setBoss] = useState<Boss | null>(null);
+  const [bossHp, setBossHp] = useState(0);
+  const [bossMaxHp, setBossMaxHp] = useState(0);
+  const [bossPhase, setBossPhase] = useState(0);
+  const [bossAtkMultiplier, setBossAtkMultiplier] = useState(1.0);
+  const [bossDefMultiplier, setBossDefMultiplier] = useState(1.0);
+  const [bossStatusEffects, setBossStatusEffects] = useState<Record<string, number>>({});
+  const [burnStacks, setBurnStacks] = useState(0);
+  const [playerBuffed, setPlayerBuffed] = useState(false);
+  const [bossCharging, setBossCharging] = useState(false);
+  const [bossBerserkCount, setBossBerserkCount] = useState(0);
+  const [bossDeaths, setBossDeaths] = useState(0);
   
   // Player state
   const [playerHp, setPlayerHp] = useState(100);
@@ -743,9 +997,13 @@ function BattlePageContent() {
   const logRef = useRef(0);
   const addLog = (txt: string) => setLog(prev => [...prev.slice(-5), `[${logRef.current++}] ${txt}`]);
 
-  // Refs for functions that need current values in callbacks
-  const stateRef = useRef({ phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerEnergy, combo, lastElem, processing });
-  useEffect(() => { stateRef.current = { phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerEnergy, combo, lastElem, processing }; }, [phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerEnergy, combo, lastElem, processing]);
+// Refs for functions that need current values in callbacks
+  const stateRef = useRef({
+    phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerEnergy, combo, lastElem,
+    processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths,
+    bossCharging, bossBerserkCount, burnStacks, playerBuffed,
+  });
+  useEffect(() => { stateRef.current = { phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed }; }, [phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed]);
 
   // Initialize hand — only after Zustand is ready (prevents stale persisted state)
   // and only when a deck has been selected
@@ -904,6 +1162,45 @@ function BattlePageContent() {
     setTimeout(() => setPhase('battle'), 1500);
   };
 
+  const startBossBattle = (selectedBoss: Boss) => {
+    setBoss(selectedBoss);
+    setBossHp(selectedBoss.maxHp);
+    setBossMaxHp(selectedBoss.maxHp);
+    setBossPhase(0);
+    setBossAtkMultiplier(1.0);
+    setBossDefMultiplier(1.0);
+    setBossStatusEffects({});
+    setBurnStacks(0);
+    setPlayerBuffed(false);
+    setBossCharging(false);
+    setBossBerserkCount(0);
+    setPlayerHp(100);
+    setPlayerEnergy(3);
+    setOppEnergy(3);
+    setTurn(1);
+    setIsPlayerTurn(true);
+    setCombo(0);
+    setLastElem(null);
+    setLog([]);
+    setPlayerActive(null);
+    setOppActive(null);
+    setResult(null);
+    setProcessing(false);
+    setAutoMode(false);
+    setBattleTimeLeft(180); // Boss battle = 3 min
+    setCardSelectTimer(0);
+
+    addLog(`🐉 BOSS BATTLE vs ${selectedBoss.name}!`);
+    addLog(`💀 ${selectedBoss.description}`);
+    addLog('🎯 Pilih kartu dari tanganmu');
+    setPhase('boss-intro');
+
+    resetBossState();
+    resetCardTimer();
+
+    setTimeout(() => setPhase('boss-battle'), 2000);
+  };
+
   // Select card from hand
   const selectCard = (idx: number) => {
     if (!isPlayerTurn || processing) return;
@@ -925,13 +1222,15 @@ function BattlePageContent() {
     setPlayerEnergy(prev => prev - card.cost);
     setPlayerActive(card);
     addLog(`🃏 Pilih ${card.name} (${card.element}) ⚔️ ATK:${card.attack} 🛡️ DEF:${card.defense}`);
-    
+
     // Clear card selection timer once card is chosen
     if (timerRef.current) clearTimeout(timerRef.current);
     setCardSelectTimer(0);
-    
-    // Auto attack if autoMode is on
-    if (autoMode) {
+
+    // Route attack based on battle type
+    if (phase === 'boss-battle' && autoMode) {
+      setTimeout(() => executeBossPlayerAttack(), 500);
+    } else if (autoMode) {
       setTimeout(() => executePlayerAttack(), 500);
     }
   };
@@ -983,10 +1282,344 @@ function BattlePageContent() {
     setShowStudy(true); // reuse the modal pattern for heal confirmation
   };
 
+  // ============================================================
+  // BOSS BATTLE LOGIC
+  // ============================================================
+
+  // Check and apply burn damage at end of player turn
+  const applyBurnDamage = () => {
+    const s = stateRef.current;
+    if (s.burnStacks > 0 && s.phase === 'boss-battle') {
+      const burnDamage = s.burnStacks * 15;
+      const actualBurn = Math.min(burnDamage, s.playerHp);
+      if (actualBurn > 0) {
+        const newHp = Math.max(0, s.playerHp - actualBurn);
+        setPlayerHp(newHp);
+        addLog(`🔥 Burn damage: -${actualBurn} HP`);
+        if (newHp <= 0) {
+          addLog(`💀 BURN KILL! DEFEAT!`);
+          setResult({ win: false, xp: 0, diamonds: 0 });
+          setPhase('boss-result');
+          return true; // battle ended
+        }
+      }
+    }
+    return false; // battle continues
+  };
+
+  // Update boss phase based on HP %
+  const checkBossPhaseTransition = () => {
+    const s = stateRef.current;
+    if (!s.boss) return;
+    const hpPct = (s.bossHp / s.boss.maxHp) * 100;
+    // Find current phase index
+    let newPhaseIdx = 0;
+    for (let i = s.boss.phases.length - 1; i >= 0; i--) {
+      if (hpPct <= s.boss.phases[i].hpThreshold) {
+        newPhaseIdx = i;
+      }
+    }
+    if (newPhaseIdx !== s.bossPhase) {
+      const newPhaseData = s.boss.phases[newPhaseIdx];
+      setBossPhase(newPhaseIdx);
+      setBossAtkMultiplier(newPhaseData.attackMultiplier);
+      setBossDefMultiplier(newPhaseData.defenseMultiplier);
+      addLog(`⚠️ BOSS ENTERS ${newPhaseData.name} PHASE!`);
+      addLog(`💀 ${newPhaseData.specialDesc}`);
+    }
+  };
+
+  // Boss turn execution
+  const doBossTurn = () => {
+    const s = stateRef.current;
+    if (s.phase !== 'boss-battle') return;
+    addLog(`🐉 ${s.boss?.name} giliran...`);
+
+    setOppEnergy(3);
+
+    const currentPhaseData = s.boss!.phases[s.bossPhase]!;
+    const special = currentPhaseData.specialAbility;
+
+    // If charging, release the charged attack
+    if (s.bossCharging) {
+      setBossCharging(false);
+      // Charged attack = 200% damage
+      const chargedDamage = Math.floor((s.boss?.baseAtk || 0) * 2 * s.bossAtkMultiplier);
+      const actualDmg = Math.max(5, chargedDamage - (s.playerActive?.defense || 0));
+      setDmgVal(actualDmg);
+      setShowDmg(true);
+      setAttackingCard('opponent');
+      setTimeout(() => { setAttackingCard(null); setHitCard('player'); }, 300);
+      setTimeout(() => {
+        setShowDmg(false);
+        const newHp = Math.max(0, s.playerHp - actualDmg);
+        setPlayerHp(newHp);
+        addLog(`💥 ${s.boss?.name} CHARGED ATTACK! -${actualDmg} damage!`);
+        setTimeout(() => setHitCard(null), 400);
+        if (newHp <= 0) {
+          addLog(`💀 DEFEAT!`);
+          setResult({ win: false, xp: 0, diamonds: 0 });
+          setPhase('boss-result');
+        } else {
+          setTimeout(() => doEndBossTurn(), 500);
+        }
+      }, 700);
+      return;
+    }
+
+    // Berserk: extra attack for next 3 turns
+    if (special === 'BERSERK' && s.bossBerserkCount < 3) {
+      // Do extra attack
+      const baseDamage = Math.floor((s.boss?.baseAtk || 0) * 1.5 * s.bossAtkMultiplier);
+      const actualDmg = Math.max(5, baseDamage - (s.playerActive?.defense || 0));
+      setDmgVal(actualDmg);
+      setShowDmg(true);
+      setAttackingCard('opponent');
+      setTimeout(() => { setAttackingCard(null); setHitCard('player'); }, 300);
+      setTimeout(() => {
+        setShowDmg(false);
+        const newHp = Math.max(0, s.playerHp - actualDmg);
+        setPlayerHp(newHp);
+        addLog(`🔥 ${s.boss?.name} BERSERK! -${actualDmg} damage!`);
+        setBossBerserkCount(c => c + 1);
+        setTimeout(() => setHitCard(null), 400);
+        if (newHp <= 0) {
+          addLog(`💀 DEFEAT!`);
+          setResult({ win: false, xp: 0, diamonds: 0 });
+          setPhase('boss-result');
+        } else {
+          setTimeout(() => {
+            // AI turn ends, berserk count is maintained
+            setOppActive(null);
+            setIsPlayerTurn(true);
+            addLog(`🎯 Giliran ${stateRef.current.turn + 1} - pilih kartu!`);
+            resetCardTimer();
+          }, 500);
+        }
+      }, 700);
+      return;
+    }
+
+    // Execute the special ability for this phase
+    if (special === 'AOE') {
+      const aoeDamage = currentPhaseData.name === 'Avalanche' ? 40 : currentPhaseData.name === 'Collapse' ? 60 : 25;
+      const actualDmg = Math.floor(aoeDamage * s.bossAtkMultiplier);
+      setDmgVal(actualDmg);
+      setShowDmg(true);
+      setAttackingCard('opponent');
+      setTimeout(() => { setAttackingCard(null); setHitCard('player'); }, 300);
+      setTimeout(() => {
+        setShowDmg(false);
+        const newHp = Math.max(0, s.playerHp - actualDmg);
+        setPlayerHp(newHp);
+        addLog(`💥 ${s.boss?.name} AoE ATTACK! -${actualDmg} damage!`);
+        setTimeout(() => setHitCard(null), 400);
+        if (newHp <= 0) {
+          addLog(`💀 DEFEAT!`);
+          setResult({ win: false, xp: 0, diamonds: 0 });
+          setPhase('boss-result');
+        } else {
+          setTimeout(() => doEndBossTurn(), 500);
+        }
+      }, 700);
+      return;
+    }
+
+    if (special === 'CHARGE') {
+      setBossCharging(true);
+      addLog(`⚡ ${s.boss?.name} charging...`);
+      setTimeout(() => {
+        addLog(`⚡ ${s.boss?.name} releases CHARGED ATTACK next turn!`);
+        setTimeout(() => doEndBossTurn(), 500);
+      }, 500);
+      return;
+    }
+
+    if (special === 'HEAL') {
+      const healAmount = Math.floor((s.boss?.maxHp || 0) * 0.15);
+      const newBossHp = Math.min(s.boss?.maxHp || 0, s.bossHp + healAmount);
+      setBossHp(newBossHp);
+      addLog(`💚 ${s.boss?.name} heals +${healAmount} HP!`);
+      checkBossPhaseTransition();
+      setTimeout(() => doEndBossTurn(), 600);
+      return;
+    }
+
+    if (special === 'DEBUFF') {
+      // Reduce player defense by 20%
+      addLog(`😈 ${s.boss?.name} debuffs you! ATK -20% for 2 turns`);
+      setPlayerBuffed(true);
+      setTimeout(() => doEndBossTurn(), 500);
+      return;
+    }
+
+    if (special === 'BURN') {
+      // Apply burn stacks
+      setBurnStacks(3);
+      addLog(`🔥 ${s.boss?.name} inflicts BURN! 15 dmg/turn for 3 turns`);
+      setTimeout(() => doEndBossTurn(), 500);
+      return;
+    }
+
+    // Default: normal attack
+    const normalDamage = Math.floor((s.boss?.baseAtk || 50) * s.bossAtkMultiplier);
+    const actualDmg = Math.max(5, normalDamage - (s.playerActive?.defense || 0));
+    setDmgVal(actualDmg);
+    setShowDmg(true);
+    setAttackingCard('opponent');
+    setTimeout(() => { setAttackingCard(null); setHitCard('player'); }, 300);
+    setTimeout(() => {
+      setShowDmg(false);
+      const newHp = Math.max(0, s.playerHp - actualDmg);
+      setPlayerHp(newHp);
+      addLog(`💥 ${s.boss?.name} attacks! -${actualDmg} damage!`);
+      setTimeout(() => setHitCard(null), 400);
+      if (newHp <= 0) {
+        addLog(`💀 DEFEAT!`);
+        setResult({ win: false, xp: 0, diamonds: 0 });
+        setPhase('boss-result');
+      } else {
+        setTimeout(() => doEndBossTurn(), 500);
+      }
+    }, 700);
+  };
+
+  // End boss turn
+  const doEndBossTurn = () => {
+    setOppActive(null);
+    setIsPlayerTurn(true);
+    addLog(`🎯 Giliran ${stateRef.current.turn + 1} - pilih kartu!`);
+    resetCardTimer();
+  };
+
+  // End player turn (BOSS version)
+  const doEndBossPlayerTurn = () => {
+    const s = stateRef.current;
+    console.log('[Boss Battle] endPlayerTurn');
+
+    // Apply burn first
+    if (s.burnStacks > 0) {
+      const burnDmg = s.burnStacks * 15;
+      const newHp = Math.max(0, s.playerHp - burnDmg);
+      setPlayerHp(newHp);
+      setBurnStacks(Math.max(0, s.burnStacks - 1));
+      addLog(`🔥 Burn tick: -${burnDmg} HP (${s.burnStacks - 1} turns left)`);
+      if (newHp <= 0) {
+        addLog(`💀 DEFEAT!`);
+        setResult({ win: false, xp: 0, diamonds: 0 });
+        setPhase('boss-result');
+        return;
+      }
+    }
+
+    setPlayerActive(null);
+    setIsPlayerTurn(false);
+    setTurn(t => t + 1);
+
+    setTimeout(() => {
+      setPlayerEnergy(3);
+      setTimeout(() => doBossTurn(), 600);
+    }, 400);
+  };
+
+  // Boss player attack
+  const executeBossPlayerAttack = () => {
+    const s = stateRef.current;
+    if (!s.playerActive || !s.isPlayerTurn || s.processing || s.phase !== 'boss-battle') return;
+    setProcessing(true);
+
+    let damage = s.playerActive.attack;
+
+    // Apply player buff (debuff from boss)
+    if (s.playerBuffed) {
+      damage = Math.floor(damage * 0.8);
+      addLog(`😈 Weakend: -20% damage`);
+    }
+
+    // Apply boss defense multiplier
+    const defReduction = Math.floor((s.boss?.baseDef || 0) * s.bossDefMultiplier);
+    damage = Math.max(5, damage - defReduction);
+
+    // Berserk bonus from player
+    const berserkBonus = s.bossBerserkCount > 0 ? Math.floor(damage * 0.5) : 0;
+    if (berserkBonus > 0) {
+      damage += berserkBonus;
+      addLog(`🔥 BERSERK BONUS! +${berserkBonus} damage!`);
+    }
+
+    setDmgVal(damage);
+    setShowDmg(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setCardSelectTimer(0);
+    setAttackingCard('player');
+    setTimeout(() => { setAttackingCard(null); setHitCard('opponent'); }, 300);
+
+    setTimeout(() => {
+      setShowDmg(false);
+      setProcessing(false);
+      addLog(`⚔️ ${s.playerActive!.name} attacks! -${damage} to ${s.boss?.name}!`);
+
+      const newBossHp = Math.max(0, s.bossHp - damage);
+      setBossHp(newBossHp);
+
+      // Check boss defeated
+      if (newBossHp <= 0) {
+        const bossReward = s.boss!;
+        const xp = bossReward.level * 15;
+        const stardust = bossReward.rewardStardust;
+        const diamonds = bossReward.rewardDiamonds;
+
+        addXP(xp);
+        addCoins(xp);
+        addDiamonds(diamonds);
+        addStardust(stardust);
+        addBattleWin();
+        recordBossDefeat(bossReward.id);
+        trackQuestEvent('BATTLE');
+        incrementStat('battles');
+        incrementStat('wins');
+
+        addLog(`🏆 BOSS DEFEATED! +${xp} XP +${diamonds} 💎 +${stardust} ✨`);
+        addLog(`🎁 Boss dropped: Japanese Card!`);
+
+        // Award a random Japanese card
+        const BONUS_CARDS: JapaneseCard[] = [
+          { id: 'boss_card_fire', japanese: '炎', reading: 'ほのお', romaji: 'honoo', meaning: 'api', meaningId: 'api', type: 'NOUN', jlptLevel: 'N5', hp: 120, attackPower: 45, defenseRating: 25, specialAbility: 'Blaze', rarity: 'RARE', element: 'FIRE', cardArtUrl: '', exampleSentence: '炎は熱い', exampleTranslation: 'Api itu panas', tags: ['fire', 'element'] },
+          { id: 'boss_card_water', japanese: '水', reading: 'みず', romaji: 'mizu', meaning: 'air', meaningId: 'air', type: 'NOUN', jlptLevel: 'N5', hp: 110, attackPower: 40, defenseRating: 30, specialAbility: 'Aqua', rarity: 'RARE', element: 'WATER', cardArtUrl: '', exampleSentence: '水を飲む', exampleTranslation: 'Minum air', tags: ['water', 'element'] },
+          { id: 'boss_card_grass', japanese: '木', reading: 'き', romaji: 'ki', meaning: 'pohon', meaningId: 'pohon', type: 'NOUN', jlptLevel: 'N5', hp: 115, attackPower: 38, defenseRating: 35, specialAbility: 'Overgrow', rarity: 'RARE', element: 'GRASS', cardArtUrl: '', exampleSentence: '木が大きい', exampleTranslation: 'Pohonnya besar', tags: ['grass', 'element'] },
+          { id: 'boss_card_electric', japanese: '電', reading: 'でん', romaji: 'den', meaning: 'listrik', meaningId: 'listrik', type: 'NOUN', jlptLevel: 'N5', hp: 105, attackPower: 50, defenseRating: 20, specialAbility: 'Voltaic', rarity: 'RARE', element: 'ELECTRIC', cardArtUrl: '', exampleSentence: '電気がない', exampleTranslation: 'Tidak ada listrik', tags: ['electric', 'element'] },
+          { id: 'boss_card_psychic', japanese: '心', reading: 'こころ', romaji: 'kokoro', meaning: 'hati', meaningId: 'hati', type: 'NOUN', jlptLevel: 'N5', hp: 120, attackPower: 42, defenseRating: 28, specialAbility: 'Psychic', rarity: 'RARE', element: 'PSYCHIC', cardArtUrl: '', exampleSentence: '心を込めて', exampleTranslation: 'Dengan sepenuh hati', tags: ['psychic', 'soul'] },
+        ];
+        const randomCard = BONUS_CARDS[Math.floor(Math.random() * BONUS_CARDS.length)]!
+        addJapaneseCardFromBoss(randomCard);
+
+        setResult({ win: true, xp, diamonds, stardust });
+        setPhase('boss-result');
+        return;
+      }
+
+      // Check phase transition after damage
+      checkBossPhaseTransition();
+
+      setTimeout(() => doEndBossPlayerTurn(), 400);
+    }, 700);
+  };
+
+  // ============================================================
+  // REGULAR BATTLE AI LOGIC
+  // ============================================================
+
   // AI Turn logic (called directly, not as callback)
   const doAITurn = () => {
     const s = stateRef.current;
     console.log('[AI] doAITurn called', { phase: s.phase, turn: s.turn, isPlayerTurn: s.isPlayerTurn, oppActive: s.oppActive?.id, oppHp: s.oppHp });
+
+    // Handle boss battle - redirect to boss turn
+    if (s.phase === 'boss-battle' && !s.isPlayerTurn) {
+      doBossTurn();
+      return;
+    }
+
     if (s.phase !== 'battle') { console.log('[AI] Early return - phase not battle'); return; }
     addLog(`🤖 ${s.opponent?.name} giliran...`);
     
@@ -1123,10 +1756,34 @@ function BattlePageContent() {
 
   // End player turn → AI turn
   const doEndPlayerTurn = () => {
+    const s = stateRef.current;
     console.log('[Battle] endPlayerTurn');
     setPlayerActive(null);
     setIsPlayerTurn(false);
     setTurn(t => t + 1);
+
+    // Redirect to boss turn handler if in boss battle
+    if (s.phase === 'boss-battle') {
+      // Apply burn at end of player turn
+      if (s.burnStacks > 0) {
+        const burnDmg = s.burnStacks * 15;
+        const newHp = Math.max(0, s.playerHp - burnDmg);
+        setPlayerHp(newHp);
+        setBurnStacks(Math.max(0, s.burnStacks - 1));
+        addLog(`🔥 Burn tick: -${burnDmg} HP (${s.burnStacks - 1} turns left)`);
+        if (newHp <= 0) {
+          addLog(`💀 DEFEAT!`);
+          setResult({ win: false, xp: 0, diamonds: 0 });
+          setPhase('boss-result');
+          return;
+        }
+      }
+      setTimeout(() => {
+        setPlayerEnergy(3);
+        setTimeout(() => doBossTurn(), 600);
+      }, 400);
+      return;
+    }
 
     setTimeout(() => {
       setPlayerEnergy(3);
@@ -1217,18 +1874,35 @@ if (newOppHp <= 0) {
 
   // Back handler
   const handleBack = () => {
-    if (phase === 'battle' || phase === 'intro') {
+    if (phase === 'boss-battle' || phase === 'boss-intro') {
+      setPhase('select-opponent');
+      setBoss(null);
+      resetBossState();
+    } else if (phase === 'battle' || phase === 'intro') {
       setPhase('select-opponent');
       setOpponent(null);
-      setPlayerActive(null);
-      setOppActive(null);
     } else if (phase === 'select-opponent') {
       setPhase('select-deck');
       setOpponent(null);
+    } else if (phase === 'boss-select') {
+      setPhase('select-opponent');
     } else {
-      // No mode selected → go to collection
       router.push('/');
     }
+  };
+
+  const resetBossState = () => {
+    setBoss(null);
+    setBossHp(0);
+    setBossMaxHp(0);
+    setBossPhase(0);
+    setBossAtkMultiplier(1.0);
+    setBossDefMultiplier(1.0);
+    setBossStatusEffects({});
+    setBurnStacks(0);
+    setPlayerBuffed(false);
+    setBossCharging(false);
+    setBossBerserkCount(0);
   };
 
   // Handle deck selection
@@ -1372,7 +2046,8 @@ if (newOppHp <= 0) {
         {showNewDeck && (
           <NewDeckScreen onBack={handleDeckEditBack} />
         )}
-        {phase === 'select-opponent' && <OpponentSelectModal onSelect={startBattle} onClose={() => setPhase('select-deck')} />}
+        {phase === 'select-opponent' && <OpponentSelectModal onSelect={startBattle} onClose={() => setPhase('select-deck')} onBossBattle={() => setPhase('boss-select')} />}
+        {phase === 'boss-select' && <BossSelectModal onSelect={(selectedBoss) => { startBossBattle(selectedBoss); }} onClose={() => setPhase('select-opponent')} battleWins={battleWins} defeatedBosses={defeatedBosses} />}
       </AnimatePresence>
       <AnimatePresence>{result && <ResultModal win={result.win} xpGained={result.xp} diamondsGained={result.diamonds} stardustGained={result.stardust} onClose={() => { setResult(null); setPhase('select-deck'); setSelectedDeckId(null); }} />}</AnimatePresence>
       <AnimatePresence>{showStudy && playerActive && <HealModal card={playerActive} onHeal={() => answerHeal('heal')} onSkip={() => answerHeal('skip')} />}</AnimatePresence>
@@ -1384,6 +2059,24 @@ if (newOppHp <= 0) {
             <h2 className="text-2xl font-black text-white mb-1">{opponent.name}</h2>
             <p className="text-white/40 mb-6">Level {opponent.level} • HP {opponent.hp} • ATK {opponent.atk}</p>
             <p className="text-white/60 animate-pulse">Battle starting...</p>
+          </div>
+        </motion.div>
+      )}
+
+      {phase === 'boss-intro' && boss && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-40 flex items-center justify-center" style={{ backgroundColor: '#0d0d1a' }}>
+          <div className="text-center">
+            <motion.div initial={{ scale: 0, rotate: -10 }} animate={{ scale: 1.5, rotate: 0 }} transition={{ type: 'spring', stiffness: 200 }} className="text-8xl mb-4">{boss.emoji}</motion.div>
+            <h2 className="text-2xl font-black text-white mb-1">{boss.name}</h2>
+            <p className="text-red-400 font-bold mb-1">🐉 BOSS BATTLE</p>
+            <p className="text-white/40 mb-2">Level {boss.level} • HP {boss.maxHp} • ATK {boss.baseAtk}</p>
+            <p className="text-xs text-white/30 mb-4">{boss.description}</p>
+            <div className="flex items-center justify-center gap-2 mb-4">
+              {boss.phases.map((p, i) => (
+                <span key={i} className="text-xs px-2 py-1 rounded-full bg-white/10 text-white/60">{p.name}</span>
+              ))}
+            </div>
+            <p className="text-orange-400 text-sm animate-pulse">⚠️ Boss has special abilities!</p>
           </div>
         </motion.div>
       )}
@@ -1433,46 +2126,125 @@ if (newOppHp <= 0) {
         </div>
 
         <div className="flex-1 px-4 py-3 space-y-2 overflow-hidden">
-          {oppActive && <ActiveCard card={oppActive} isPlayer={false} attacking={attackingCard === 'opponent'} hit={hitCard === 'opponent'} />}
-          {oppActive && <AnimatePresence>{showDmg && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
-
-          {opponent && (
-            <div className="flex items-center justify-between px-4 py-2 rounded-xl" style={{ backgroundColor: '#1a1a2e' }}>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">{opponent.emoji}</span>
-                <span className="text-sm font-bold text-white">{opponent.name}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-24 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
-                  <motion.div className="h-full rounded-full" animate={{ width: `${(oppHp / oppMaxHp) * 100}%` }}
-                    style={{ backgroundColor: oppHp / oppMaxHp > 0.5 ? '#4bddb7' : oppHp / oppMaxHp > 0.25 ? '#ffd93d' : '#ff6b35' }} />
+          {/* BOSS BATTLE AREA */}
+          {phase === 'boss-battle' && boss && (
+            <>
+              {/* Boss Display */}
+              <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #2d1a1a 100%)', borderTop: '3px solid #ff6b35' }}>
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <motion.span className="text-5xl" animate={bossCharging ? { scale: [1, 1.2, 1] } : {}}>{boss.emoji}</motion.span>
+                      <div>
+                        <p className="font-black text-white text-lg">{boss.name}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {boss.phases.map((p, i) => (
+                            <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${bossPhase === i ? 'bg-red-600 text-white' : 'bg-white/10 text-white/40'}`}>{p.name}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="flex items-center gap-1 text-xs">
+                        {bossCharging && <span className="text-orange-400 animate-pulse">⚡ CHARGING</span>}
+                        {burnStacks > 0 && <span className="text-orange-500">🔥 Burn({burnStacks})</span>}
+                        {bossBerserkCount > 0 && <span className="text-red-500">👊 Berserk({bossBerserkCount})</span>}
+                        {playerBuffed && <span className="text-purple-400">😈 Curse</span>}
+                      </div>
+                      <p className="text-xs text-white/30 mt-1">ATK ×{bossAtkMultiplier.toFixed(1)} / DEF ×{bossDefMultiplier.toFixed(1)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-3 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
+                      <motion.div className="h-full rounded-full" animate={{ width: `${(bossHp / bossMaxHp) * 100}%` }}
+                        style={{ backgroundColor: bossHp / bossMaxHp > 0.5 ? '#ff6b35' : bossHp / bossMaxHp > 0.25 ? '#ffd93d' : '#ff3333' }} />
+                    </div>
+                    <span className="text-sm font-bold text-white">{bossHp}/{bossMaxHp}</span>
+                  </div>
                 </div>
-                <span className="text-sm font-bold text-white">{oppHp}/{oppMaxHp}</span>
+                <AnimatePresence>{showDmg && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>
               </div>
-            </div>
+
+              <div className="flex items-center gap-2 py-1"><div className="flex-1 h-px bg-white/10" /><span className="text-xs text-white/30">🐉 VS 🃏</span><div className="flex-1 h-px bg-white/10" /></div>
+
+              {/* Player Active Card */}
+              {playerActive && <ActiveCard card={playerActive} isPlayer={true} attacking={attackingCard === 'player'} hit={hitCard === 'player'} />}
+              {playerActive && <AnimatePresence>{showDmg && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
+
+              {/* Player HP Bar */}
+              <div className="flex items-center justify-between px-4 py-2 rounded-xl" style={{ backgroundColor: '#1a1a2e' }}>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white" style={{ backgroundColor: '#6c5ce7' }}>T</div>
+                  <div>
+                    <p className="text-sm font-bold text-white">Tamago</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {burnStacks > 0 && <span className="text-xs text-orange-500">🔥</span>}
+                      {playerBuffed && <span className="text-xs text-purple-400">😈</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-28 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
+                    <motion.div className="h-full rounded-full" animate={{ width: `${playerHp}%` }} style={{ backgroundColor: playerHp > 50 ? '#4bddb7' : playerHp > 25 ? '#ffd93d' : '#ff6b35' }} />
+                  </div>
+                  <span className="text-sm font-bold text-white">{playerHp}/100 HP</span>
+                </div>
+              </div>
+
+              {/* Burn notification */}
+              {burnStacks > 0 && (
+                <div className="px-3 py-1.5 rounded-lg text-center" style={{ backgroundColor: '#ff6b3520' }}>
+                  <span className="text-xs text-orange-400 font-bold animate-pulse">🔥 Burn: -{burnStacks * 15} HP per turn! ({burnStacks} stacks)</span>
+                </div>
+              )}
+            </>
           )}
 
-          {opponent && <div className="flex items-center gap-2 py-1"><div className="flex-1 h-px bg-white/10" /><span className="text-xs text-white/30">VS</span><div className="flex-1 h-px bg-white/10" /></div>}
+          {/* REGULAR BATTLE AREA */}
+          {phase === 'battle' && (
+            <>
+              {oppActive && <ActiveCard card={oppActive} isPlayer={false} attacking={attackingCard === 'opponent'} hit={hitCard === 'opponent'} />}
+              {oppActive && <AnimatePresence>{showDmg && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
 
-          {playerActive && <ActiveCard card={playerActive} isPlayer={true} attacking={attackingCard === 'player'} hit={hitCard === 'player'} />}
-          {playerActive && <AnimatePresence>{showDmg && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
+              {opponent && (
+                <div className="flex items-center justify-between px-4 py-2 rounded-xl" style={{ backgroundColor: '#1a1a2e' }}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{opponent.emoji}</span>
+                    <span className="text-sm font-bold text-white">{opponent.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-24 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
+                      <motion.div className="h-full rounded-full" animate={{ width: `${(oppHp / oppMaxHp) * 100}%` }}
+                        style={{ backgroundColor: oppHp / oppMaxHp > 0.5 ? '#4bddb7' : oppHp / oppMaxHp > 0.25 ? '#ffd93d' : '#ff6b35' }} />
+                    </div>
+                    <span className="text-sm font-bold text-white">{oppHp}/{oppMaxHp}</span>
+                  </div>
+                </div>
+              )}
 
-          {opponent && (
-            <div className="flex items-center justify-between px-4 py-2 rounded-xl" style={{ backgroundColor: '#1a1a2e' }}>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white" style={{ backgroundColor: '#6c5ce7' }}>T</div>
-                <div>
-                  <p className="text-sm font-bold text-white">Tamago</p>
-                  <p className="text-xs text-white/40">{playerHand.length} kartu di tangan</p>
+              {opponent && <div className="flex items-center gap-2 py-1"><div className="flex-1 h-px bg-white/10" /><span className="text-xs text-white/30">VS</span><div className="flex-1 h-px bg-white/10" /></div>}
+
+              {playerActive && <ActiveCard card={playerActive} isPlayer={true} attacking={attackingCard === 'player'} hit={hitCard === 'player'} />}
+              {playerActive && <AnimatePresence>{showDmg && <DamageText value={dmgVal} type="dmg" />}</AnimatePresence>}
+
+              {opponent && (
+                <div className="flex items-center justify-between px-4 py-2 rounded-xl" style={{ backgroundColor: '#1a1a2e' }}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white" style={{ backgroundColor: '#6c5ce7' }}>T</div>
+                    <div>
+                      <p className="text-sm font-bold text-white">Tamago</p>
+                      <p className="text-xs text-white/40">{playerHand.length} kartu di tangan</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-24 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
+                      <motion.div className="h-full rounded-full" animate={{ width: `${playerHp}%` }} style={{ backgroundColor: '#4bddb7' }} />
+                    </div>
+                    <span className="text-sm font-bold text-white">{playerHp}/100</span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-24 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#051013' }}>
-                  <motion.div className="h-full rounded-full" animate={{ width: `${playerHp}%` }} style={{ backgroundColor: '#4bddb7' }} />
-                </div>
-                <span className="text-sm font-bold text-white">{playerHp}/100</span>
-              </div>
-            </div>
+              )}
+            </>
           )}
 
           {log.length > 0 && (
@@ -1484,7 +2256,7 @@ if (newOppHp <= 0) {
           )}
         </div>
 
-        {phase === 'battle' && (
+        {(phase === 'battle' || phase === 'boss-battle') && (
           <div className="px-4 pb-4 pt-2" style={{ backgroundColor: '#0f1923' }}>
             <div className="text-xs text-white/40 mb-2">Your Hand ({playerHand.length})</div>
             <div className="flex gap-2 overflow-x-auto pb-2">
@@ -1496,7 +2268,7 @@ if (newOppHp <= 0) {
             </div>
 
             <div className="grid grid-cols-3 gap-2 mt-3">
-              <button onClick={executePlayerAttack}
+              <button onClick={phase === 'boss-battle' ? executeBossPlayerAttack : executePlayerAttack}
                 disabled={!playerActive || !isPlayerTurn || processing}
                 className="h-11 rounded-xl flex items-center justify-center gap-1.5 font-bold text-white text-sm bg-[#ff6b35] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
                 <Swords className="w-4 h-4" /> Attack

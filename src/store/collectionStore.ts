@@ -102,6 +102,10 @@ interface CollectionState {
   markCardSeen: (cardId: string) => void;
   removeCard: (cardId: string) => void;
 
+  // Battle tracking
+  battleWins: number;
+  defeatedBosses: string[];
+
   // Pokemon actions
   catchPokemon: (pokemon: PokemonCard) => void;
   releasePokemon: (pokemonId: number) => void;
@@ -147,6 +151,11 @@ interface CollectionState {
   sellPokemon: (pokemonId: number) => boolean;
   sellFusedPokemon: (fusedId: string) => boolean;
 
+  // Battle tracking
+  addBattleWin: () => void;
+  recordBossDefeat: (bossId: string) => void;
+  addJapaneseCardFromBoss: (card: JapaneseCard) => void;
+
   // Daily login & streak
   checkDailyLogin: () => boolean;
 
@@ -182,6 +191,9 @@ export const useCollectionStore = create<CollectionState>()(
       totalDiamondsEarned: 0,
       streakDays: 0,
       lastLoginDate: null,
+      // Battle tracking
+      battleWins: 0,
+      defeatedBosses: [],
       // Learning progress
       hiraganaProgress: 0,
       katakanaProgress: 0,
@@ -650,6 +662,32 @@ export const useCollectionStore = create<CollectionState>()(
           fusedPokemon: state.fusedPokemon.filter(f => f.id !== fusedId),
         }));
         return true;
+      },
+
+      // Battle tracking
+      addBattleWin: () => {
+        set(state => ({ battleWins: state.battleWins + 1 }));
+      },
+
+      recordBossDefeat: (bossId: string) => {
+        set(state => {
+          if (state.defeatedBosses.includes(bossId)) return state;
+          return { defeatedBosses: [...state.defeatedBosses, bossId] };
+        });
+      },
+
+      addJapaneseCardFromBoss: (card: JapaneseCard) => {
+        set(state => ({
+          ownedCards: [
+            ...state.ownedCards,
+            {
+              cardId: card.id,
+              obtainedAt: new Date().toISOString(),
+              isNew: true,
+              card,
+            },
+          ],
+        }));
       },
 
       // Daily login
