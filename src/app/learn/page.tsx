@@ -1447,11 +1447,13 @@ export default function LearnPage() {
   const kanjiProgress = useLearningProgressStore(s => s.getModuleProgress)('kanji');
 
   const modules = [
+    // N5 Group
     {
       id: 'hiragana',
       title: 'Hiragana',
       subtitle: 'Aksara dasar Jepang',
       icon: 'あ',
+      jlptLevel: 'N5' as const,
       status: hiraganaProgress.percentage >= 100 ? 'completed' as const : 'learning' as const,
       progress: hiraganaProgress.percentage,
       learned: hiraganaProgress.learned,
@@ -1464,6 +1466,7 @@ export default function LearnPage() {
       title: 'Katakana',
       subtitle: 'Aksara dasar Jepang',
       icon: 'ア',
+      jlptLevel: 'N5' as const,
       status: katakanaProgress.percentage >= 100 ? 'completed' as const : hiraganaProgress.percentage >= 85 ? 'learning' as const : 'locked' as const,
       progress: katakanaProgress.percentage,
       learned: katakanaProgress.learned,
@@ -1476,6 +1479,7 @@ export default function LearnPage() {
       title: 'Kanji N5',
       subtitle: '103 Kanji JLPT N5',
       icon: '漢',
+      jlptLevel: 'N5' as const,
       status: katakanaProgress.percentage >= 85 ? (kanjiProgress.percentage >= 100 ? 'completed' as const : 'learning' as const) : 'locked' as const,
       progress: kanjiProgress.percentage,
       learned: kanjiProgress.learned,
@@ -1487,29 +1491,116 @@ export default function LearnPage() {
     },
     {
       id: 'vocabulary',
-      title: 'Kosakata',
+      title: 'Kosakata N5',
       subtitle: '241 kata dasar N5',
       icon: '📝',
+      jlptLevel: 'N5' as const,
       status: katakanaProgress.percentage >= 100 ? 'learning' as const : 'locked' as const,
       progress: 0,
       learned: 0,
       total: 241,
-      badge: katakanaProgress.percentage >= 100 ? 'Sedang Belajar' : '🔒 85% Kanji',
+      badge: katakanaProgress.percentage >= 100 ? 'Sedang Belajar' : '🔒 85% Kanji N5',
       badgeColor: colors.darkGray,
     },
     {
       id: 'grammar',
-      title: 'Tata Bahasa',
+      title: 'Tata Bahasa N5',
       subtitle: '20 pola kalimat N5',
       icon: '📖',
+      jlptLevel: 'N5' as const,
       status: 'locked' as const,
       progress: 0,
       learned: 0,
       total: 20,
-      badge: '🔒 85% Kosakata',
+      badge: '🔒 85% Kosakata N5',
+      badgeColor: colors.darkGray,
+    },
+    // N4 Group
+    {
+      id: 'kanji-n4',
+      title: 'Kanji N4',
+      subtitle: '163 Kanji JLPT N4',
+      icon: '漢',
+      jlptLevel: 'N4' as const,
+      status: 'locked' as const,
+      progress: 0,
+      learned: 0,
+      total: 163,
+      badge: '🔒 Selesai N5 dulu',
+      badgeColor: colors.darkGray,
+    },
+    {
+      id: 'vocabulary-n4',
+      title: 'Kosakata N4',
+      subtitle: '362 kata dasar N4',
+      icon: '📝',
+      jlptLevel: 'N4' as const,
+      status: 'locked' as const,
+      progress: 0,
+      learned: 0,
+      total: 362,
+      badge: '🔒 Selesai N5 dulu',
+      badgeColor: colors.darkGray,
+    },
+    {
+      id: 'grammar-n4',
+      title: 'Tata Bahasa N4',
+      subtitle: '15 pola kalimat N4',
+      icon: '📖',
+      jlptLevel: 'N4' as const,
+      status: 'locked' as const,
+      progress: 0,
+      learned: 0,
+      total: 15,
+      badge: '🔒 Selesai N5 dulu',
+      badgeColor: colors.darkGray,
+    },
+    // N3 Group
+    {
+      id: 'kanji-n3',
+      title: 'Kanji N3',
+      subtitle: '367 Kanji JLPT N3',
+      icon: '漢',
+      jlptLevel: 'N3' as const,
+      status: 'locked' as const,
+      progress: 0,
+      learned: 0,
+      total: 367,
+      badge: '🔒 Selesai N4 dulu',
+      badgeColor: colors.darkGray,
+    },
+    {
+      id: 'vocabulary-n3',
+      title: 'Kosakata N3',
+      subtitle: '330 kata dasar N3',
+      icon: '📝',
+      jlptLevel: 'N3' as const,
+      status: 'locked' as const,
+      progress: 0,
+      learned: 0,
+      total: 330,
+      badge: '🔒 Selesai N4 dulu',
+      badgeColor: colors.darkGray,
+    },
+    {
+      id: 'grammar-n3',
+      title: 'Tata Bahasa N3',
+      subtitle: '20 pola kalimat N3',
+      icon: '📖',
+      jlptLevel: 'N3' as const,
+      status: 'locked' as const,
+      progress: 0,
+      learned: 0,
+      total: 20,
+      badge: '🔒 Selesai N4 dulu',
       badgeColor: colors.darkGray,
     },
   ];
+
+  // Group modules by JLPT level
+  const n5Modules = modules.filter(m => m.jlptLevel === 'N5');
+  const n4Modules = modules.filter(m => m.jlptLevel === 'N4');
+  const n3Modules = modules.filter(m => m.jlptLevel === 'N3');
 
   const handleModuleClick = (moduleId: string) => {
     const mod = modules.find(m => m.id === moduleId);
@@ -1572,30 +1663,46 @@ export default function LearnPage() {
           </p>
         </motion.div>
 
-        {/* Modules */}
-        <section>
-          <h2 className="text-sm font-bold text-[#c8c4d7] mb-3 tracking-wider">
-            MODUL PEMBELAJARAN
-          </h2>
-          <div className="space-y-3">
-            {modules.map((mod, i) => (
-              <ModuleCard
-                key={mod.id}
-                title={mod.title}
-                subtitle={mod.subtitle}
-                icon={mod.icon}
-                status={mod.status}
-                progress={mod.progress}
-                learned={mod.learned}
-                total={mod.total}
-                badge={mod.badge}
-                badgeColor={mod.badgeColor}
-                onClick={() => handleModuleClick(mod.id)}
-                index={i}
-              />
-            ))}
-          </div>
-        </section>
+        {/* Modules by JLPT Level */}
+        {[
+          { level: 'N5', label: 'MODUL N5', modules: n5Modules, color: colors.brand, desc: 'JLPT Level N5 - Dasar' },
+          { level: 'N4', label: 'MODUL N4', modules: n4Modules, color: colors.gold, desc: 'Coming Soon' },
+          { level: 'N3', label: 'MODUL N3', modules: n3Modules, color: colors.coral, desc: 'Coming Soon' },
+        ].map(group => (
+          <section key={group.level}>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h2 className="text-sm font-bold text-[#c8c4d7] tracking-wider">
+                  {group.label}
+                </h2>
+                <p className="text-xs text-[#c8c4d7]/60">{group.desc}</p>
+              </div>
+              {group.level === 'N4' || group.level === 'N3' ? (
+                <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: `${group.color}20`, color: group.color }}>
+                  Coming Soon
+                </span>
+              ) : null}
+            </div>
+            <div className="space-y-3">
+              {group.modules.map((mod, i) => (
+                <ModuleCard
+                  key={mod.id}
+                  title={mod.title}
+                  subtitle={mod.subtitle}
+                  icon={mod.icon}
+                  status={mod.status}
+                  progress={mod.progress}
+                  learned={mod.learned}
+                  total={mod.total}
+                  badge={mod.badge}
+                  badgeColor={mod.badgeColor}
+                  onClick={() => handleModuleClick(mod.id)}
+                  index={i}
+                />
+              ))}
+            </div>
+          </section>
+        ))}
       </main>
 
       <BottomNav />
