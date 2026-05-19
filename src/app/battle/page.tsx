@@ -2048,8 +2048,8 @@ function BattlePageContent() {
       setTimeout(() => { setAttackingCard(null); setHitCard('player'); }, 300);
       setTimeout(() => {
         setShowDmg(false);
+        setPlayerHp(current => Math.max(0, current - actualDmg));
         const newHp = Math.max(0, s.playerHp - actualDmg);
-        setPlayerHp(newHp);
         addLog(`💥 ${s.boss?.name} CHARGED ATTACK! -${actualDmg} damage!`);
         setTimeout(() => setHitCard(null), 400);
         if (newHp <= 0) {
@@ -2074,8 +2074,8 @@ function BattlePageContent() {
       setTimeout(() => { setAttackingCard(null); setHitCard('player'); }, 300);
       setTimeout(() => {
         setShowDmg(false);
+        setPlayerHp(current => Math.max(0, current - actualDmg));
         const newHp = Math.max(0, s.playerHp - actualDmg);
-        setPlayerHp(newHp);
         addLog(`🔥 ${s.boss?.name} BERSERK! -${actualDmg} damage!`);
         setBossBerserkCount(c => c + 1);
         setTimeout(() => setHitCard(null), 400);
@@ -2106,8 +2106,8 @@ function BattlePageContent() {
       setTimeout(() => { setAttackingCard(null); setHitCard('player'); }, 300);
       setTimeout(() => {
         setShowDmg(false);
+        setPlayerHp(current => Math.max(0, current - actualDmg));
         const newHp = Math.max(0, s.playerHp - actualDmg);
-        setPlayerHp(newHp);
         addLog(`💥 ${s.boss?.name} AoE ATTACK! -${actualDmg} damage!`);
         setTimeout(() => setHitCard(null), 400);
         if (newHp <= 0) {
@@ -2164,20 +2164,20 @@ function BattlePageContent() {
     setShowDmg(true);
     setAttackingCard('opponent');
     setTimeout(() => { setAttackingCard(null); setHitCard('player'); }, 300);
-    setTimeout(() => {
-      setShowDmg(false);
-      const newHp = Math.max(0, s.playerHp - actualDmg);
-      setPlayerHp(newHp);
-      addLog(`💥 ${s.boss?.name} attacks! -${actualDmg} damage!`);
-      setTimeout(() => setHitCard(null), 400);
-      if (newHp <= 0) {
-        addLog(`💀 DEFEAT!`);
-        setResult({ win: false, xp: 0, diamonds: 0 });
-        setPhase('boss-result');
-      } else {
-        setTimeout(() => doEndBossTurn(), 500);
-      }
-    }, 700);
+setTimeout(() => {
+        setShowDmg(false);
+        setPlayerHp(current => Math.max(0, current - actualDmg));
+        const newHp = Math.max(0, s.playerHp - actualDmg);
+        addLog(`💥 ${s.boss?.name} attacks! -${actualDmg} damage!`);
+        setTimeout(() => setHitCard(null), 400);
+        if (newHp <= 0) {
+          addLog(`💀 DEFEAT!`);
+          setResult({ win: false, xp: 0, diamonds: 0 });
+          setPhase('boss-result');
+        } else {
+          setTimeout(() => doEndBossTurn(), 500);
+        }
+      }, 700);
   };
 
   // End boss turn
@@ -2472,8 +2472,8 @@ function BattlePageContent() {
       // Apply burn at end of player turn
       if (s.burnStacks > 0) {
         const burnDmg = s.burnStacks * 15;
+        setPlayerHp(current => Math.max(0, current - burnDmg));
         const newHp = Math.max(0, s.playerHp - burnDmg);
-        setPlayerHp(newHp);
         setBurnStacks(Math.max(0, s.burnStacks - 1));
         addLog(`🔥 Burn tick: -${burnDmg} HP (${s.burnStacks - 1} turns left)`);
         if (newHp <= 0) {
