@@ -2355,13 +2355,17 @@ setTimeout(() => {
     let action: 'attack' | 'defend' | 'study' = 'attack';
 
     if (strat === 'aggressive') {
-      action = rand < 0.8 ? 'attack' : rand < 0.9 ? 'study' : 'defend';
+      // 90% attack, 5% study, 5% defend — very aggressive
+      action = rand < 0.90 ? 'attack' : rand < 0.95 ? 'study' : 'defend';
     } else if (strat === 'defensive') {
-      action = rand < 0.3 ? 'attack' : rand < 0.7 ? 'defend' : 'study';
+      // 75% attack, 15% defend, 10% study — tanky but still fights back
+      action = rand < 0.75 ? 'attack' : rand < 0.90 ? 'defend' : 'study';
     } else if (strat === 'smart') {
-      action = !s.playerActive ? 'attack' : rand < 0.4 ? 'defend' : rand < 0.7 ? 'attack' : 'study';
+      // 80% attack, 12% defend, 8% study — favors attacking but has options
+      action = rand < 0.80 ? 'attack' : rand < 0.92 ? 'defend' : 'study';
     } else {
-      action = rand < 0.55 ? 'attack' : rand < 0.75 ? 'defend' : 'study';
+      // balanced: 80% attack, 12% defend, 8% study
+      action = rand < 0.80 ? 'attack' : rand < 0.92 ? 'defend' : 'study';
     }
 
     if (action === 'attack') {
