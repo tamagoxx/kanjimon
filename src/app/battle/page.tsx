@@ -1641,16 +1641,17 @@ function BattlePageContent() {
   const logRef = useRef(0);
   const addLog = (txt: string) => setLog(prev => [...prev.slice(-5), `[${logRef.current++}] ${txt}`]);
 
+  // Track which cards have been exhausted (used once this round) — declare BEFORE stateRef
+  const [exhaustedCardIds, setExhaustedCardIds] = useState<Set<string>>(new Set());
+
 // Refs for functions that need current values in callbacks
   const stateRef = useRef({
     phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem,
     processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths,
     bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, autoMove, playerHand,
+    exhaustedCardIds,
   });
-  useEffect(() => { stateRef.current = { phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, autoMove, playerHand }; }, [phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, autoMove, playerHand]);
-
-  // Track which cards have been exhausted (used once this round)
-  const [exhaustedCardIds, setExhaustedCardIds] = useState<Set<string>>(new Set());
+  useEffect(() => { stateRef.current = { phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, autoMove, playerHand, exhaustedCardIds }; }, [phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, autoMove, playerHand, exhaustedCardIds]);
 
   // Mark a card as exhausted after using it
   const markCardExhausted = (cardId: string) => {
