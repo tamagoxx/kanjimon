@@ -1084,7 +1084,7 @@ function MoveSelectionModal({
 }
 
 // Card in hand (mini)
-function HandCard({ card, idx, sel, onClick, disabled }: { card: BattleCard; idx: number; sel: boolean; onClick: () => void; disabled: boolean }) {
+function HandCard({ card, idx, sel, onClick, disabled, exhausted }: { card: BattleCard; idx: number; sel: boolean; onClick: () => void; disabled: boolean; exhausted?: boolean }) {
   const col = ELEMENT_COLORS[card.element];
   const hpPct = card.hp / card.maxHp;
   const abilityStyle = getAbilityStyle(card.ability || '');
@@ -1111,6 +1111,17 @@ function HandCard({ card, idx, sel, onClick, disabled }: { card: BattleCard; idx
           : `0 4px 12px ${col}20`,
       }}
     >
+      {/* Exhausted overlay — card used this round */}
+      {exhausted && (
+        <motion.div
+          className="absolute inset-0 flex flex-col items-center justify-center bg-black/65 rounded-xl z-20"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <span className="text-[7px] font-black text-white/50 rotate-12 tracking-widest">EXHAUSTED</span>
+        </motion.div>
+      )}
+
       {/* Element glow ring behind card */}
       {sel && (
         <motion.div
@@ -1624,6 +1635,7 @@ function BattlePageContent() {
   const [studyQ, setStudyQ] = useState<{ q: string; opts: string[]; ans: string } | null>(null);
   const [result, setResult] = useState<{ win: boolean; xp: number; diamonds: number; stardust?: number } | null>(null);
   const [autoMode, setAutoMode] = useState(false);
+  const [autoMove, setAutoMove] = useState(true); // auto-select best card after attack
   const [processing, setProcessing] = useState(false);
   // Move selection state — when a card is selected, player picks a move from PokeAPI
   const [moveCard, setMoveCard] = useState<BattleCard | null>(null);
@@ -1635,12 +1647,15 @@ function BattlePageContent() {
   const stateRef = useRef({
     phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem,
     processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths,
-    bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, playerHand,
+    bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, autoMove, playerHand,
   });
-  useEffect(() => { stateRef.current = { phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, playerHand }; }, [phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, playerHand]);
+  useEffect(() => { stateRef.current = { phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, autoMove, playerHand }; }, [phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, autoMove, playerHand]);
 
   // Track which moves have been used in this battle (for visual indicator)
   const [usedMoveIds, setUsedMoveIds] = useState<Set<number>>(new Set());
+
+  // Track which cards have been exhausted (used once this round)
+  const [exhaustedCardIds, setExhaustedCardIds] = useState<Set<string>>(new Set());
 
   const markMoveUsed = (moveId: number) => {
     setUsedMoveIds(prev => new Set([...prev, moveId]));
@@ -1650,10 +1665,21 @@ function BattlePageContent() {
     setUsedMoveIds(new Set());
   };
 
+  // Mark a card as exhausted after using it
+  const markCardExhausted = (cardId: string) => {
+    setExhaustedCardIds(prev => new Set([...prev, cardId]));
+  };
+
+  // Reset exhausted cards when all are used (new turn / new round)
+  const resetExhaustedCards = () => {
+    setExhaustedCardIds(new Set());
+  };
+
   // Initialize hand — only after Zustand is ready (prevents stale persisted state)
   // and only when a deck has been selected
   useEffect(() => {
-    resetUsedMoves(); // Reset move usage tracking when starting a new battle
+    resetUsedMoves();
+    resetExhaustedCards();
     if (!ready) return;
     if (!selectedDeckId) return; // Wait for deck selection
 
@@ -1876,6 +1902,12 @@ function BattlePageContent() {
     if (!isPlayerTurn || processing) return;
     const card = playerHand[idx];
     if (!card || card.hp <= 0) return;
+
+    // Prevent selecting exhausted cards (used this round)
+    if (exhaustedCardIds.has(card.id)) {
+      addLog(`💤 ${card.name} sudah lelah! Pilih kartu lain.`);
+      return;
+    }
 
     if (playerActive?.id === card.id) {
       setPlayerActive(null);
@@ -2297,8 +2329,10 @@ function BattlePageContent() {
         }
       }
 
-      // Clear selected move after use
+      // Clear selected move after use and mark card as exhausted
       selectedMoveRef.current = null;
+      if (move) markMoveUsed(move.id);
+      markCardExhausted(s.playerActive!.id);
 
       const newBossHp = Math.max(0, s.bossHp - damage);
       setBossHp(newBossHp);
@@ -2503,6 +2537,9 @@ function BattlePageContent() {
     setPlayerActive(null);
     setIsPlayerTurn(false);
     setTurn(t => t + 1);
+    // Reset exhausted cards for new turn — all cards can be used again
+    resetExhaustedCards();
+    resetUsedMoves();
 
     // Redirect to boss turn handler if in boss battle
     if (s.phase === 'boss-battle') {
@@ -2641,9 +2678,10 @@ function BattlePageContent() {
         }
       }
 
-      // Clear selected move after use
+      // Clear selected move after use and mark card as exhausted
       selectedMoveRef.current = null;
-      markMoveUsed(move!.id);
+      if (move) markMoveUsed(move.id);
+      markCardExhausted(s.playerActive!.id);
 
       if (newOppHp <= 0) {
         const xp = 10 + (s.opponent?.level || 1) * 5;
@@ -2670,6 +2708,19 @@ function BattlePageContent() {
         setResult({ win: true, xp, diamonds, stardust: stardustReward });
         trackQuestEvent('BATTLE');
         return;
+      }
+
+      // Auto-move: if autoMove enabled (not autoMode), select best available card for next turn
+      if (s.autoMove && !s.autoMode) {
+        const available = s.playerHand.filter(c => c.hp > 0 && !exhaustedCardIds.has(c.id));
+        if (available.length > 0) {
+          const best = [...available].sort((a, b) => (b.attack + b.defense) - (a.attack + a.defense))[0];
+          const idx = s.playerHand.findIndex(c => c.id === best?.id);
+          if (idx >= 0 && s.playerEnergy >= best.cost) {
+            setTimeout(() => selectCard(idx), 300);
+            return;
+          }
+        }
       }
 
       setTimeout(() => doEndPlayerTurn(), 400);
@@ -2937,6 +2988,12 @@ function BattlePageContent() {
           >
             AUTO {autoMode ? 'ON' : 'OFF'}
           </button>
+          <button
+            onClick={() => setAutoMove(prev => !prev)}
+            className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${autoMove ? 'bg-[#6c5ce7] text-white' : 'bg-white/10 text-white/60'}`}
+          >
+            AUTO-MOVE {autoMove ? 'ON' : 'OFF'}
+          </button>
         </div>
 
         <div className="flex-1 px-4 py-1 space-y-2 overflow-hidden">
@@ -3085,6 +3142,7 @@ function BattlePageContent() {
               {playerHand.map((card, i) => (
                 <HandCard key={card.id} card={card} idx={i} sel={playerActive?.id === card.id}
                   disabled={!isPlayerTurn || processing}
+                  exhausted={exhaustedCardIds.has(card.id)}
                   onClick={() => selectCard(i)} />
               ))}
             </div>
