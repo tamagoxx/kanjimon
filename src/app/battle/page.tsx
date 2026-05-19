@@ -1641,7 +1641,8 @@ function BattlePageContent() {
   const logRef = useRef(0);
   const addLog = (txt: string) => setLog(prev => [...prev.slice(-5), `[${logRef.current++}] ${txt}`]);
 
-  // Track which cards have been exhausted (used once this round) — declare BEFORE stateRef
+  // Track which cards have been exhausted (used once this round) — ref for sync access
+  const exhaustedCardIdsRef = useRef<Set<string>>(new Set());
   const [exhaustedCardIds, setExhaustedCardIds] = useState<Set<string>>(new Set());
 
 // Refs for functions that need current values in callbacks
@@ -1655,11 +1656,15 @@ function BattlePageContent() {
 
   // Mark a card as exhausted after using it
   const markCardExhausted = (cardId: string) => {
-    setExhaustedCardIds(prev => new Set([...prev, cardId]));
+    // Update ref immediately for synchronous callback access
+    exhaustedCardIdsRef.current = new Set([...exhaustedCardIdsRef.current, cardId]);
+    // Update state for rendering
+    setExhaustedCardIds(new Set(exhaustedCardIdsRef.current));
   };
 
   // Reset exhausted cards when all are used (new turn / new round)
   const resetExhaustedCards = () => {
+    exhaustedCardIdsRef.current = new Set();
     setExhaustedCardIds(new Set());
   };
 
@@ -1890,8 +1895,8 @@ function BattlePageContent() {
     const card = playerHand[idx];
     if (!card || card.hp <= 0) return;
 
-    // Prevent selecting exhausted cards (used this round)
-    if (exhaustedCardIds.has(card.id)) {
+    // Prevent selecting exhausted cards (used this round) — use ref for sync access
+    if (exhaustedCardIdsRef.current.has(card.id)) {
       addLog(`💤 ${card.name} sudah lelah! Pilih kartu lain.`);
       return;
     }
@@ -2180,6 +2185,8 @@ function BattlePageContent() {
     setOppActive(null);
     setIsPlayerTurn(true);
     addLog(`🎯 Giliran ${stateRef.current.turn + 1} - pilih kartu!`);
+    // Reset exhausted cards — all player cards available again for new turn
+    resetExhaustedCards();
     resetCardTimer();
   };
 
@@ -2578,7 +2585,7 @@ function BattlePageContent() {
 
       // Auto-move: if autoMove enabled (not autoMode), select best available card for next turn
       if (s.autoMove && !s.autoMode) {
-        const available = s.playerHand.filter(c => c.hp > 0 && !exhaustedCardIds.has(c.id));
+        const available = s.playerHand.filter(c => c.hp > 0 && !exhaustedCardIdsRef.current.has(c.id));
         if (available.length > 0) {
           const best = [...available].sort((a, b) => (b.attack + b.defense) - (a.attack + a.defense))[0];
           const idx = s.playerHand.findIndex(c => c.id === best?.id);
