@@ -1637,8 +1637,6 @@ function BattlePageContent() {
   const [autoMode, setAutoMode] = useState(false);
   const [autoMove, setAutoMove] = useState(true); // auto-select best card after attack
   const [processing, setProcessing] = useState(false);
-  // Move selection state — when a card is selected, player picks a move from PokeAPI
-  const [moveCard, setMoveCard] = useState<BattleCard | null>(null);
 
   const logRef = useRef(0);
   const addLog = (txt: string) => setLog(prev => [...prev.slice(-5), `[${logRef.current++}] ${txt}`]);
@@ -1651,19 +1649,8 @@ function BattlePageContent() {
   });
   useEffect(() => { stateRef.current = { phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, autoMove, playerHand }; }, [phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, autoMove, playerHand]);
 
-  // Track which moves have been used in this battle (for visual indicator)
-  const [usedMoveIds, setUsedMoveIds] = useState<Set<number>>(new Set());
-
   // Track which cards have been exhausted (used once this round)
   const [exhaustedCardIds, setExhaustedCardIds] = useState<Set<string>>(new Set());
-
-  const markMoveUsed = (moveId: number) => {
-    setUsedMoveIds(prev => new Set([...prev, moveId]));
-  };
-
-  const resetUsedMoves = () => {
-    setUsedMoveIds(new Set());
-  };
 
   // Mark a card as exhausted after using it
   const markCardExhausted = (cardId: string) => {
@@ -1678,7 +1665,6 @@ function BattlePageContent() {
   // Initialize hand — only after Zustand is ready (prevents stale persisted state)
   // and only when a deck has been selected
   useEffect(() => {
-    resetUsedMoves();
     resetExhaustedCards();
     if (!ready) return;
     if (!selectedDeckId) return; // Wait for deck selection
@@ -1923,48 +1909,21 @@ function BattlePageContent() {
 
     setPlayerEnergy(prev => prev - card.cost);
     setPlayerActive(card);
-    addLog(`🃏 Pilih ${card.name} (${card.element}) ⚔️ ATK:${card.attack} 🛡️ DEF:${card.defense}`);
+    addLog(`🃏 ${card.name} (${card.element}) ⚔️${card.attack} 🛡️${card.defense}`);
 
     // Clear card selection timer once card is chosen
     if (timerRef.current) clearTimeout(timerRef.current);
     setCardSelectTimer(0);
 
-    // Show move selection modal (player picks which PokeAPI move to use)
-    setMoveCard(card);
-  };
-
-  // Handle move selection from modal — then execute attack
-  const handleMoveSelected = (move: BattleMove | null, isStatus: boolean) => {
-    const s = stateRef.current;
-    setMoveCard(null);
-
-    if (!move || !s.playerActive) {
-      // Cancelled or no move — deselect and end turn
-      setPlayerActive(null);
-      if (s.phase === 'boss-battle') {
-        doEndBossPlayerTurn();
-      } else {
-        doEndPlayerTurn();
-      }
-      return;
-    }
-
-    // Store selected move in a ref for use in executePlayerAttack/executeBossPlayerAttack
-    selectedMoveRef.current = move;
-    addLog(`⚡ ${s.playerActive.name} gunakan ${move.name}!`);
-
-    // Auto-trigger attack after modal closes animation (300ms delay)
+    // Auto-trigger attack immediately after selecting card
     setTimeout(() => {
-      if (s.phase === 'boss-battle') {
+      if (phase === 'boss-battle') {
         executeBossPlayerAttack();
       } else {
         executePlayerAttack();
       }
-    }, 300);
+    }, 200);
   };
-
-  // Ref to hold selected move between selection and execution
-  const selectedMoveRef = useRef<BattleMove | null>(null);
 
   // Answer heal (player) — heal action triggered instead of study
   const answerHeal = (chosen: 'heal' | 'skip') => {
@@ -2253,39 +2212,21 @@ function BattlePageContent() {
     }, 400);
   };
 
-  // Boss player attack
+  // Boss player attack — uses card attack stat directly (no move selection)
   const executeBossPlayerAttack = () => {
     const s = stateRef.current;
     if (!s.playerActive || !s.isPlayerTurn || s.processing || s.phase !== 'boss-battle') return;
     setProcessing(true);
 
-    // Use move power from PokeAPI if available, else fallback to card attack stat
-    const move = selectedMoveRef.current;
-    let basePower = move?.power || s.playerActive.attack;
-
-    // Check move accuracy — miss chance
-    const moveAccuracy = move?.accuracy ?? 100;
-    const missed = moveAccuracy > 0 && Math.random() * 100 > moveAccuracy;
-    let damage = missed ? 0 : basePower;
+    let damage = s.playerActive.attack;
 
     // Apply player buff (debuff from boss)
     if (s.playerBuffed) {
       damage = Math.floor(damage * 0.8);
-      addLog(`😈 Weakend: -20% damage`);
+      addLog(`😈 Weakened: -20% damage`);
     }
 
-    // Apply PokeAPI move type effectiveness
-    if (move) {
-      const eff = getMoveEffectiveness(move.type, 'NORMAL');
-      if (eff > 1) damage = Math.floor(damage * eff);
-      else if (eff < 1) damage = Math.floor(damage * eff);
-      if (missed) addLog(`❌ ${s.playerActive!.name} attack missed!`);
-      else if (eff > 1) addLog(`✨ SUPER EFFECTIVE vs BOSS! -${damage}`);
-      else if (eff < 1) addLog(`💧 Not very effective vs BOSS... -${damage}`);
-      else addLog(`⚔️ ${s.playerActive!.name} attacks! -${damage} to ${s.boss?.name}!`);
-    } else {
-      addLog(`⚔️ ${s.playerActive!.name} attacks! -${damage} to ${s.boss?.name}!`);
-    }
+    addLog(`⚔️ ${s.playerActive.name} attacks! -${damage} to ${s.boss?.name}!`);
 
     // Apply boss defense multiplier
     const defReduction = Math.floor((s.boss?.baseDef || 0) * s.bossDefMultiplier);
@@ -2309,29 +2250,7 @@ function BattlePageContent() {
       setShowDmg(false);
       setProcessing(false);
 
-      // Apply recoil damage to player
-      if (move && move.recoil > 0 && !missed) {
-        const recoilDmg = Math.floor(damage * move.recoil / 100);
-        if (recoilDmg > 0) {
-          setPlayerHp(prev => Math.max(0, prev - recoilDmg));
-          addLog(`⚡ ${s.playerActive!.name} took ${recoilDmg} recoil damage!`);
-        }
-      }
-
-      // Apply drain healing
-      if (move && move.drain > 0 && !missed && s.playerActive) {
-        const drainAmt = Math.floor(damage * move.drain / 100);
-        if (drainAmt > 0) {
-          const newHp = Math.min(s.playerActive.maxHp, s.playerActive.hp + drainAmt);
-          setPlayerActive({ ...s.playerActive, hp: newHp });
-          setPlayerHand(prev => prev.map(c => c.id === s.playerActive!.id ? { ...s.playerActive!, hp: newHp } : c));
-          addLog(`💚 ${s.playerActive!.name} drained ${drainAmt} HP!`);
-        }
-      }
-
-      // Clear selected move after use and mark card as exhausted
-      selectedMoveRef.current = null;
-      if (move) markMoveUsed(move.id);
+      // Mark card as exhausted after attack
       markCardExhausted(s.playerActive!.id);
 
       const newBossHp = Math.max(0, s.bossHp - damage);
@@ -2539,7 +2458,6 @@ function BattlePageContent() {
     setTurn(t => t + 1);
     // Reset exhausted cards for new turn — all cards can be used again
     resetExhaustedCards();
-    resetUsedMoves();
 
     // Redirect to boss turn handler if in boss battle
     if (s.phase === 'boss-battle') {
@@ -2577,52 +2495,22 @@ function BattlePageContent() {
     if (!s.playerActive || !s.isPlayerTurn || s.processing) return;
     setProcessing(true);
 
-    // Use move power from PokeAPI if available, else fallback to card attack stat
-    const move = selectedMoveRef.current;
-    let basePower = move?.power || s.playerActive.attack;
-    // Multi-hit moves: roll for number of hits and multiply power
-    let hitCount = 1;
-    if (move?.minHits && move?.maxHits) {
-      hitCount = Math.floor(Math.random() * (move.maxHits - move.minHits + 1)) + move.minHits;
-      basePower = Math.floor(basePower * hitCount * 0.85); // slight penalty per hit
-    }
+    // Use card's own attack stat as base power
+    let basePower = s.playerActive.attack;
 
-    // Check move accuracy — miss chance
-    const moveAccuracy = move?.accuracy ?? 100;
-    const missed = moveAccuracy > 0 && Math.random() * 100 > moveAccuracy;
-    const baseDamage = missed ? 0 : basePower;
-
-    let damage = baseDamage;
+    let damage = basePower;
     let effectiveness: 'super' | 'weak' | 'normal' = 'normal';
 
-    // Apply PokeAPI move type effectiveness (full type chart)
-    if (move && s.oppActive) {
-      const eff = getMoveEffectiveness(move.type, s.oppActive.element);
-      if (eff > 1) { effectiveness = 'super'; damage = Math.floor(damage * eff); }
-      else if (eff < 1) { effectiveness = 'weak'; damage = Math.floor(damage * eff); }
-    } else {
-      const eff = getElementAdvantage(s.playerActive.element, s.oppActive?.element || 'NORMAL');
-      if (eff > 1) { effectiveness = 'super'; damage = Math.floor(damage * eff); }
-      else if (eff < 1) { effectiveness = 'weak'; damage = Math.floor(damage * eff); }
-    }
+    // Apply element type effectiveness
+    const eff = getElementAdvantage(s.playerActive.element, s.oppActive?.element || 'NORMAL');
+    if (eff > 1) { effectiveness = 'super'; damage = Math.floor(damage * eff); }
+    else if (eff < 1) { effectiveness = 'weak'; damage = Math.floor(damage * eff); }
 
     // Combo bonus
     if (s.lastElem === s.playerActive.element && s.lastElem !== null) {
       const bonus = Math.floor(damage * 0.25 * s.combo);
       damage += bonus;
       addLog(`🔥 Combo ${s.combo + 1}x! +${bonus} damage!`);
-    }
-
-    // Crit bonus from move
-    const critBonus = move?.critRate ? (move.critRate > 0 && Math.random() * 100 < move.critRate ? Math.floor(damage * 0.5) : 0) : 0;
-    if (critBonus > 0) {
-      damage += critBonus;
-      addLog(`💥 CRIT! +${critBonus} bonus damage!`);
-    }
-
-    // Log multi-hit if applicable
-    if (hitCount > 1) {
-      addLog(`⚡ Multi-hit! ${hitCount} attacks!`);
     }
 
     if (s.oppActive) {
@@ -2647,8 +2535,7 @@ function BattlePageContent() {
       setShowDmg(false);
       setProcessing(false);
 
-      if (missed) addLog(`❌ ${s.playerActive!.name} attack missed!`);
-      else if (effectiveness === 'super') addLog(`✨ SUPER EFFECTIVE! -${damage}`);
+      if (effectiveness === 'super') addLog(`✨ SUPER EFFECTIVE! -${damage}`);
       else if (effectiveness === 'weak') addLog(`💧 Not very effective... -${damage}`);
       else addLog(`⚔️ ${s.playerActive!.name} menyerang! -${damage} damage!`);
 
@@ -2658,29 +2545,7 @@ function BattlePageContent() {
       const newOppHp = Math.max(0, s.oppHp - damage);
       setOppHp(newOppHp);
 
-      // Apply recoil damage to player (move.recoil is % of damage taken by user)
-      if (move && move.recoil > 0 && !missed) {
-        const recoilDmg = Math.floor(damage * move.recoil / 100);
-        if (recoilDmg > 0) {
-          setPlayerHp(prev => Math.max(0, prev - recoilDmg));
-          addLog(`⚡ ${s.playerActive!.name} took ${recoilDmg} recoil damage!`);
-        }
-      }
-
-      // Apply drain healing to player
-      if (move && move.drain > 0 && !missed) {
-        const drainAmt = Math.floor(damage * move.drain / 100);
-        if (drainAmt > 0 && s.playerActive) {
-          const newHp = Math.min(s.playerActive.maxHp, s.playerActive.hp + drainAmt);
-          setPlayerActive({ ...s.playerActive, hp: newHp });
-          setPlayerHand(prev => prev.map(c => c.id === s.playerActive!.id ? { ...s.playerActive!, hp: newHp } : c));
-          addLog(`💚 ${s.playerActive!.name} drained ${drainAmt} HP!`);
-        }
-      }
-
-      // Clear selected move after use and mark card as exhausted
-      selectedMoveRef.current = null;
-      if (move) markMoveUsed(move.id);
+      // Mark card as exhausted after attack
       markCardExhausted(s.playerActive!.id);
 
       if (newOppHp <= 0) {
@@ -2915,7 +2780,6 @@ function BattlePageContent() {
       </AnimatePresence>
       <AnimatePresence>{result && <ResultModal win={result.win} xpGained={result.xp} diamondsGained={result.diamonds} stardustGained={result.stardust} onClose={() => { setResult(null); setPhase('select-deck'); setSelectedDeckId(null); }} />}</AnimatePresence>
       <AnimatePresence>{showStudy && playerActive && <HealModal card={playerActive} onHeal={() => answerHeal('heal')} onSkip={() => answerHeal('skip')} />}</AnimatePresence>
-      <AnimatePresence>{moveCard && <MoveSelectionModal card={moveCard} isBossBattle={phase === 'boss-battle'} onSelect={handleMoveSelected} onCancel={() => { setMoveCard(null); setPlayerActive(null); setPlayerEnergy(prev => prev + (moveCard?.cost || 1)); }} usedMoveIds={usedMoveIds} onMarkUsed={markMoveUsed} />}</AnimatePresence>
 
       {phase === 'intro' && opponent && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-40 flex items-center justify-center" style={{ backgroundColor: '#0d0d1a' }}>
