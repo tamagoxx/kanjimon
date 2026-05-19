@@ -319,6 +319,7 @@ function createBattleCard(card: any, isPlayer: boolean): BattleCard {
     status: 'normal',
     image: card.image || undefined,
     ability: card.ability || undefined,
+    moves: card.moves || undefined,
   };
 }
 
@@ -901,11 +902,15 @@ function MoveSelectionModal({
   isBossBattle,
   onSelect,
   onCancel,
+  usedMoveIds,
+  onMarkUsed,
 }: {
   card: BattleCard;
   isBossBattle: boolean;
   onSelect: (move: BattleMove | null, isStatus: boolean) => void;
   onCancel: () => void;
+  usedMoveIds?: Set<number>;
+  onMarkUsed?: (moveId: number) => void;
 }) {
   const [selectedMove, setSelectedMove] = useState<BattleMove | null>(null);
 
@@ -959,6 +964,8 @@ function MoveSelectionModal({
             const effLabel = effectiveness > 1 ? '🟥 Super Effective!' : effectiveness < 1 ? '🟦 Not Effective' : null;
             // Normalize power for visual bar (0-150 range)
             const powerPct = Math.min(100, (move.power / 120) * 100);
+            const isUsed = usedMoveIds?.has(move.id);
+            const isMultiHit = move.minHits && move.maxHits;
 
             return (
               <motion.button
@@ -967,11 +974,14 @@ function MoveSelectionModal({
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.07, type: 'spring', stiffness: 300 }}
                 onClick={() => setSelectedMove(move)}
-                className={`w-full p-3 rounded-xl flex items-center gap-3 text-left transition-all relative overflow-hidden ${
-                  selectedMove?.id === move.id ? 'ring-2 ring-white' : ''
-                }`}
+                className={`w-full p-3 rounded-xl flex items-center gap-3 text-left transition-all relative overflow-hidden ${selectedMove?.id === move.id ? 'ring-2 ring-white' : ''} ${isUsed ? 'opacity-40' : ''}`}
                 style={{ background: `linear-gradient(135deg, ${typeColor}15 0%, ${typeColor}05 100%)`, border: `1px solid ${selectedMove?.id === move.id ? '#ffffff80' : typeColor + '50'}`, backdropFilter: 'blur(8px)' }}
               >
+                {/* Used badge */}
+                {isUsed && (
+                  <div className="absolute top-1 right-1 text-[8px] px-1.5 py-0.5 rounded-full bg-white/10 text-white/40 font-bold">✓ Used</div>
+                )}
+
                 {/* Left accent bar */}
                 <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ backgroundColor: typeColor }} />
 
@@ -1017,6 +1027,9 @@ function MoveSelectionModal({
                       </span>
                     )}
                     <span className="text-[10px] text-white/30">PP {move.pp}</span>
+                    {isMultiHit && (
+                      <span className="text-[10px] text-purple-400">⚡ {move.minHits}-{move.maxHits} hits</span>
+                    )}
                     {move.critRate > 0 && (
                       <span className="text-[10px] text-pink-400">💥 {move.critRate}% crit</span>
                     )}
@@ -1626,9 +1639,21 @@ function BattlePageContent() {
   });
   useEffect(() => { stateRef.current = { phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, playerHand }; }, [phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, playerHand]);
 
+  // Track which moves have been used in this battle (for visual indicator)
+  const [usedMoveIds, setUsedMoveIds] = useState<Set<number>>(new Set());
+
+  const markMoveUsed = (moveId: number) => {
+    setUsedMoveIds(prev => new Set([...prev, moveId]));
+  };
+
+  const resetUsedMoves = () => {
+    setUsedMoveIds(new Set());
+  };
+
   // Initialize hand — only after Zustand is ready (prevents stale persisted state)
   // and only when a deck has been selected
   useEffect(() => {
+    resetUsedMoves(); // Reset move usage tracking when starting a new battle
     if (!ready) return;
     if (!selectedDeckId) return; // Wait for deck selection
 
@@ -1896,7 +1921,14 @@ function BattlePageContent() {
     selectedMoveRef.current = move;
     addLog(`⚡ ${s.playerActive.name} gunakan ${move.name}!`);
 
-    // Continue with attack execution (auto-triggered after modal closes via useEffect)
+    // Auto-trigger attack after modal closes animation (300ms delay)
+    setTimeout(() => {
+      if (s.phase === 'boss-battle') {
+        executeBossPlayerAttack();
+      } else {
+        executePlayerAttack();
+      }
+    }, 300);
   };
 
   // Ref to hold selected move between selection and execution
@@ -2511,6 +2543,12 @@ function BattlePageContent() {
     // Use move power from PokeAPI if available, else fallback to card attack stat
     const move = selectedMoveRef.current;
     let basePower = move?.power || s.playerActive.attack;
+    // Multi-hit moves: roll for number of hits and multiply power
+    let hitCount = 1;
+    if (move?.minHits && move?.maxHits) {
+      hitCount = Math.floor(Math.random() * (move.maxHits - move.minHits + 1)) + move.minHits;
+      basePower = Math.floor(basePower * hitCount * 0.85); // slight penalty per hit
+    }
 
     // Check move accuracy — miss chance
     const moveAccuracy = move?.accuracy ?? 100;
@@ -2543,6 +2581,11 @@ function BattlePageContent() {
     if (critBonus > 0) {
       damage += critBonus;
       addLog(`💥 CRIT! +${critBonus} bonus damage!`);
+    }
+
+    // Log multi-hit if applicable
+    if (hitCount > 1) {
+      addLog(`⚡ Multi-hit! ${hitCount} attacks!`);
     }
 
     if (s.oppActive) {
@@ -2600,6 +2643,7 @@ function BattlePageContent() {
 
       // Clear selected move after use
       selectedMoveRef.current = null;
+      markMoveUsed(move!.id);
 
       if (newOppHp <= 0) {
         const xp = 10 + (s.opponent?.level || 1) * 5;
@@ -2820,7 +2864,7 @@ function BattlePageContent() {
       </AnimatePresence>
       <AnimatePresence>{result && <ResultModal win={result.win} xpGained={result.xp} diamondsGained={result.diamonds} stardustGained={result.stardust} onClose={() => { setResult(null); setPhase('select-deck'); setSelectedDeckId(null); }} />}</AnimatePresence>
       <AnimatePresence>{showStudy && playerActive && <HealModal card={playerActive} onHeal={() => answerHeal('heal')} onSkip={() => answerHeal('skip')} />}</AnimatePresence>
-      <AnimatePresence>{moveCard && <MoveSelectionModal card={moveCard} isBossBattle={phase === 'boss-battle'} onSelect={handleMoveSelected} onCancel={() => { setMoveCard(null); setPlayerActive(null); setPlayerEnergy(prev => prev + (moveCard?.cost || 1)); }} />}</AnimatePresence>
+      <AnimatePresence>{moveCard && <MoveSelectionModal card={moveCard} isBossBattle={phase === 'boss-battle'} onSelect={handleMoveSelected} onCancel={() => { setMoveCard(null); setPlayerActive(null); setPlayerEnergy(prev => prev + (moveCard?.cost || 1)); }} usedMoveIds={usedMoveIds} onMarkUsed={markMoveUsed} />}</AnimatePresence>
 
       {phase === 'intro' && opponent && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-40 flex items-center justify-center" style={{ backgroundColor: '#0d0d1a' }}>
