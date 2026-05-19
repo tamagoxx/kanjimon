@@ -84,7 +84,7 @@ const navItems = [
     { icon: '📚', label: 'Belajar', route: '/learn' },
     { icon: '⚔️', label: 'Battle', route: '/battle' },
     { icon: '🃏', label: 'Kartu', route: '/collection' },
-    { icon: '👑', label: 'Premium', route: '/premium' },
+    { icon: '🛒', label: 'Toko', route: '/shop' },
   ];
 
   const currentPath = usePathname();
@@ -1515,6 +1515,19 @@ export default function LearnPage() {
       badge: '🔒 85% Kosakata N5',
       badgeColor: colors.darkGray,
     },
+    {
+      id: 'premium-modul',
+      title: 'Modul Premium',
+      subtitle: 'Bisnis Korespondensi & Hyouka TG2',
+      icon: '👑',
+      jlptLevel: 'N5' as const,
+      status: 'learning' as const,
+      progress: 0,
+      learned: 0,
+      total: 16,
+      badge: '5000 💎 untuk unlock',
+      badgeColor: colors.gold,
+    },
     // N4 Group
     {
       id: 'kanji-n4',
@@ -1602,7 +1615,18 @@ export default function LearnPage() {
   const n4Modules = modules.filter(m => m.jlptLevel === 'N4');
   const n3Modules = modules.filter(m => m.jlptLevel === 'N3');
 
+  const router = useRouter();
+
   const handleModuleClick = (moduleId: string) => {
+    if (moduleId === 'premium-modul') {
+      const success = useCollectionStore.getState().unlockPremium();
+      if (success) {
+        router.push('/premium/modul');
+      } else {
+        alert('Diamond tidak cukup! Butuh 5000 💎 untuk unlock Modul Premium.');
+      }
+      return;
+    }
     const mod = modules.find(m => m.id === moduleId);
     if (!mod || mod.status === 'locked') return;
     setActiveModule(moduleId);

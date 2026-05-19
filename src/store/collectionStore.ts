@@ -96,6 +96,10 @@ interface CollectionState {
   vocabularyProgress: number;
   grammarProgress: number;
 
+  // Premium
+  isPremium: boolean;
+  unlockPremium: () => boolean; // returns false if not enough diamonds
+
   // Card actions (Japanese)
   addCard: (card: OwnedCard) => void;
   addCards: (cards: OwnedCard[]) => void;
@@ -201,6 +205,8 @@ export const useCollectionStore = create<CollectionState>()(
       kanjiProgress: 0,
       vocabularyProgress: 0,
       grammarProgress: 0,
+      // Premium
+      isPremium: false,
 
       // Japanese card actions
       addCard: (card) => {
@@ -532,6 +538,15 @@ export const useCollectionStore = create<CollectionState>()(
         const { diamonds } = get();
         if (diamonds < amount) return false;
         set(state => ({ diamonds: state.diamonds - amount }));
+        return true;
+      },
+
+      unlockPremium: () => {
+        const PREMIUM_COST = 5000;
+        const { diamonds, isPremium } = get();
+        if (isPremium) return true;
+        if (diamonds < PREMIUM_COST) return false;
+        set(state => ({ diamonds: state.diamonds - PREMIUM_COST, isPremium: true }));
         return true;
       },
 

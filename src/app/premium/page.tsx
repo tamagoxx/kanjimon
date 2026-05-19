@@ -3,7 +3,8 @@
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { Crown, Gem, Zap, Star, Shield, Sparkles, ArrowLeft, Check, X } from 'lucide-react';
-
+import { useCollectionStore } from '@/store/collectionStore';
+import { allJapaneseCards, getCardsByRarity } from '@/data/cards';
 const colors = {
   background: '#0a1519',
   cardBg: '#1a1a2e',
@@ -212,6 +213,23 @@ export default function PremiumPage() {
                 </div>
 
                 <button
+                  onClick={() => {
+                    if (plan.id === 'monthly') {
+                      const success = useCollectionStore.getState().unlockPremium();
+                      if (success) {
+                        alert('✅ Premium berhasil di-unlock!');
+                      } else {
+                        alert('💎 Diamond tidak cukup! Butuh 5000 💎 untuk unlock Premium.');
+                      }
+                    } else {
+                      const success = useCollectionStore.getState().unlockPremium();
+                      if (success) {
+                        alert('✅ Premium Yearly berhasil di-unlock! ( Hemat 38% )');
+                      } else {
+                        alert('💎 Diamond tidak cukup! Butuh 5000 💎 untuk unlock Premium.');
+                      }
+                    }
+                  }}
                   className="w-full py-3 rounded-xl font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
                   style={{
                     backgroundColor: plan.highlighted ? colors.brand : colors.darkGray,

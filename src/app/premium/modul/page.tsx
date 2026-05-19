@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { Crown, ArrowLeft, Check, X, ChevronRight, BookOpen, Mic, FileText, Users, Briefcase } from 'lucide-react';
+import { useCollectionStore } from '@/store/collectionStore';
 
 const colors = {
   background: '#0a1519',
@@ -250,7 +251,27 @@ function ModuleDetail({ modul, onBack, isPremium }: { modul: Modul; onBack: () =
 export default function PremiumModulPage() {
   const router = useRouter();
   const [selectedModul, setSelectedModul] = useState<Modul | null>(null);
-  const [isPremium] = useState(true); // toggle to true to simulate premium user
+  const isPremium = useCollectionStore(s => s.isPremium);
+
+  if (!isPremium) {
+    return (
+      <div className="min-h-screen pb-24 flex flex-col items-center justify-center px-4" style={{ backgroundColor: colors.background }}>
+        <div className="text-center p-8 rounded-2xl max-w-sm" style={{ backgroundColor: colors.cardBg }}>
+          <span className="text-5xl mb-4 block">👑</span>
+          <h2 className="text-xl font-black text-[#d8e4ea] mb-2">Premium Diperlukan</h2>
+          <p className="text-sm text-[#c8c4d7] mb-4">Unlock Modul Premium dengan 5000 💎 untuk akses ビジネス中国語 & 評価試験</p>
+          <button
+            onClick={() => router.push('/learn')}
+            className="px-6 py-3 rounded-xl font-bold text-white w-full"
+            style={{ backgroundColor: colors.brand }}
+          >
+            Kembali ke Belajar
+          </button>
+        </div>
+        <BottomNav />
+      </div>
+    );
+  }
 
   if (selectedModul) {
     return <ModuleDetail modul={selectedModul} onBack={() => setSelectedModul(null)} isPremium={isPremium} />;
