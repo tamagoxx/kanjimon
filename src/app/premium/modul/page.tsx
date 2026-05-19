@@ -250,7 +250,7 @@ function ModuleDetail({ modul, onBack, isPremium }: { modul: Modul; onBack: () =
 export default function PremiumModulPage() {
   const router = useRouter();
   const [selectedModul, setSelectedModul] = useState<Modul | null>(null);
-  const [isPremium] = useState(false); // toggle to true to simulate premium user
+  const [isPremium] = useState(true); // toggle to true to simulate premium user
 
   if (selectedModul) {
     return <ModuleDetail modul={selectedModul} onBack={() => setSelectedModul(null)} isPremium={isPremium} />;
