@@ -84,7 +84,7 @@ const navItems = [
     { icon: '📚', label: 'Belajar', route: '/learn' },
     { icon: '⚔️', label: 'Battle', route: '/battle' },
     { icon: '🃏', label: 'Kartu', route: '/collection' },
-    { icon: '🛒', label: 'Toko', route: '/shop' },
+    { icon: '👑', label: 'Premium', route: '/premium' },
   ];
 
   const currentPath = usePathname();
