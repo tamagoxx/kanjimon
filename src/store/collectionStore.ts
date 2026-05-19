@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { OwnedCard, Deck, DailyQuest, JapaneseCard, FusedPokemon, ElementEssence } from '@/types';
+import type { OwnedCard, Deck, DailyQuest, JapaneseCard, FusedPokemon, ElementEssence, PokemonMove } from '@/types';
 import { useAuthStore } from './authStore';
 
 // Pokemon card type (from PokeAPI)
@@ -23,6 +23,7 @@ export interface PokemonCard {
   element: string;
   flavorText: string;
   color: string;
+  moves: PokemonMove[];  // learned moves from PokeAPI
 }
 
 export type AnyCard = JapaneseCard | PokemonCard;
@@ -342,7 +343,7 @@ export const useCollectionStore = create<CollectionState>()(
             if (fp.id !== fusedId) return fp;
             return {
               ...fp,
-              evolutionTier: fp.evolutionTier || 'NONE',
+              evolutionTier: newTier,
               rarity: newTier as any,
               baseHp: fp.baseHp + bonus.hp,
               baseAttack: fp.baseAttack + bonus.attack,

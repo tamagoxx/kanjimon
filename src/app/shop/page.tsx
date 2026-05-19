@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useCollectionStore } from '@/store/collectionStore';
-import { Gem, Zap, Flame, Crown, Star, Shield, Loader2, ArrowRight } from 'lucide-react';
+import { Gem, Zap, Flame, Crown, Star, Shield, Loader2, ArrowRight, X } from 'lucide-react';
+import { allJapaneseCards, getCardsByRarity } from '@/data/cards';
+import type { JapaneseCard } from '@/types';
 
 const colors = {
   background: '#0a1519',
@@ -281,6 +283,209 @@ function EnergyInfo() {
   );
 }
 
+// ============================================================
+// Card Pack Purchase Handler
+// ============================================================
+type CardPackType = 'COMMON' | 'RANDOM' | 'RARE' | 'LEGENDARY';
+
+function getPackPrice(type: CardPackType): number {
+  const prices: Record<CardPackType, number> = {
+    COMMON: 30, RANDOM: 80, RARE: 150, LEGENDARY: 300,
+  };
+  return prices[type];
+}
+
+// ============================================================
+// Card Pack Item
+// ============================================================
+function CardPackItem({ name, price, currency, emoji, description, color, tag, tagColor, cardCount, rarities, onBuy, diamonds, highlight, disabled }: {
+  name: string; price: number; currency: string; emoji: string; description: string; color: string;
+  tag?: string; tagColor?: string; cardCount: number; rarities: string[]; onBuy: () => void;
+  diamonds: number; disabled?: boolean; highlight?: boolean;
+}) {
+  const canAfford = diamonds >= price;
+  const rarityBadges = rarities.map((r, i) => (
+    <span key={i} className="px-1.5 py-0.5 rounded text-[8px] font-black" style={{ backgroundColor: getRarityColor(r), color: '#000' }}>
+      {r.replace('_', ' ')}
+    </span>
+  ));
+
+  return (
+    <motion.div
+      whileHover={canAfford ? { scale: 1.01 } : {}}
+      whileTap={canAfford ? { scale: 0.99 } : {}}
+      className={`rounded-2xl overflow-hidden relative ${!canAfford || disabled ? 'opacity-60' : ''} ${highlight ? 'ring-2 ring-yellow-400/50' : ''}`}
+      style={{ backgroundColor: colors.cardBg }}
+    >
+      {highlight && (
+        <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-orange-500/5 pointer-events-none" />
+      )}
+      {tag && (
+        <div className={`absolute top-3 right-3 px-2 py-0.5 rounded-full text-[9px] font-bold ${tagColor || 'bg-yellow-500/20 text-yellow-400'}`}>
+          {tag}
+        </div>
+      )}
+      <div className="p-4 flex items-center gap-4">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl" style={{ background: `linear-gradient(135deg, ${color}30, ${colors.cardBg})` }}>
+          {emoji}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <h3 className="font-bold text-sm text-white">{name}</h3>
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-black" style={{ backgroundColor: color + '40', color }}>
+              {cardCount} Kartu
+            </span>
+          </div>
+          <p className="text-[10px] text-white/40 mb-2">{description}</p>
+          <div className="flex items-center gap-1 flex-wrap">{rarityBadges}</div>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-1">
+            <span className="text-sm">{currency}</span>
+            <span className="font-bold text-white text-sm">{price.toLocaleString()}</span>
+          </div>
+          <button
+            onClick={onBuy}
+            disabled={!canAfford || disabled}
+            className="px-4 py-2 rounded-xl font-bold text-white text-xs active:scale-95 disabled:opacity-40 transition-transform"
+            style={{ backgroundColor: canAfford ? colors.brand : colors.inputBg }}
+          >
+            Beli
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function getRarityColor(rarity: string): string {
+  const map: Record<string, string> = {
+    COMMON: '#a8a8a8', UNCOMMON: '#4bddb7', RARE: '#6c5ce7', ULTRA_RARE: '#c77dff',
+    LIMITED_EDITION: '#ff8c00', LEGENDARY: '#ffd93d', MYTHICAL: '#e91e8c',
+  };
+  return map[rarity] || '#a8a8a8';
+}
+
+// ============================================================
+// Pack Opening Modal
+// ============================================================
+function PackOpeningModal({ cards, onClose }: { cards: JapaneseCard[]; onClose: () => void }) {
+  const [revealed, setRevealed] = useState(0);
+
+  const revealCard = (index: number) => {
+    setTimeout(() => setRevealed(index + 1), index * 400);
+  };
+
+  // Start revealing cards one by one
+  useEffect(() => {
+    cards.forEach((_, i) => revealCard(i));
+  }, []);
+
+  const totalHp = cards.reduce((sum, c) => sum + c.hp, 0);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.8 }}
+        animate={{ scale: 1 }}
+        className="w-full max-w-sm rounded-2xl p-5"
+        style={{ backgroundColor: colors.cardBg }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-black text-white">📦 Kartu Diperoleh!</h2>
+            <p className="text-xs text-white/40">Total HP: {totalHp}</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10">
+            <X className="w-5 h-5 text-white/40" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          {cards.map((card, i) => {
+            const isRevealed = i < revealed;
+            return (
+              <motion.div
+                key={card.id}
+                initial={{ scale: 0, rotate: -10 }}
+                animate={isRevealed ? { scale: 1, rotate: 0 } : { scale: 0, rotate: -10 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                className="rounded-xl overflow-hidden relative"
+                style={{
+                  backgroundColor: '#0a1519',
+                  border: `2px solid ${isRevealed ? getRarityColor(card.rarity) : '#2b363b'}`,
+                  boxShadow: isRevealed ? `0 0 12px ${getRarityColor(card.rarity)}40` : 'none',
+                }}
+              >
+                <div className="aspect-square flex items-center justify-center" style={{ backgroundColor: getRarityColor(card.element) + '15' }}>
+                  {isRevealed ? (
+                    <span className="text-2xl font-black text-white">{card.japanese}</span>
+                  ) : (
+                    <span className="text-lg">❓</span>
+                  )}
+                </div>
+                <div className="p-1.5 text-center">
+                  {isRevealed ? (
+                    <>
+                      <p className="text-[8px] font-bold text-white truncate">{card.romaji}</p>
+                      <p className="text-[7px] text-white/40">❤️{card.hp} ⚔️{card.attackPower}</p>
+                    </>
+                  ) : (
+                    <p className="text-[8px] text-white/30">???</p>
+                  )}
+                </div>
+                {isRevealed && (
+                  <div className="absolute top-0.5 right-0.5 w-3 h-3 rounded-full" style={{ backgroundColor: getRarityColor(card.rarity) }} />
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Card details */}
+        {revealed === cards.length && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-1.5 mb-4"
+          >
+            {cards.map(card => (
+              <div key={card.id} className="flex items-center justify-between p-2 rounded-lg bg-black/20">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{card.japanese}</span>
+                  <div>
+                    <p className="text-xs font-bold text-white">{card.romaji} — {card.meaning}</p>
+                    <p className="text-[9px] text-white/40">{card.exampleSentence}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-[9px]">
+                  <span className="px-1.5 py-0.5 rounded font-black" style={{ backgroundColor: getRarityColor(card.rarity), color: '#000' }}>{card.rarity}</span>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        )}
+
+        <button
+          onClick={onClose}
+          className="w-full py-3 rounded-xl font-bold text-white"
+          style={{ backgroundColor: colors.brand }}
+        >
+          ✓ Tutup
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // Bottom Navigation
 function BottomNav() {
   const router = useRouter();
@@ -314,8 +519,9 @@ function BottomNav() {
 // ============================================================
 export default function ShopPage() {
   const router = useRouter();
-  const { coins, diamonds, energy, scrolls, stardust, spendDiamonds, spendCoins, spendEnergy, addEnergy, addScrolls, addDiamonds, addStardust } = useCollectionStore();
+  const { coins, diamonds, energy, scrolls, stardust, ownedCards, spendDiamonds, spendCoins, spendEnergy, addEnergy, addScrolls, addDiamonds, addStardust, addJapaneseCard } = useCollectionStore();
   const [buying, setBuying] = useState(false);
+  const [packOpening, setPackOpening] = useState<JapaneseCard[] | null>(null);
 
   const handleBuy = (currency: '💎' | '💰' | '⚡', price: number, action: () => void) => {
     if (currency === '💎' && diamonds < price) return;
@@ -329,6 +535,54 @@ export default function ShopPage() {
       action();
       setBuying(false);
     }, 300);
+  };
+
+  const handleBuyCards = (type: CardPackType, count: number) => {
+    const price = getPackPrice(type);
+    if (diamonds < price) {
+      alert(`❌ Diamond tidak cukup! Butuh ${price}💎, punya ${diamonds}💎`);
+      return;
+    }
+    const spent = spendDiamonds(price);
+    if (!spent) {
+      alert('❌ Gagal spend diamond');
+      return;
+    }
+
+    const pool = type === 'COMMON'
+      ? getCardsByRarity('COMMON')
+      : type === 'RARE'
+      ? [...getCardsByRarity('RARE'), ...getCardsByRarity('ULTRA_RARE')]
+      : type === 'LEGENDARY'
+      ? [...getCardsByRarity('RARE'), ...getCardsByRarity('ULTRA_RARE')]
+      : allJapaneseCards;
+
+    if (!pool || pool.length === 0) {
+      alert('❌ Pool kartu kosong!');
+      return;
+    }
+
+    const picked: JapaneseCard[] = [];
+    const available = [...pool];
+    for (let i = 0; i < count && available.length > 0; i++) {
+      const idx = Math.floor(Math.random() * available.length);
+      const card = available.splice(idx, 1)[0];
+      if (card && card.id) {
+        picked.push(card);
+      }
+    }
+
+    if (picked.length === 0) {
+      alert('❌ Gagal memilih kartu!');
+      return;
+    }
+
+    // Debug: show pick info
+    alert(`🎉 Dapat ${picked.length} kartu: ${picked.map(c => c.japanese).join(', ')}`);
+
+    // Add cards to store AND show modal at the same time
+    picked.forEach(card => addJapaneseCard(card));
+    setPackOpening(picked);
   };
 
   return (
@@ -472,30 +726,84 @@ export default function ShopPage() {
         {/* 📦 Japanese Card Packs */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold text-white">📦 Paket Kartu Jepang</h2>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">📦</span>
+              <h2 className="text-sm font-bold text-white">Paket Kartu Jepang</h2>
+            </div>
+            <span className="text-xs text-white/40">{ownedCards.length} kartu dimiliki</span>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <ShopItem
+
+          {/* Pack Option Cards */}
+          <div className="grid grid-cols-1 gap-3">
+            <CardPackItem
+              name="Starter Pack"
+              price={30}
+              currency="💎"
+              emoji="🌱"
+              description="3 kartu N5 Common — paket untuk pemula"
+              color="#4bddb7"
+              tag="BEST SELLER"
+              tagColor="bg-green-500/20 text-green-400"
+              cardCount={3}
+              rarities={['COMMON']}
+              onBuy={() => handleBuyCards('COMMON', 3)}
+              diamonds={diamonds}
+            />
+            <CardPackItem
               name="Elemental Pack"
-              price={100}
+              price={80}
               currency="💎"
               emoji="⚡"
-              description="5 kartu acak"
-              color="#4facfe"
-              onBuy={() => handleBuy('💎', 100, () => {})}
-            />
-            <ShopItem
-              name="Spirit Pack"
-              price={200}
-              currency="💎"
-              emoji="✨"
-              description="10 kartu + bonus"
-              color="#4bddb7"
-              onBuy={() => handleBuy('💎', 200, () => {})}
+              description="5 kartu Acak semua rarity"
+              color="#6c5ce7"
+              tag="POPULER"
+              tagColor="bg-purple-500/20 text-purple-400"
+              cardCount={5}
+              rarities={['COMMON', 'UNCOMMON', 'RARE']}
+              onBuy={() => handleBuyCards('RANDOM', 5)}
               highlight
+              diamonds={diamonds}
+            />
+            <CardPackItem
+              name="Rare Discovery"
+              price={150}
+              currency="💎"
+              emoji="💎"
+              description="3 kartu Rare/Ultra Rare"
+              color="#c77dff"
+              tag="PREMIUM"
+              tagColor="bg-pink-500/20 text-pink-400"
+              cardCount={3}
+              rarities={['RARE', 'ULTRA_RARE']}
+              onBuy={() => handleBuyCards('RARE', 3)}
+              diamonds={diamonds}
+            />
+            <CardPackItem
+              name="Legendary Pack"
+              price={300}
+              currency="💎"
+              emoji="🏆"
+              description="5 kartu Rare + 2 kartu Ultra Rare"
+              color="#ffd93d"
+              tag="TOP"
+              tagColor="bg-yellow-500/20 text-yellow-400"
+              cardCount={7}
+              rarities={['RARE', 'ULTRA_RARE']}
+              onBuy={() => handleBuyCards('LEGENDARY', 7)}
+              diamonds={diamonds}
             />
           </div>
         </section>
+
+        {/* Pack Opening Modal */}
+        <AnimatePresence>
+          {packOpening && (
+            <PackOpeningModal
+              cards={packOpening}
+              onClose={() => setPackOpening(null)}
+            />
+          )}
+        </AnimatePresence>
 
         {/* ✨ Stardust */}
         <section>

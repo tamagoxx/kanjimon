@@ -8,6 +8,24 @@ export type Rarity = 'COMMON' | 'UNCOMMON' | 'RARE' | 'ULTRA_RARE' | 'LIMITED_ED
 export type Element = 'FIRE' | 'WATER' | 'GRASS' | 'ELECTRIC' | 'PSYCHIC' | 'NORMAL';
 export type ElementEssence = 'FIRE_ESSENCE' | 'WATER_ESSENCE' | 'GRASS_ESSENCE' | 'ELECTRIC_ESSENCE' | 'PSYCHIC_ESSENCE' | 'NORMAL_ESSENCE';
 
+// --- Pokemon Moves ---
+export interface PokemonMove {
+  id: number;
+  name: string;
+  accuracy: number;       // 0-100 percentage
+  power: number;          // base damage (0 if status)
+  pp: number;             // uses per battle
+  type: string;           // elemental type e.g. "fire", "water"
+  category: 'physical' | 'special' | 'status';
+  description: string;
+  drain: number;           // HP drain % (leech seed type)
+  recoil: number;          // damage taken by user %
+  critRate: number;        // additional crit chance %
+  priority: number;        // turn order priority
+  minHits?: number;        // for multi-hit moves
+  maxHits?: number;
+}
+
 export interface JapaneseCard {
   id: string;
   japanese: string;         // 食べる

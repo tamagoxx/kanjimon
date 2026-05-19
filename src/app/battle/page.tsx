@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCollectionStore, PokemonCard } from '@/store/collectionStore';
@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/authStore';
 import type { ElementEssence, JapaneseCard } from '@/types';
 import { Swords, Shield, ArrowLeft, Zap, Flame, Droplets, Leaf, Eye, Sparkles, CircleDot } from 'lucide-react';
 import JankenGame from '@/components/battle/JankenGame';
+import { fetchMove, MOVE_TYPE_COLORS, MOVE_CATEGORY_ICONS, getMockMovesForTypes } from '@/data/pokemon-moves';
 
 // ============================================================
 // Types
@@ -26,6 +27,25 @@ interface BattleCard {
   status: CardStatus;
   image?: string;
   ability?: string; // e.g. "Battle Armor", "Overgrow", "Swift Swim"
+  moves?: BattleMove[]; // PokeAPI moves for Pokemon cards
+}
+
+// Battle-optimized move (subset of PokemonMove)
+export interface BattleMove {
+  id: number;
+  name: string;
+  power: number;      // 0 if status move
+  accuracy: number;   // 0-100
+  pp: number;
+  type: string;        // elemental type
+  category: 'physical' | 'special' | 'status';
+  description: string;
+  drain: number;       // HP drain %
+  recoil: number;     // user damage %
+  priority: number;
+  minHits?: number;
+  maxHits?: number;
+  critRate: number;   // crit chance boost (0-100)
 }
 
 // Ability badge color mapping based on effect type
@@ -86,6 +106,57 @@ const EFFECTIVENESS: Record<string, string[]> = {
   FIRE: ['GRASS'], GRASS: ['WATER'], WATER: ['FIRE'],
   ELECTRIC: ['WATER'], PSYCHIC: ['NORMAL'], NORMAL: [],
 };
+
+// Full type chart for PokeAPI move types (attacking type → defending types that are weak)
+const TYPE_CHART: Record<string, string[]> = {
+  fire: ['grass', 'bug', 'ice', 'steel'],
+  water: ['fire', 'ground', 'rock'],
+  grass: ['water', 'ground', 'rock'],
+  electric: ['water', 'flying'],
+  psychic: ['fighting', 'poison'],
+  normal: [],
+  fighting: ['normal', 'rock', 'steel', 'ice', 'dark'],
+  flying: ['grass', 'fighting', 'bug'],
+  poison: ['grass', 'fairy'],
+  ground: ['fire', 'electric', 'poison', 'rock', 'steel'],
+  rock: ['fire', 'ice', 'flying', 'bug'],
+  bug: ['grass', 'psychic', 'dark'],
+  ghost: ['psychic', 'ghost'],
+  steel: ['fire', 'water', 'electric', 'steel', 'ice', 'rock', 'fairy'],
+  dragon: ['dragon'],
+  dark: ['psychic', 'ghost'],
+  ice: ['grass', 'ground', 'flying', 'dragon'],
+  fairy: ['fighting', 'dragon', 'dark'],
+};
+
+// Get effectiveness multiplier for a move type vs defender element
+function getMoveEffectiveness(moveType: string, defenderElement: string): number {
+  const lowerMove = moveType.toLowerCase();
+  const lowerDef = defenderElement.toLowerCase();
+  const strongAgainst = TYPE_CHART[lowerMove] || [];
+  if (strongAgainst.includes(lowerDef)) return 2;
+  const weakAgainst: Record<string, string[]> = {
+    fire: ['fire', 'water', 'rock', 'dragon'],
+    water: ['water', 'grass', 'dragon'],
+    grass: ['grass', 'fire', 'bug', 'dragon', 'steel'],
+    electric: ['electric', 'grass', 'dragon'],
+    psychic: ['psychic', 'steel'],
+    fighting: ['poison', 'flying', 'psychic', 'fairy'],
+    flying: ['electric', 'rock', 'steel'],
+    poison: ['poison', 'ground', 'rock', 'ghost'],
+    ground: ['grass', 'bug', 'flying'],
+    rock: ['fighting', 'ground', 'steel'],
+    bug: ['fire', 'fighting', 'poison', 'flying', 'ghost', 'steel', 'fairy'],
+    ghost: ['dark'],
+    steel: ['fire', 'water', 'electric', 'steel', 'ice', 'rock', 'fairy'],
+    dragon: ['steel'],
+    dark: ['fighting', 'dark', 'fairy'],
+    ice: ['fire', 'water', 'steel'],
+    fairy: ['fire', 'poison', 'steel'],
+  };
+  if (weakAgainst[lowerMove]?.includes(lowerDef)) return 0.5;
+  return 1;
+}
 
 const OPPONENTS = [
   { id: 'sensei', name: 'Sensei Bot', emoji: '👨‍🏫', atk: 45, def: 30, hp: 120, level: 1, strategy: 'balanced' },
@@ -822,45 +893,288 @@ function HealModal({ card, onHeal, onSkip }: { card: BattleCard; onHeal: () => v
   );
 }
 
+// ============================================================
+// Move Selection Modal - Choose a move from PokeAPI
+// ============================================================
+function MoveSelectionModal({
+  card,
+  isBossBattle,
+  onSelect,
+  onCancel,
+}: {
+  card: BattleCard;
+  isBossBattle: boolean;
+  onSelect: (move: BattleMove | null, isStatus: boolean) => void;
+  onCancel: () => void;
+}) {
+  const [selectedMove, setSelectedMove] = useState<BattleMove | null>(null);
+
+  // When card has PokeAPI moves, show them; otherwise show placeholder slots
+  const availableMoves: BattleMove[] = card.moves && card.moves.length > 0
+    ? card.moves.slice(0, 4)
+    : getMockMovesForTypes([card.element.toLowerCase()]).map((m, i) => ({
+        ...m,
+        name: `Move ${i + 1}`,
+        power: Math.floor(card.attack * (0.8 + i * 0.15)),
+        accuracy: 90,
+        pp: 15,
+        category: i < 2 ? 'physical' : 'special',
+        description: 'A reliable move.',
+        drain: 0,
+        recoil: 0,
+        priority: 0,
+      }));
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 40 }}
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/80 backdrop-blur-sm p-4 pb-8"
+    >
+      <div
+        className="w-full max-w-lg rounded-2xl overflow-hidden"
+        style={{ backgroundColor: '#0f0f1a', border: '1px solid #ffffff20' }}
+      >
+        {/* Header */}
+        <div className="p-4 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h3 className="font-black text-white text-base">🎯 Pilih Move</h3>
+            <p className="text-white/40 text-xs">{card.name} — {card.moves?.length ? `${card.moves.length} moves from PokeAPI` : 'default moves'}</p>
+          </div>
+          <button onClick={onCancel} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#1a1a2e' }}>
+            <span className="text-white/60 text-sm">✕</span>
+          </button>
+        </div>
+
+{/* Moves list */}
+        <div className="p-3 space-y-2 max-h-[55vh] overflow-y-auto">
+          {availableMoves.map((move, i) => {
+            const typeColor = MOVE_TYPE_COLORS[move.type] || '#a8a8a8';
+            const catIcon = MOVE_CATEGORY_ICONS[move.category] || '💥';
+            const isStatus = move.category === 'status' || move.power === 0;
+            const effectiveness = isBossBattle
+              ? getMoveEffectiveness(move.type, 'NORMAL')
+              : getMoveEffectiveness(move.type, card.element);
+            const effLabel = effectiveness > 1 ? '🟥 Super Effective!' : effectiveness < 1 ? '🟦 Not Effective' : null;
+            // Normalize power for visual bar (0-150 range)
+            const powerPct = Math.min(100, (move.power / 120) * 100);
+
+            return (
+              <motion.button
+                key={`${move.id}-${i}`}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.07, type: 'spring', stiffness: 300 }}
+                onClick={() => setSelectedMove(move)}
+                className={`w-full p-3 rounded-xl flex items-center gap-3 text-left transition-all relative overflow-hidden ${
+                  selectedMove?.id === move.id ? 'ring-2 ring-white' : ''
+                }`}
+                style={{ background: `linear-gradient(135deg, ${typeColor}15 0%, ${typeColor}05 100%)`, border: `1px solid ${selectedMove?.id === move.id ? '#ffffff80' : typeColor + '50'}`, backdropFilter: 'blur(8px)' }}
+              >
+                {/* Left accent bar */}
+                <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ backgroundColor: typeColor }} />
+
+                {/* Type badge */}
+                <motion.div
+                  className="w-12 h-12 rounded-xl flex flex-col items-center justify-center flex-shrink-0 relative"
+                  style={{ backgroundColor: typeColor }}
+                  whileHover={{ scale: 1.08 }}
+                >
+                  <span className="text-[9px] font-bold text-white/80 uppercase">{move.type.slice(0, 3)}</span>
+                  <span className="text-xs font-black text-white">{catIcon}</span>
+                </motion.div>
+
+                <div className="flex-1 min-w-0 pl-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-white">{move.name}</span>
+                    {isStatus && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-500/30 text-blue-300 font-bold">STATUS</span>}
+                    {move.priority > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-yellow-500/30 text-yellow-300 font-bold">PRIORITY</span>}
+                    {effLabel && <span className="text-[9px] text-orange-400 font-bold">{effLabel}</span>}
+                  </div>
+
+                  {/* Power bar */}
+                  {move.power > 0 && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[9px] text-red-400 font-bold w-8">💥 {move.power}</span>
+                      <div className="flex-1 h-1.5 rounded-full bg-black/40 overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${powerPct}%` }}
+                          transition={{ delay: 0.1 + i * 0.07, duration: 0.4 }}
+                          style={{ background: `linear-gradient(90deg, ${typeColor}, ${typeColor}aa)` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Stats row */}
+                  <div className="flex items-center gap-3 mt-0.5">
+                    {move.accuracy > 0 && (
+                      <span className="text-[10px] text-white/40 flex items-center gap-0.5">
+                        <span className={move.accuracy < 70 ? 'text-orange-400' : 'text-white/40'}>⚖️ {move.accuracy}%</span>
+                      </span>
+                    )}
+                    <span className="text-[10px] text-white/30">PP {move.pp}</span>
+                    {move.critRate > 0 && (
+                      <span className="text-[10px] text-pink-400">💥 {move.critRate}% crit</span>
+                    )}
+                    {move.recoil > 0 && (
+                      <span className="text-[10px] text-orange-400/70">⚡ {move.recoil}% recoil</span>
+                    )}
+                    {move.drain > 0 && (
+                      <span className="text-[10px] text-green-400/70">💚 {move.drain}% drain</span>
+                    )}
+                  </div>
+
+                  {move.description && (
+                    <p className="text-[9px] text-white/25 mt-0.5 italic leading-tight line-clamp-1">{move.description}</p>
+                  )}
+                </div>
+
+                {/* Selection indicator */}
+                {selectedMove?.id === move.id && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: typeColor }}
+                  >
+                    <span className="text-sm">✅</span>
+                  </motion.div>
+                )}
+              </motion.button>
+            );
+          })}
+        </div>
+
+        {/* Confirm/Cancel buttons */}
+        <div className="p-3 border-t border-white/10 flex gap-2">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-3 rounded-xl text-sm font-bold text-white/60 border border-white/20"
+          >
+            Batal
+          </button>
+          <button
+            onClick={() => onSelect(selectedMove, selectedMove ? selectedMove.category === 'status' || selectedMove.power === 0 : false)}
+            disabled={!selectedMove}
+            className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-[#ff6b35] disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {selectedMove ? `Gunakan ${selectedMove.name}!` : 'Pilih Move'}
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 // Card in hand (mini)
 function HandCard({ card, idx, sel, onClick, disabled }: { card: BattleCard; idx: number; sel: boolean; onClick: () => void; disabled: boolean }) {
   const col = ELEMENT_COLORS[card.element];
   const hpPct = card.hp / card.maxHp;
   const abilityStyle = getAbilityStyle(card.ability || '');
+  const moveCount = card.moves?.length || 0;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.06 }}
-      whileHover={disabled ? {} : { y: -10, scale: 1.05 }} whileTap={disabled ? {} : { scale: 0.95 }}
+    <motion.div
+      initial={{ opacity: 0, y: 30, scale: 0.8 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: idx * 0.06, type: 'spring', stiffness: 350, damping: 25 }}
+      whileHover={disabled ? {} : { y: -14, scale: 1.08 }}
+      whileTap={disabled ? {} : { scale: 0.94 }}
       onClick={disabled ? undefined : onClick}
-      className={`relative w-[64px] h-[88px] rounded-lg p-1.5 flex flex-col items-center justify-center cursor-pointer transition-all flex-shrink-0 ${
-        sel ? 'ring-2 ring-white shadow-xl' : ''
-      } ${disabled ? 'opacity-40' : ''}`}
-      style={{ background: `linear-gradient(135deg, #1a1a2e 0%, ${col}22 100%)`, border: `2px solid ${sel ? '#fff' : col + '60'}` }}>
-      <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center">
-        <span className="text-[9px] font-bold text-white">{card.cost}</span>
-      </div>
-      {card.image ? (
-        <img src={card.image} alt={card.name} className="w-10 h-10 object-contain" />
-      ) : (
-        <span className="text-2xl" style={{ color: col }}>⬡</span>
+      className={`relative w-[70px] h-[96px] rounded-xl p-1.5 flex flex-col items-center justify-center cursor-pointer transition-all flex-shrink-0 ${
+        sel ? 'ring-2 ring-white shadow-2xl z-10' : ''
+      } ${disabled ? 'opacity-35' : ''}`}
+      style={{
+        background: sel
+          ? `linear-gradient(135deg, ${col}30 0%, #1a1a2e 100%)`
+          : `linear-gradient(135deg, #1a1a2e 0%, ${col}15 100%)`,
+        border: `2px solid ${sel ? '#ffffff90' : col + '50'}`,
+        boxShadow: sel
+          ? `0 0 20px ${col}60, 0 0 40px ${col}30, inset 0 0 15px ${col}15`
+          : `0 4px 12px ${col}20`,
+      }}
+    >
+      {/* Element glow ring behind card */}
+      {sel && (
+        <motion.div
+          className="absolute inset-0 rounded-xl -z-10"
+          animate={{ scale: [1, 1.05, 1], opacity: [0.4, 0.7, 0.4] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          style={{ background: `radial-gradient(circle, ${col}25 0%, transparent 70%)` }}
+        />
       )}
+
+      {/* Cost badge */}
+      <div
+        className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center shadow-lg font-black text-[9px]"
+        style={{ backgroundColor: col, color: '#fff' }}
+      >
+        {card.cost}
+      </div>
+
+      {/* Move count badge */}
+      <div
+        className="absolute top-1 left-1 px-1 py-0.5 rounded-full text-[7px] font-bold flex items-center gap-0.5"
+        style={{ backgroundColor: '#0f0f1aee', color: moveCount > 0 ? '#4bddb7' : '#666' }}
+        title={moveCount > 0 ? `${moveCount} PokeAPI moves` : 'No moves loaded'}
+      >
+        {moveCount > 0 ? `⚡${moveCount}` : '—'}
+      </div>
+
+      {/* Card image */}
+      <motion.div className="relative mt-1" whileHover={{ scale: 1.1 }} transition={{ type: 'spring', stiffness: 400 }}>
+        {card.image ? (
+          <img src={card.image} alt={card.name} className="w-11 h-11 object-contain drop-shadow-lg" />
+        ) : (
+          <span className="text-3xl" style={{ color: col, filter: `drop-shadow(0 0 6px ${col}80)` }}>⬡</span>
+        )}
+        {/* Element dot indicator */}
+        <div
+          className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full border border-black/40"
+          style={{ backgroundColor: col, boxShadow: `0 0 4px ${col}` }}
+        />
+      </motion.div>
+
+      {/* Name */}
+      <span className="text-[8px] text-white/70 capitalize mt-1 truncate w-full text-center font-semibold leading-tight">
+        {card.name.split(' ')[0]}
+      </span>
+
+      {/* HP bar */}
+      <div className="w-full mt-1 h-1.5 rounded-full bg-black/50 overflow-hidden ring-1 ring-white/10">
+        <motion.div
+          className="h-full rounded-full"
+          animate={{ width: `${hpPct * 100}%` }}
+          transition={{ type: 'spring', stiffness: 300 }}
+          style={{
+            backgroundColor: hpPct > 0.5 ? '#4bddb7' : hpPct > 0.25 ? '#ffd93d' : '#ff6b35',
+            boxShadow: `0 0 4px ${hpPct > 0.5 ? '#4bddb7' : hpPct > 0.25 ? '#ffd93d' : '#ff6b35'}60`,
+          }}
+        />
+      </div>
+
+      {/* ATK/DEF row */}
+      <div className="flex items-center gap-1 text-[8px] mt-0.5">
+        <span className="text-red-400 font-bold">⚔️{card.attack}</span>
+        <span className="text-blue-400 font-bold">🛡️{card.defense}</span>
+      </div>
+
+      {/* Ability badge */}
       {card.ability && (
         <div
-          className="absolute top-1 left-1 px-1 py-0.5 rounded text-[7px] font-bold flex items-center gap-0.5"
+          className="absolute bottom-1 left-1 right-1 px-1 py-0.5 rounded text-[6px] font-bold flex items-center justify-center gap-0.5 truncate"
           style={{ backgroundColor: abilityStyle.bg, color: abilityStyle.text }}
           title={formatAbilityName(card.ability)}
         >
           <span>{abilityStyle.icon}</span>
+          <span className="truncate">{abilityStyle.icon === '⭐' ? 'AB' : ''}</span>
         </div>
       )}
-      <span className="text-[9px] text-white/60 capitalize mt-0.5 truncate w-full text-center">{card.name}</span>
-      <div className="w-full mt-1 h-1 rounded-full bg-black/40 overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${hpPct * 100}%`, backgroundColor: hpPct > 0.5 ? '#4bddb7' : hpPct > 0.25 ? '#ffd93d' : '#ff6b35' }} />
-      </div>
-      <div className="flex items-center gap-0.5 text-[8px] mt-0.5">
-        <span className="text-red-400">{card.attack}</span>
-        <span className="text-blue-400">{card.defense}</span>
-      </div>
+
       <StatusBadge status={card.status} />
     </motion.div>
   );
@@ -1091,6 +1405,7 @@ function ActiveCard({ card, isPlayer, attacking, hit }: { card: BattleCard; isPl
   const col = ELEMENT_COLORS[card.element];
   const hpPct = card.hp / card.maxHp;
   const abilityStyle = getAbilityStyle(card.ability || '');
+  const moveCount = card.moves?.length || 0;
 
   return (
     <motion.div
@@ -1101,40 +1416,119 @@ function ActiveCard({ card, isPlayer, attacking, hit }: { card: BattleCard; isPl
         x: attacking ? (isPlayer ? 20 : -20) : hit ? [0, -15, 15, -10, 10, 0] : 0,
       }}
       transition={attacking ? { duration: 0.15, ease: 'easeOut' } : hit ? { duration: 0.4 } : {}}
-      className={`rounded-lg overflow-hidden ${isPlayer ? 'border-t-2' : 'border-b-2'}`}
-      style={{ borderColor: col, background: 'linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%)' }}>
+      className={`rounded-xl overflow-hidden relative ${isPlayer ? 'border-t-2' : 'border-b-2'}`}
+      style={{
+        borderColor: col,
+        background: 'linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%)',
+        boxShadow: `0 0 24px ${col}30, inset 0 0 30px ${col}08`,
+      }}
+    >
+      {/* Elemental top/bottom glow line */}
+      <div
+        className="absolute left-0 right-0 h-0.5"
+        style={{
+          top: isPlayer ? 0 : 'auto',
+          bottom: isPlayer ? 'auto' : 0,
+          background: `linear-gradient(90deg, transparent, ${col}, transparent)`,
+          boxShadow: `0 0 12px ${col}`,
+        }}
+      />
+
       <div className="p-2 flex items-center gap-2">
-        <div className="w-12 h-14 rounded-lg flex items-center justify-center overflow-hidden relative" style={{ backgroundColor: col + '25' }}>
-          {card.image ? <img src={card.image} alt={card.name} className="w-10 h-10 object-contain" /> : (
-            <span className="text-3xl" style={{ color: col }}>⬡</span>
-          )}
+        {/* Card sprite area with glow */}
+        <div className="relative">
+          <motion.div
+            className="w-14 h-16 rounded-lg flex items-center justify-center overflow-hidden relative"
+            style={{ backgroundColor: col + '18' }}
+            animate={attacking ? { scale: [1, 1.1, 1] } : {}}
+            transition={{ duration: 0.2 }}
+          >
+            {card.image ? (
+              <img src={card.image} alt={card.name} className="w-12 h-12 object-contain" style={{ filter: `drop-shadow(0 0 8px ${col}60)` }} />
+            ) : (
+              <span className="text-4xl" style={{ color: col, filter: `drop-shadow(0 0 8px ${col}80)` }}>⬡</span>
+            )}
+            {/* Pulsing element aura behind sprite */}
+            <motion.div
+              className="absolute inset-0 rounded-lg -z-10"
+              animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.6, 0.3] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              style={{ background: `radial-gradient(circle, ${col}30 0%, transparent 70%)` }}
+            />
+          </motion.div>
+
+          {/* Move count badge */}
+          <div
+            className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[8px] font-black flex items-center gap-0.5 shadow-lg"
+            style={{ backgroundColor: col, color: '#fff' }}
+            title={moveCount > 0 ? `${moveCount} PokeAPI moves available` : 'No PokeAPI moves'}
+          >
+            {moveCount > 0 ? `⚡${moveCount}` : '—'}
+          </div>
+
           <StatusBadge status={card.status} />
         </div>
+
         <div className="flex-1">
           <div className="flex items-center justify-between mb-0.5">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-white capitalize">{card.name}</span>
+              <span className="text-sm font-black text-white capitalize">{card.name}</span>
               {card.ability && (
-                <div
+                <motion.div
                   className="px-1.5 py-0.5 rounded-full text-[8px] font-bold flex items-center gap-0.5"
                   style={{ backgroundColor: abilityStyle.bg, color: abilityStyle.text }}
                   title={formatAbilityName(card.ability)}
+                  whileHover={{ scale: 1.1 }}
                 >
                   <span>{abilityStyle.icon}</span>
-                </div>
+                  <span>{abilityStyle.icon !== '⭐' ? formatAbilityName(card.ability).split(' ')[0] : 'AB'}</span>
+                </motion.div>
               )}
             </div>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: col + '30', color: col }}>{card.element}</span>
+            {/* Element badge */}
+            <span
+              className="text-[9px] px-2 py-0.5 rounded-full font-bold"
+              style={{ backgroundColor: col + '25', color: col, border: `1px solid ${col}50` }}
+            >
+              {card.element}
+            </span>
           </div>
-          <div className="flex items-center gap-2 text-[9px]">
-            <span className="text-red-400">⚔️ {card.attack}</span>
-            <span className="text-blue-400">🛡️ {card.defense}</span>
+
+          {/* ATK/DEF + Move count row */}
+          <div className="flex items-center gap-3 text-[10px]">
+            <span className="text-red-400 font-bold">⚔️ {card.attack}</span>
+            <span className="text-blue-400 font-bold">🛡️ {card.defense}</span>
+            {moveCount > 0 && (
+              <span className="text-green-400/80 font-bold text-[9px]">✨ {moveCount} moves</span>
+            )}
           </div>
-          <div className="mt-1 h-1.5 rounded-full overflow-hidden bg-black/50">
-            <motion.div className="h-full rounded-full" animate={{ width: `${hpPct * 100}%` }}
-              style={{ backgroundColor: hpPct > 0.5 ? '#4bddb7' : hpPct > 0.25 ? '#ffd93d' : '#ff6b35' }} />
+
+          {/* HP bar with glow */}
+          <div className="mt-1.5 h-2 rounded-full overflow-hidden bg-black/50 ring-1 ring-white/10">
+            <motion.div
+              className="h-full rounded-full relative"
+              animate={{ width: `${hpPct * 100}%` }}
+              transition={{ type: 'spring', stiffness: 300 }}
+              style={{
+                backgroundColor: hpPct > 0.5 ? '#4bddb7' : hpPct > 0.25 ? '#ffd93d' : '#ff6b35',
+                boxShadow: `0 0 8px ${hpPct > 0.5 ? '#4bddb7' : hpPct > 0.25 ? '#ffd93d' : '#ff6b35'}80`,
+              }}
+            >
+              {/* Shimmer on HP bar */}
+              {hpPct > 0.3 && (
+                <motion.div
+                  className="absolute inset-0 rounded-full"
+                  animate={{ x: ['-100%', '200%'] }}
+                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+                  style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)' }}
+                />
+              )}
+            </motion.div>
           </div>
-          <span className="text-[9px] text-white/40">{card.hp}/{card.maxHp}</span>
+          <div className="flex items-center justify-between mt-0.5">
+            <span className="text-[9px] text-white/50">{card.hp}/{card.maxHp} HP</span>
+            {card.status && <span className="text-[9px] text-yellow-400">{card.status}</span>}
+          </div>
         </div>
       </div>
     </motion.div>
@@ -1218,6 +1612,8 @@ function BattlePageContent() {
   const [result, setResult] = useState<{ win: boolean; xp: number; diamonds: number; stardust?: number } | null>(null);
   const [autoMode, setAutoMode] = useState(false);
   const [processing, setProcessing] = useState(false);
+  // Move selection state — when a card is selected, player picks a move from PokeAPI
+  const [moveCard, setMoveCard] = useState<BattleCard | null>(null);
 
   const logRef = useRef(0);
   const addLog = (txt: string) => setLog(prev => [...prev.slice(-5), `[${logRef.current++}] ${txt}`]);
@@ -1450,7 +1846,7 @@ function BattlePageContent() {
     }, 2000);
   };
 
-  // Select card from hand
+  // Select card from hand — now shows move selection modal
   const selectCard = (idx: number) => {
     if (!isPlayerTurn || processing) return;
     const card = playerHand[idx];
@@ -1476,9 +1872,35 @@ function BattlePageContent() {
     if (timerRef.current) clearTimeout(timerRef.current);
     setCardSelectTimer(0);
 
-    // Route attack based on battle type — auto mode triggers execute from here
-    // (useEffect handles auto attack after card selection, not from selectCard)
+    // Show move selection modal (player picks which PokeAPI move to use)
+    setMoveCard(card);
   };
+
+  // Handle move selection from modal — then execute attack
+  const handleMoveSelected = (move: BattleMove | null, isStatus: boolean) => {
+    const s = stateRef.current;
+    setMoveCard(null);
+
+    if (!move || !s.playerActive) {
+      // Cancelled or no move — deselect and end turn
+      setPlayerActive(null);
+      if (s.phase === 'boss-battle') {
+        doEndBossPlayerTurn();
+      } else {
+        doEndPlayerTurn();
+      }
+      return;
+    }
+
+    // Store selected move in a ref for use in executePlayerAttack/executeBossPlayerAttack
+    selectedMoveRef.current = move;
+    addLog(`⚡ ${s.playerActive.name} gunakan ${move.name}!`);
+
+    // Continue with attack execution (auto-triggered after modal closes via useEffect)
+  };
+
+  // Ref to hold selected move between selection and execution
+  const selectedMoveRef = useRef<BattleMove | null>(null);
 
   // Answer heal (player) — heal action triggered instead of study
   const answerHeal = (chosen: 'heal' | 'skip') => {
@@ -1773,12 +2195,32 @@ function BattlePageContent() {
     if (!s.playerActive || !s.isPlayerTurn || s.processing || s.phase !== 'boss-battle') return;
     setProcessing(true);
 
-    let damage = s.playerActive.attack;
+    // Use move power from PokeAPI if available, else fallback to card attack stat
+    const move = selectedMoveRef.current;
+    let basePower = move?.power || s.playerActive.attack;
+
+    // Check move accuracy — miss chance
+    const moveAccuracy = move?.accuracy ?? 100;
+    const missed = moveAccuracy > 0 && Math.random() * 100 > moveAccuracy;
+    let damage = missed ? 0 : basePower;
 
     // Apply player buff (debuff from boss)
     if (s.playerBuffed) {
       damage = Math.floor(damage * 0.8);
       addLog(`😈 Weakend: -20% damage`);
+    }
+
+    // Apply PokeAPI move type effectiveness
+    if (move) {
+      const eff = getMoveEffectiveness(move.type, 'NORMAL');
+      if (eff > 1) damage = Math.floor(damage * eff);
+      else if (eff < 1) damage = Math.floor(damage * eff);
+      if (missed) addLog(`❌ ${s.playerActive!.name} attack missed!`);
+      else if (eff > 1) addLog(`✨ SUPER EFFECTIVE vs BOSS! -${damage}`);
+      else if (eff < 1) addLog(`💧 Not very effective vs BOSS... -${damage}`);
+      else addLog(`⚔️ ${s.playerActive!.name} attacks! -${damage} to ${s.boss?.name}!`);
+    } else {
+      addLog(`⚔️ ${s.playerActive!.name} attacks! -${damage} to ${s.boss?.name}!`);
     }
 
     // Apply boss defense multiplier
@@ -1802,7 +2244,29 @@ function BattlePageContent() {
     setTimeout(() => {
       setShowDmg(false);
       setProcessing(false);
-      addLog(`⚔️ ${s.playerActive!.name} attacks! -${damage} to ${s.boss?.name}!`);
+
+      // Apply recoil damage to player
+      if (move && move.recoil > 0 && !missed) {
+        const recoilDmg = Math.floor(damage * move.recoil / 100);
+        if (recoilDmg > 0) {
+          setPlayerHp(prev => Math.max(0, prev - recoilDmg));
+          addLog(`⚡ ${s.playerActive!.name} took ${recoilDmg} recoil damage!`);
+        }
+      }
+
+      // Apply drain healing
+      if (move && move.drain > 0 && !missed && s.playerActive) {
+        const drainAmt = Math.floor(damage * move.drain / 100);
+        if (drainAmt > 0) {
+          const newHp = Math.min(s.playerActive.maxHp, s.playerActive.hp + drainAmt);
+          setPlayerActive({ ...s.playerActive, hp: newHp });
+          setPlayerHand(prev => prev.map(c => c.id === s.playerActive!.id ? { ...s.playerActive!, hp: newHp } : c));
+          addLog(`💚 ${s.playerActive!.name} drained ${drainAmt} HP!`);
+        }
+      }
+
+      // Clear selected move after use
+      selectedMoveRef.current = null;
 
       const newBossHp = Math.max(0, s.bossHp - damage);
       setBossHp(newBossHp);
@@ -2044,17 +2508,41 @@ function BattlePageContent() {
     if (!s.playerActive || !s.isPlayerTurn || s.processing) return;
     setProcessing(true);
 
-    let damage = s.playerActive.attack;
+    // Use move power from PokeAPI if available, else fallback to card attack stat
+    const move = selectedMoveRef.current;
+    let basePower = move?.power || s.playerActive.attack;
+
+    // Check move accuracy — miss chance
+    const moveAccuracy = move?.accuracy ?? 100;
+    const missed = moveAccuracy > 0 && Math.random() * 100 > moveAccuracy;
+    const baseDamage = missed ? 0 : basePower;
+
+    let damage = baseDamage;
     let effectiveness: 'super' | 'weak' | 'normal' = 'normal';
 
-    const eff = getElementAdvantage(s.playerActive.element, s.oppActive?.element || 'NORMAL');
-    if (eff > 1) { effectiveness = 'super'; damage = Math.floor(damage * eff); }
-    else if (eff < 1) { effectiveness = 'weak'; damage = Math.floor(damage * eff); }
+    // Apply PokeAPI move type effectiveness (full type chart)
+    if (move && s.oppActive) {
+      const eff = getMoveEffectiveness(move.type, s.oppActive.element);
+      if (eff > 1) { effectiveness = 'super'; damage = Math.floor(damage * eff); }
+      else if (eff < 1) { effectiveness = 'weak'; damage = Math.floor(damage * eff); }
+    } else {
+      const eff = getElementAdvantage(s.playerActive.element, s.oppActive?.element || 'NORMAL');
+      if (eff > 1) { effectiveness = 'super'; damage = Math.floor(damage * eff); }
+      else if (eff < 1) { effectiveness = 'weak'; damage = Math.floor(damage * eff); }
+    }
 
+    // Combo bonus
     if (s.lastElem === s.playerActive.element && s.lastElem !== null) {
       const bonus = Math.floor(damage * 0.25 * s.combo);
       damage += bonus;
       addLog(`🔥 Combo ${s.combo + 1}x! +${bonus} damage!`);
+    }
+
+    // Crit bonus from move
+    const critBonus = move?.critRate ? (move.critRate > 0 && Math.random() * 100 < move.critRate ? Math.floor(damage * 0.5) : 0) : 0;
+    if (critBonus > 0) {
+      damage += critBonus;
+      addLog(`💥 CRIT! +${critBonus} bonus damage!`);
     }
 
     if (s.oppActive) {
@@ -2079,7 +2567,9 @@ function BattlePageContent() {
       setShowDmg(false);
       setProcessing(false);
 
-      if (effectiveness === 'super') addLog(`✨ SUPER EFFECTIVE! -${damage}`);
+      if (missed) addLog(`❌ ${s.playerActive!.name} attack missed!`);
+      else if (effectiveness === 'super') addLog(`✨ SUPER EFFECTIVE! -${damage}`);
+      else if (effectiveness === 'weak') addLog(`💧 Not very effective... -${damage}`);
       else addLog(`⚔️ ${s.playerActive!.name} menyerang! -${damage} damage!`);
 
       if (s.lastElem === s.playerActive!.element) setCombo(c => c + 1);
@@ -2088,7 +2578,30 @@ function BattlePageContent() {
       const newOppHp = Math.max(0, s.oppHp - damage);
       setOppHp(newOppHp);
 
-if (newOppHp <= 0) {
+      // Apply recoil damage to player (move.recoil is % of damage taken by user)
+      if (move && move.recoil > 0 && !missed) {
+        const recoilDmg = Math.floor(damage * move.recoil / 100);
+        if (recoilDmg > 0) {
+          setPlayerHp(prev => Math.max(0, prev - recoilDmg));
+          addLog(`⚡ ${s.playerActive!.name} took ${recoilDmg} recoil damage!`);
+        }
+      }
+
+      // Apply drain healing to player
+      if (move && move.drain > 0 && !missed) {
+        const drainAmt = Math.floor(damage * move.drain / 100);
+        if (drainAmt > 0 && s.playerActive) {
+          const newHp = Math.min(s.playerActive.maxHp, s.playerActive.hp + drainAmt);
+          setPlayerActive({ ...s.playerActive, hp: newHp });
+          setPlayerHand(prev => prev.map(c => c.id === s.playerActive!.id ? { ...s.playerActive!, hp: newHp } : c));
+          addLog(`💚 ${s.playerActive!.name} drained ${drainAmt} HP!`);
+        }
+      }
+
+      // Clear selected move after use
+      selectedMoveRef.current = null;
+
+      if (newOppHp <= 0) {
         const xp = 10 + (s.opponent?.level || 1) * 5;
         const diamonds = 5 + (s.opponent?.level || 1) * 2;
         const stardustReward = 5 + (s.opponent?.level || 1) * 2;
@@ -2307,6 +2820,7 @@ if (newOppHp <= 0) {
       </AnimatePresence>
       <AnimatePresence>{result && <ResultModal win={result.win} xpGained={result.xp} diamondsGained={result.diamonds} stardustGained={result.stardust} onClose={() => { setResult(null); setPhase('select-deck'); setSelectedDeckId(null); }} />}</AnimatePresence>
       <AnimatePresence>{showStudy && playerActive && <HealModal card={playerActive} onHeal={() => answerHeal('heal')} onSkip={() => answerHeal('skip')} />}</AnimatePresence>
+      <AnimatePresence>{moveCard && <MoveSelectionModal card={moveCard} isBossBattle={phase === 'boss-battle'} onSelect={handleMoveSelected} onCancel={() => { setMoveCard(null); setPlayerActive(null); setPlayerEnergy(prev => prev + (moveCard?.cost || 1)); }} />}</AnimatePresence>
 
       {phase === 'intro' && opponent && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-40 flex items-center justify-center" style={{ backgroundColor: '#0d0d1a' }}>

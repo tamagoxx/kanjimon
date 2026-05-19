@@ -7,6 +7,7 @@ import { HIRAGANA_BASIC, HIRAGANA_DAKUTEN, HIRAGANA_COMBINATIONS } from '@/data/
 import { KATAKANA_BASIC } from '@/data/learning/characters';
 import { useCollectionStore } from '@/store/collectionStore';
 import { useLearningProgressStore } from '@/store/learningProgressStore';
+import type { JapaneseCard } from '@/types';
 
 const colors = {
   background: '#0a1519',
@@ -22,6 +23,27 @@ const colors = {
   darkGray: '#2b363b',
   navBg: '#162125',
 };
+
+// Pool kartu Japanese reward untuk quiz (80% chance upon passing)
+const QUIZ_REWARD_CARDS: JapaneseCard[] = [
+  { id: 'quiz_fire_1', japanese: '火', reading: 'ひ', romaji: 'hi', meaning: 'api', meaningId: 'api', type: 'NOUN', jlptLevel: 'N5', hp: 110, attackPower: 42, defenseRating: 25, specialAbility: 'Flame', rarity: 'UNCOMMON', element: 'FIRE', cardArtUrl: '', exampleSentence: '火が明るい', exampleTranslation: 'Api itu cerah', tags: ['fire', 'nature'] },
+  { id: 'quiz_water_1', japanese: '水', reading: 'みず', romaji: 'mizu', meaning: 'air', meaningId: 'air', type: 'NOUN', jlptLevel: 'N5', hp: 105, attackPower: 38, defenseRating: 30, specialAbility: 'Aqua', rarity: 'UNCOMMON', element: 'WATER', cardArtUrl: '', exampleSentence: '水を飲む', exampleTranslation: 'Minum air', tags: ['water', 'nature'] },
+  { id: 'quiz_grass_1', japanese: '木', reading: 'き', romaji: 'ki', meaning: 'pohon', meaningId: 'pohon', type: 'NOUN', jlptLevel: 'N5', hp: 115, attackPower: 35, defenseRating: 35, specialAbility: 'Overgrow', rarity: 'UNCOMMON', element: 'GRASS', cardArtUrl: '', exampleSentence: '木が大きい', exampleTranslation: 'Pohonnya besar', tags: ['grass', 'nature'] },
+  { id: 'quiz_electric_1', japanese: '電', reading: 'でん', romaji: 'den', meaning: 'listrik', meaningId: 'listrik', type: 'NOUN', jlptLevel: 'N5', hp: 100, attackPower: 48, defenseRating: 20, specialAbility: 'Voltaic', rarity: 'UNCOMMON', element: 'ELECTRIC', cardArtUrl: '', exampleSentence: '電車が来る', exampleTranslation: 'Kereta listrik datang', tags: ['electric', 'tech'] },
+  { id: 'quiz_love_1', japanese: '愛', reading: 'あい', romaji: 'ai', meaning: 'cinta', meaningId: 'cinta', type: 'NOUN', jlptLevel: 'N5', hp: 120, attackPower: 30, defenseRating: 40, specialAbility: 'Love', rarity: 'RARE', element: 'PSYCHIC', cardArtUrl: '', exampleSentence: '愛は強い', exampleTranslation: 'Cinta itu kuat', tags: ['love', 'emotion'] },
+  { id: 'quiz_food_1', japanese: '食', reading: 'たべ', romaji: 'tabe', meaning: 'makan', meaningId: 'makan', type: 'NOUN', jlptLevel: 'N5', hp: 100, attackPower: 40, defenseRating: 30, specialAbility: 'Feast', rarity: 'UNCOMMON', element: 'NORMAL', cardArtUrl: '', exampleSentence: '食べ物が美味しい', exampleTranslation: 'Makanannya enak', tags: ['food', 'action'] },
+  { id: 'quiz_sun_1', japanese: '日', reading: 'ひ', romaji: 'hi', meaning: 'hari/matahari', meaningId: 'hari', type: 'NOUN', jlptLevel: 'N5', hp: 110, attackPower: 40, defenseRating: 30, specialAbility: 'Solar', rarity: 'UNCOMMON', element: 'FIRE', cardArtUrl: '', exampleSentence: '日が明るい', exampleTranslation: 'Hari itu cerah', tags: ['time', 'nature'] },
+  { id: 'quiz_moon_1', japanese: '月', reading: 'つき', romaji: 'tsuki', meaning: 'bulan', meaningId: 'bulan', type: 'NOUN', jlptLevel: 'N5', hp: 105, attackPower: 38, defenseRating: 32, specialAbility: 'Lunar', rarity: 'UNCOMMON', element: 'PSYCHIC', cardArtUrl: '', exampleSentence: '月が綺麗', exampleTranslation: 'Bulan itu indah', tags: ['time', 'nature'] },
+  { id: 'quiz_star_1', japanese: '星', reading: 'ほし', romaji: 'hoshi', meaning: 'bintang', meaningId: 'bintang', type: 'NOUN', jlptLevel: 'N5', hp: 100, attackPower: 35, defenseRating: 35, specialAbility: 'Stardust', rarity: 'UNCOMMON', element: 'PSYCHIC', cardArtUrl: '', exampleSentence: '星が多い', exampleTranslation: 'Banyak bintang', tags: ['nature', 'space'] },
+  { id: 'quiz_heart_1', japanese: '心', reading: 'こころ', romaji: 'kokoro', meaning: 'hati', meaningId: 'hati', type: 'NOUN', jlptLevel: 'N5', hp: 115, attackPower: 35, defenseRating: 38, specialAbility: 'Psychic', rarity: 'RARE', element: 'PSYCHIC', cardArtUrl: '', exampleSentence: '心を込める', exampleTranslation: 'Dengan sepenuh hati', tags: ['emotion', 'soul'] },
+  { id: 'quiz_wind_1', japanese: '風', reading: 'かぜ', romaji: 'kaze', meaning: 'angin', meaningId: 'angin', type: 'NOUN', jlptLevel: 'N5', hp: 100, attackPower: 42, defenseRating: 28, specialAbility: 'Gale', rarity: 'UNCOMMON', element: 'ELECTRIC', cardArtUrl: '', exampleSentence: '風が強い', exampleTranslation: 'Anginnya kuat', tags: ['nature', 'weather'] },
+  { id: 'quiz_mountain_1', japanese: '山', reading: 'やま', romaji: 'yama', meaning: 'gunung', meaningId: 'gunung', type: 'NOUN', jlptLevel: 'N5', hp: 120, attackPower: 32, defenseRating: 42, specialAbility: 'Fortress', rarity: 'RARE', element: 'NORMAL', cardArtUrl: '', exampleSentence: '山が高い', exampleTranslation: 'Gunungnya tinggi', tags: ['nature', 'place'] },
+];
+
+// Pick a random reward card from the pool
+function pickRandomRewardCard(): JapaneseCard {
+  return QUIZ_REWARD_CARDS[Math.floor(Math.random() * QUIZ_REWARD_CARDS.length)]!;
+}
 
 // TopAppBar
 function TopAppBar({ title = 'Belajar', showBack = false, onBack }: { title?: string; showBack?: boolean; onBack?: () => void }) {
@@ -258,6 +280,7 @@ function QuizModal({ isOpen, onClose, moduleType, quizSubset = 'basic' }: {
   quizSubset?: 'basic' | 'dakuten' | 'combinations';
 }) {
   const addDiamonds = useCollectionStore(s => s.addDiamonds);
+  const addJapaneseCard = useCollectionStore(s => s.addJapaneseCard);
   const trackQuestEvent = useCollectionStore(s => s.trackQuestEvent);
   const markCharLearned = useLearningProgressStore(s => s.markCharLearned);
   const markBatchLearned = useLearningProgressStore(s => s.markBatchLearned);
@@ -277,9 +300,20 @@ function QuizModal({ isOpen, onClose, moduleType, quizSubset = 'basic' }: {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isClosing, setIsClosing] = useState(false);
+  const [awardedCard, setAwardedCard] = useState<JapaneseCard | null>(null);
   const [subsetLabel, setSubsetLabel] = useState(
     quizSubset === 'dakuten' ? 'DAKUTEN' : quizSubset === 'combinations' ? 'KOMBINASI' : moduleType.toUpperCase()
   );
+
+  // Reset state when modal reopens (isOpen changes from false to true)
+  useEffect(() => {
+    if (isOpen) {
+      setAwardedCard(null);
+      setIsComplete(false);
+      setIsClosing(false);
+      setShowResult(false);
+    }
+  }, [isOpen]);
 
   // Update label when subset changes
   useEffect(() => {
@@ -378,6 +412,7 @@ function QuizModal({ isOpen, onClose, moduleType, quizSubset = 'basic' }: {
       setShowResult(false);
       setError(null);
       setIsClosing(false);
+      setAwardedCard(null);
     }
   }, [isOpen]);
 
@@ -493,14 +528,28 @@ function QuizModal({ isOpen, onClose, moduleType, quizSubset = 'basic' }: {
     try {
       // Calculate reward
       const reward = finalScore >= 8 ? 15 : finalScore >= 6 ? 8 : 0;
+      const passed = finalScore >= 6;
 
       // Add diamonds if earned
       if (reward > 0) {
         addDiamonds(reward);
       }
 
+      // 80% chance to get a Japanese card on passing (score >= 6)
+      if (passed) {
+        const roll = Math.random() * 100;
+        if (roll < 80) {
+          const rewardCard = pickRandomRewardCard();
+          addJapaneseCard(rewardCard);
+          setAwardedCard(rewardCard);
+          console.log(`[Quiz] Awarded Japanese card: ${rewardCard.japanese} (${rewardCard.romaji})`);
+        } else {
+          console.log(`[Quiz] Card roll failed (${roll.toFixed(1)}%), no card awarded`);
+        }
+      }
+
       // Mark characters as learned if passed - use batch for efficiency
-      if (finalScore >= 6 && finalQuestions.length > 0) {
+      if (passed && finalQuestions.length > 0) {
         const charsToMark = finalQuestions.map(q => ({ char: q.char, romaji: q.romaji }));
         const addedCount = markBatchLearned(moduleType, charsToMark);
         console.log(`[Quiz] Marked ${addedCount} chars as learned for ${moduleType}`);
@@ -525,6 +574,8 @@ function QuizModal({ isOpen, onClose, moduleType, quizSubset = 'basic' }: {
 
   // Complete screen
   if (isComplete) {
+    const passed = score >= 6;
+
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -532,7 +583,7 @@ function QuizModal({ isOpen, onClose, moduleType, quizSubset = 'basic' }: {
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
         style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
       >
-        <div className="text-center p-8 rounded-2xl" style={{ backgroundColor: colors.cardBg }}>
+        <div className="text-center p-6 rounded-2xl w-full max-w-sm" style={{ backgroundColor: colors.cardBg }}>
           <div className="text-5xl mb-3">{score >= 8 ? '🏆' : score >= 6 ? '👍' : '📚'}</div>
           <h2 className="text-2xl font-bold text-[#d8e4ea] mb-2">
             {score >= 8 ? 'Luar Biasa!' : score >= 6 ? 'Bagus!' : 'Tetap Semangat!'}
@@ -547,6 +598,68 @@ function QuizModal({ isOpen, onClose, moduleType, quizSubset = 'basic' }: {
               </p>
             </div>
           )}
+
+          {/* Card reward reveal */}
+          <AnimatePresence>
+            {awardedCard && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                className="mb-4 mx-auto"
+              >
+                <p className="text-xs text-white/50 mb-2">🎁 Kartu Japanese Baru!</p>
+                <div
+                  className="w-20 h-28 mx-auto rounded-xl flex flex-col items-center justify-center relative overflow-hidden"
+                  style={{
+                    background: `linear-gradient(135deg, #1a1a2e 0%, ${
+                      awardedCard.element === 'FIRE' ? '#ff6b3530' :
+                      awardedCard.element === 'WATER' ? '#4facfe30' :
+                      awardedCard.element === 'GRASS' ? '#4bddb730' :
+                      awardedCard.element === 'ELECTRIC' ? '#ffd93d30' :
+                      '#c77dff30'
+                    } 100%)`,
+                    border: `2px solid ${
+                      awardedCard.element === 'FIRE' ? '#ff6b35' :
+                      awardedCard.element === 'WATER' ? '#4facfe' :
+                      awardedCard.element === 'GRASS' ? '#4bddb7' :
+                      awardedCard.element === 'ELECTRIC' ? '#ffd93d' :
+                      '#c77dff'
+                    }`,
+                    boxShadow: `0 0 20px ${
+                      awardedCard.element === 'FIRE' ? '#ff6b3560' :
+                      awardedCard.element === 'WATER' ? '#4facfe60' :
+                      awardedCard.element === 'GRASS' ? '#4bddb760' :
+                      awardedCard.element === 'ELECTRIC' ? '#ffd93d60' :
+                      '#c77dff60'
+                    }`,
+                  }}
+                >
+                  <span className="text-4xl font-black text-white">{awardedCard.japanese}</span>
+                  <span className="text-[9px] text-white/70 mt-0.5">{awardedCard.reading}</span>
+                  <div className="absolute bottom-0 inset-x-0 h-1.5 bg-black/30" />
+                  <div className="absolute bottom-0 inset-x-0 h-1.5" style={{
+                    backgroundColor: awardedCard.rarity === 'RARE' ? '#ffd93d' : '#6c5ce7',
+                  }} />
+                  <div
+                    className="absolute top-0.5 right-0.5 text-[6px] font-black px-1 py-0.5 rounded-full"
+                    style={{
+                      backgroundColor: awardedCard.rarity === 'RARE' ? '#ffd93d' : '#6c5ce7',
+                      color: '#fff',
+                    }}
+                  >
+                    {awardedCard.rarity}
+                  </div>
+                </div>
+                <p className="text-xs text-white/60 mt-1">「{awardedCard.romaji}」 — {awardedCard.meaning}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {!awardedCard && score >= 6 && (
+            <p className="text-xs text-white/30 mb-4">🎁 Berpeluang mendapat kartu Japanese!</p>
+          )}
+
           <p className="text-sm text-[#c8c4d7] mb-6">
             {score >= 8 ? 'Kamu sudah menguasai modul ini!' : 'Terus latihan untuk meningkatkan.'}
           </p>
