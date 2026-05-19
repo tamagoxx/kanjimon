@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, usePathname } from 'next/navigation';
 import { HIRAGANA_BASIC, HIRAGANA_DAKUTEN, HIRAGANA_COMBINATIONS } from '@/data/learning/characters';
 import { KATAKANA_BASIC } from '@/data/learning/characters';
+import { KANJI_N5, KANJI_N5_LIST, type KanjiData } from '@/data/learning/kanji-n5';
 import { useCollectionStore } from '@/store/collectionStore';
 import { useLearningProgressStore } from '@/store/learningProgressStore';
 import type { JapaneseCard } from '@/types';
@@ -812,31 +813,476 @@ function QuizModal({ isOpen, onClose, moduleType, quizSubset = 'basic' }: {
   );
 }
 
-// Module Detail View (Hiragana/Katakana)
-function ModuleDetailView({ 
-  moduleId, onBack 
-}: { 
+// Kanji Detail Modal
+function KanjiDetailModal({ kanji, onClose }: {
+  kanji: KanjiData; onClose: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.8 }}
+        animate={{ scale: 1 }}
+        exit={{ scale: 0.8 }}
+        className="w-72 rounded-2xl p-6 text-center"
+        style={{ backgroundColor: colors.cardBg }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="w-24 h-24 mx-auto rounded-2xl flex items-center justify-center text-5xl font-bold mb-4" style={{ backgroundColor: `${colors.brand}20` }}>
+          {kanji.japanese}
+        </div>
+        <h3 className="text-2xl font-bold text-[#d8e4ea] mb-1">{kanji.romaji}</h3>
+        <p className="text-sm text-[#4bddb7] mb-3">{kanji.meaning}</p>
+        <div className="text-xs text-[#c8c4d7] space-y-1 mb-4">
+          <p>Onyomi: {kanji.onyomi.join('、') || '-'}</p>
+          <p>Kunyomi: {kanji.kunyomi.join('、') || '-'}</p>
+          <p>Strokes: {kanji.strokes}</p>
+        </div>
+        <div className="p-3 rounded-xl mb-4" style={{ backgroundColor: colors.inputBg }}>
+          <p className="text-lg font-bold text-white">{kanji.exampleWord}</p>
+          <p className="text-sm text-[#c8c4d7]">{kanji.exampleReading}</p>
+          <p className="text-xs text-[#4bddb7]">{kanji.exampleMeaning}</p>
+        </div>
+        <button
+          onClick={onClose}
+          className="mt-2 w-full py-2 rounded-xl font-bold text-white"
+          style={{ backgroundColor: colors.brand }}
+        >
+          Tutup
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// Kanji Quiz Modal
+function KanjiQuizModal({ isOpen, onClose }: {
+  isOpen: boolean; onClose: () => void;
+}) {
+  const addDiamonds = useCollectionStore(s => s.addDiamonds);
+  const addJapaneseCard = useCollectionStore(s => s.addJapaneseCard);
+  const trackQuestEvent = useCollectionStore(s => s.trackQuestEvent);
+  const markBatchLearned = useLearningProgressStore(s => s.markBatchLearned);
+  const getModuleProgress = useLearningProgressStore(s => s.getModuleProgress);
+
+  const [questions, setQuestions] = useState<Array<{
+    kanji: KanjiData; options: string[]; correct: number;
+  }>>([]);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [score, setScore] = useState(0);
+  const [isComplete, setIsComplete] = useState(false);
+  const [showResult, setShowResult] = useState(false);
+  const [quizKey, setQuizKey] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
+  const [awardedCard, setAwardedCard] = useState<JapaneseCard | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setAwardedCard(null);
+      setIsComplete(false);
+      setIsClosing(false);
+      setShowResult(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const shuffled = [...KANJI_N5_LIST].sort(() => Math.random() - 0.5).slice(0, 10);
+
+      const newQuestions = shuffled.map(kanji => {
+        const correctAnswer = kanji.meaning;
+        const wrongAnswers = KANJI_N5_LIST
+          .filter(k => k.meaning !== correctAnswer)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3)
+          .map(k => k.meaning);
+
+        const options = wrongAnswers.length >= 3
+          ? [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5)
+          : [correctAnswer];
+
+        return {
+          kanji,
+          options,
+          correct: options.indexOf(correctAnswer),
+        };
+      });
+
+      setQuestions(newQuestions);
+      setCurrentQuestion(0);
+      setIsLoading(false);
+    } catch (err) {
+      console.error('Failed to generate kanji questions:', err);
+      setError('Gagal menghasilkan soal kanji');
+      setIsLoading(false);
+    }
+  }, [quizKey]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedAnswer(null);
+      setScore(0);
+      setIsComplete(false);
+      setShowResult(false);
+      setError(null);
+      setIsClosing(false);
+      setAwardedCard(null);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (questions.length > 0 && currentQuestion >= questions.length) {
+      setCurrentQuestion(Math.min(currentQuestion, questions.length - 1));
+    }
+  }, [questions.length]);
+
+  if (!isOpen) return null;
+
+  if (isLoading || questions.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
+      >
+        <div className="text-center">
+          <div className="text-4xl animate-pulse mb-3">漢</div>
+          <p className="text-white/60">Menyiapkan kuis kanji...</p>
+        </div>
+      </motion.div>
+    );
+  }
+
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
+      >
+        <div className="text-center p-6">
+          <div className="text-4xl mb-3">⚠️</div>
+          <p className="text-white/80 mb-4">{error}</p>
+          <button
+            onClick={() => setQuizKey(k => k + 1)}
+            className="px-6 py-3 rounded-xl font-bold text-white"
+            style={{ backgroundColor: colors.brand }}
+          >
+            🔄 Coba Lagi
+          </button>
+          <button onClick={onClose} className="block w-full mt-3 px-6 py-2 rounded-xl text-white/60">
+            Tutup
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  const q = questions[currentQuestion];
+  if (!q) return null;
+
+  const handleAnswer = (index: number) => {
+    if (selectedAnswer !== null || isClosing) return;
+    setSelectedAnswer(index);
+    if (index === q.correct) {
+      setScore(s => s + 1);
+    }
+    setTimeout(() => {
+      if (!isClosing) setShowResult(true);
+    }, 500);
+  };
+
+  const handleNext = () => {
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion(c => c + 1);
+      setSelectedAnswer(null);
+      setShowResult(false);
+    } else {
+      setIsComplete(true);
+    }
+  };
+
+  const handleRetry = () => setQuizKey(k => k + 1);
+
+  const handleComplete = () => {
+    if (isClosing) return;
+    setIsClosing(true);
+
+    const finalScore = score;
+
+    try {
+      const reward = finalScore >= 8 ? 15 : finalScore >= 6 ? 8 : 0;
+      const passed = finalScore >= 6;
+
+      if (reward > 0) addDiamonds(reward);
+
+      if (passed) {
+        const roll = Math.random() * 100;
+        if (roll < 80) {
+          const rewardCard = pickRandomRewardCard();
+          addJapaneseCard(rewardCard);
+          setAwardedCard(rewardCard);
+        }
+
+        const charsToMark = questions.map(ques => ({
+          char: ques.kanji.japanese,
+          romaji: ques.kanji.romaji
+        }));
+        markBatchLearned('kanji', charsToMark);
+        trackQuestEvent('MODULE');
+      }
+    } catch (err) {
+      console.error('handleComplete error:', err);
+    }
+
+    setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 100);
+  };
+
+  if (isComplete) {
+    const passed = score >= 6;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
+      >
+        <div className="text-center p-6 rounded-2xl w-full max-w-sm" style={{ backgroundColor: colors.cardBg }}>
+          <div className="text-5xl mb-3">{score >= 8 ? '🏆' : score >= 6 ? '👍' : '📚'}</div>
+          <h2 className="text-2xl font-bold text-[#d8e4ea] mb-2">
+            {score >= 8 ? 'Luar Biasa!' : score >= 6 ? 'Bagus!' : 'Tetap Semangat!'}
+          </h2>
+          <p className="text-4xl font-bold mb-2" style={{ color: score >= 6 ? colors.teal : colors.brand }}>
+            {score}/{questions.length}
+          </p>
+          {score >= 6 && (
+            <div className="mb-4 px-4 py-2 rounded-lg inline-block" style={{ backgroundColor: '#6c5ce720' }}>
+              <p className="text-sm font-bold" style={{ color: '#c6bfff' }}>
+                💎 +{score >= 8 ? 15 : 8} Diamond
+              </p>
+            </div>
+          )}
+
+          <AnimatePresence>
+            {awardedCard && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                className="mb-4 mx-auto"
+              >
+                <p className="text-xs text-white/50 mb-2">🎁 Kartu Japanese Baru!</p>
+                <div
+                  className="w-20 h-28 mx-auto rounded-xl flex flex-col items-center justify-center relative overflow-hidden"
+                  style={{
+                    background: `linear-gradient(135deg, #1a1a2e 0%, ${
+                      awardedCard.element === 'FIRE' ? '#ff6b3530' :
+                      awardedCard.element === 'WATER' ? '#4facfe30' :
+                      awardedCard.element === 'GRASS' ? '#4bddb730' :
+                      awardedCard.element === 'ELECTRIC' ? '#ffd93d30' :
+                      '#c77dff30'
+                    } 100%)`,
+                    border: `2px solid ${
+                      awardedCard.element === 'FIRE' ? '#ff6b35' :
+                      awardedCard.element === 'WATER' ? '#4facfe' :
+                      awardedCard.element === 'GRASS' ? '#4bddb7' :
+                      awardedCard.element === 'ELECTRIC' ? '#ffd93d' :
+                      '#c77dff'
+                    }`,
+                  }}
+                >
+                  <span className="text-4xl font-black text-white">{awardedCard.japanese}</span>
+                  <span className="text-[9px] text-white/70 mt-0.5">{awardedCard.reading}</span>
+                </div>
+                <p className="text-xs text-white/60 mt-1">「{awardedCard.romaji}」 — {awardedCard.meaning}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <p className="text-sm text-[#c8c4d7] mb-6">
+            {score >= 8 ? 'Kamu sudah menguasai kanji ini!' : 'Terus latihan untuk meningkatkan.'}
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button onClick={handleRetry} className="px-6 py-3 rounded-xl font-bold text-white" style={{ backgroundColor: colors.inputBg }}>
+              🔄 Ulangi
+            </button>
+            <button onClick={handleComplete} className="px-6 py-3 rounded-xl font-bold text-white" style={{ backgroundColor: colors.brand }}>
+              ✓ Selesai
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-end justify-center"
+      style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+    >
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        className="w-full max-w-md rounded-t-3xl overflow-hidden"
+        style={{ backgroundColor: colors.cardBg }}
+      >
+        <div className="px-4 pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-[#c8c4d7]">{currentQuestion + 1}/{questions.length}</span>
+            <span className="text-sm font-bold" style={{ color: colors.teal }}>Skor: {score}</span>
+          </div>
+          <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.darkGray }}>
+            <div className="h-full rounded-full transition-all" style={{ width: `${((currentQuestion + 1) / questions.length) * 100}%`, backgroundColor: colors.brand }} />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: colors.brand, color: 'white' }}>
+            KUIS KANJI N5
+          </span>
+          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.inputBg }}>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#c8c4d7" strokeWidth="2">
+              <path d="M2 2l8 8M10 2l-8 8" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="px-4 pb-6 space-y-4">
+          <div className="p-6 rounded-xl text-center" style={{ backgroundColor: colors.inputBg }}>
+            <div className="text-6xl font-bold text-white mb-2">{q.kanji.japanese}</div>
+            <p className="text-sm text-[#c8c4d7]">Onyomi: {q.kanji.onyomi.join('、')}</p>
+            <p className="text-sm text-[#c8c4d7]">Kunyomi: {q.kanji.kunyomi.join('、')}</p>
+          </div>
+
+          <div className="space-y-2">
+            {q.options.map((option, i) => {
+              const isSelected = selectedAnswer === i;
+              const isCorrect = i === q.correct;
+
+              let bgColor = colors.inputBg;
+              let borderColor = 'transparent';
+              let textColor = colors.lightText;
+
+              if (showResult) {
+                if (isCorrect) {
+                  bgColor = `${colors.teal}20`;
+                  borderColor = colors.teal;
+                  textColor = colors.teal;
+                } else if (isSelected) {
+                  bgColor = `${colors.coral}20`;
+                  borderColor = colors.coral;
+                  textColor = colors.coral;
+                }
+              }
+
+              return (
+                <motion.button
+                  key={i}
+                  whileTap={!showResult ? { scale: 0.98 } : {}}
+                  onClick={() => !showResult && handleAnswer(i)}
+                  disabled={showResult}
+                  className="w-full p-3 rounded-xl text-left flex items-center gap-3 transition-all"
+                  style={{
+                    backgroundColor: bgColor,
+                    borderWidth: '2px',
+                    borderColor: borderColor,
+                    opacity: showResult && !isSelected && !isCorrect ? 0.4 : 1,
+                  }}
+                >
+                  <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold"
+                    style={{
+                      backgroundColor: showResult
+                        ? (isCorrect ? colors.teal : isSelected ? colors.coral : colors.darkGray)
+                        : colors.cardBg,
+                      color: showResult ? 'white' : colors.darkText,
+                    }}
+                  >
+                    {['A', 'B', 'C', 'D'][i]}
+                  </span>
+                  <span className="flex-1" style={{ color: textColor }}>{option}</span>
+                  {showResult && isCorrect && <span className="text-lg">✓</span>}
+                  {showResult && isSelected && !isCorrect && <span className="text-lg">✗</span>}
+                </motion.button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={handleNext}
+            disabled={selectedAnswer === null}
+            className="w-full py-4 rounded-xl font-bold text-white transition-all"
+            style={{
+              backgroundColor: selectedAnswer === null ? colors.darkGray : colors.brand,
+              opacity: selectedAnswer === null ? 0.5 : 1,
+            }}
+          >
+            {selectedAnswer === null
+              ? 'Pilih Jawaban'
+              : currentQuestion < questions.length - 1
+                ? 'Soal Berikutnya →'
+                : 'Lihat Hasil'}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// Module Detail View (Hiragana/Katakana/Kanji)
+function ModuleDetailView({
+  moduleId, onBack
+}: {
   moduleId: string; onBack: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<'basic' | 'dakuten' | 'combinations'>('basic');
   const [quizOpen, setQuizOpen] = useState<{ open: boolean; subset: 'basic' | 'dakuten' | 'combinations' }>({ open: false, subset: 'basic' });
   const [selectedChar, setSelectedChar] = useState<{char: string; romaji: string; example?: string; exampleMeaning?: string} | null>(null);
+  const [kanjiQuizOpen, setKanjiQuizOpen] = useState(false);
+  const [selectedKanji, setSelectedKanji] = useState<KanjiData | null>(null);
 
   const isHiragana = moduleId === 'hiragana';
-  
-  // Get data based on module type
-  const basicData = isHiragana ? HIRAGANA_BASIC : KATAKANA_BASIC;
+  const isKatakana = moduleId === 'katakana';
+  const isKanji = moduleId === 'kanji';
+
+  // Hiragana/Katakana data
+  const basicData = isHiragana ? HIRAGANA_BASIC : isKatakana ? KATAKANA_BASIC : null;
   const dakutenData = isHiragana ? HIRAGANA_DAKUTEN : null;
   const comboData = isHiragana ? HIRAGANA_COMBINATIONS : null;
 
-  const basicChars = Object.entries(basicData).map(([char, data]) => ({
-    char,
-    romaji: data.romaji,
-    example: data.example,
-    exampleMeaning: data.exampleMeaning,
-  }));
+  const basicChars = basicData
+    ? Object.entries(basicData).map(([char, data]) => ({
+        char,
+        romaji: data.romaji,
+        example: data.example,
+        exampleMeaning: data.exampleMeaning,
+      }))
+    : [];
 
-  const dakutenChars = dakutenData 
+  const dakutenChars = dakutenData
     ? Object.entries(dakutenData).map(([char, data]) => ({
         char,
         romaji: data.romaji,
@@ -860,17 +1306,18 @@ function ModuleDetailView({
     ...(comboChars.length > 0 ? [{ id: 'combinations' as const, label: 'Kombinasi', count: comboChars.length }] : []),
   ];
 
-  const currentChars = activeTab === 'basic' ? basicChars 
-    : activeTab === 'dakuten' ? dakutenChars 
+  const currentChars = activeTab === 'basic' ? basicChars
+    : activeTab === 'dakuten' ? dakutenChars
     : comboChars;
 
-  const moduleName = isHiragana ? 'Hiragana' : 'Katakana';
-  const moduleIcon = isHiragana ? 'あ' : 'ア';
+  const moduleName = isHiragana ? 'Hiragana' : isKatakana ? 'Katakana' : 'Kanji N5';
+  const moduleIcon = isHiragana ? 'あ' : isKatakana ? 'ア' : '漢';
+  const totalChars = isKanji ? KANJI_N5_LIST.length : basicChars.length + dakutenChars.length + comboChars.length;
 
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: colors.background }}>
       <TopAppBar title={moduleName} showBack onBack={onBack} />
-      
+
       <main className="max-w-md mx-auto px-4 pt-4 space-y-4">
         {/* Module Header */}
         <motion.div
@@ -884,10 +1331,10 @@ function ModuleDetailView({
           </div>
           <h2 className="text-xl font-bold text-[#d8e4ea]">{moduleName}</h2>
           <p className="text-sm text-[#c8c4d7]">
-            {basicChars.length + dakutenChars.length + comboChars.length} karakter
+            {totalChars} karakter
           </p>
           <button
-            onClick={() => setQuizOpen({ open: true, subset: activeTab })}
+            onClick={() => isKanji ? setKanjiQuizOpen(true) : setQuizOpen({ open: true, subset: activeTab })}
             className="mt-3 px-6 py-2 rounded-xl font-bold text-white"
             style={{ backgroundColor: colors.brand }}
           >
@@ -895,44 +1342,76 @@ function ModuleDetailView({
           </button>
         </motion.div>
 
-        {/* Tabs */}
-        <div className="flex gap-2">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className="flex-1 py-2 rounded-xl text-sm font-medium transition-all"
-              style={{
-                backgroundColor: activeTab === tab.id ? colors.brand : colors.cardBg,
-                color: activeTab === tab.id ? 'white' : colors.darkText,
-              }}
-            >
-              {tab.label} ({tab.count})
-            </button>
-          ))}
-        </div>
+        {/* Tabs - only for hiragana/katakana */}
+        {!isKanji && (
+          <div className="flex gap-2">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className="flex-1 py-2 rounded-xl text-sm font-medium transition-all"
+                style={{
+                  backgroundColor: activeTab === tab.id ? colors.brand : colors.cardBg,
+                  color: activeTab === tab.id ? 'white' : colors.darkText,
+                }}
+              >
+                {tab.label} ({tab.count})
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Character Grid */}
-        <CharacterGrid characters={currentChars} onCharClick={(char) => {
-          const item = currentChars.find(c => c.char === char);
-          if (item) setSelectedChar(item);
-        }} />
+        {isKanji ? (
+          <div className="grid grid-cols-5 gap-2">
+            {KANJI_N5_LIST.map((kanji, i) => (
+              <motion.button
+                key={kanji.japanese}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.005 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setSelectedKanji(kanji)}
+                className="aspect-square rounded-xl flex flex-col items-center justify-center transition-all hover:opacity-80"
+                style={{ backgroundColor: colors.cardBg }}
+              >
+                <span className="text-2xl font-bold text-white">{kanji.japanese}</span>
+                <span className="text-xs text-[#c8c4d7]">{kanji.romaji.split('/')[0]}</span>
+              </motion.button>
+            ))}
+          </div>
+        ) : (
+          <CharacterGrid characters={currentChars} onCharClick={(char) => {
+            const item = currentChars.find(c => c.char === char);
+            if (item) setSelectedChar(item);
+          }} />
+        )}
 
         {/* Stats */}
         <div className="text-center text-xs text-[#c8c4d7]">
-          Tap karakter untuk melihat detail
+          {isKanji ? 'Tap kanji untuk melihat detail' : 'Tap karakter untuk melihat detail'}
         </div>
       </main>
 
       <BottomNav />
 
-      {/* Quiz Modal */}
-      <QuizModal 
-        isOpen={quizOpen.open} 
-        onClose={() => setQuizOpen(prev => ({ ...prev, open: false }))} 
-        moduleType={isHiragana ? 'hiragana' : 'katakana'}
-        quizSubset={quizOpen.subset}
-      />
+      {/* Quiz Modal - Hiragana/Katakana */}
+      {!isKanji && (
+        <QuizModal
+          isOpen={quizOpen.open}
+          onClose={() => setQuizOpen(prev => ({ ...prev, open: false }))}
+          moduleType={isHiragana ? 'hiragana' : 'katakana'}
+          quizSubset={quizOpen.subset}
+        />
+      )}
+
+      {/* Kanji Quiz Modal */}
+      {isKanji && (
+        <KanjiQuizModal
+          isOpen={kanjiQuizOpen}
+          onClose={() => setKanjiQuizOpen(false)}
+        />
+      )}
 
       {/* Character Detail Modal */}
       <AnimatePresence>
@@ -946,6 +1425,16 @@ function ModuleDetailView({
           />
         )}
       </AnimatePresence>
+
+      {/* Kanji Detail Modal */}
+      <AnimatePresence>
+        {selectedKanji && (
+          <KanjiDetailModal
+            kanji={selectedKanji}
+            onClose={() => setSelectedKanji(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -955,6 +1444,7 @@ export default function LearnPage() {
   const [activeModule, setActiveModule] = useState<string | null>(null);
   const hiraganaProgress = useLearningProgressStore(s => s.getModuleProgress)('hiragana');
   const katakanaProgress = useLearningProgressStore(s => s.getModuleProgress)('katakana');
+  const kanjiProgress = useLearningProgressStore(s => s.getModuleProgress)('kanji');
 
   const modules = [
     {
@@ -986,12 +1476,14 @@ export default function LearnPage() {
       title: 'Kanji N5',
       subtitle: '103 Kanji JLPT N5',
       icon: '漢',
-      status: katakanaProgress.percentage >= 85 ? 'learning' as const : 'locked' as const,
-      progress: 0,
-      learned: 0,
-      total: 103,
-      badge: katakanaProgress.percentage >= 85 ? 'Sedang Belajar' : '🔒 85% Katakana',
-      badgeColor: colors.darkGray,
+      status: katakanaProgress.percentage >= 85 ? (kanjiProgress.percentage >= 100 ? 'completed' as const : 'learning' as const) : 'locked' as const,
+      progress: kanjiProgress.percentage,
+      learned: kanjiProgress.learned,
+      total: kanjiProgress.total,
+      badge: katakanaProgress.percentage >= 85
+        ? (kanjiProgress.percentage >= 100 ? '✓ Selesai' : kanjiProgress.learned > 0 ? `${kanjiProgress.learned}/${kanjiProgress.total}` : 'Sedang Belajar')
+        : '🔒 85% Katakana',
+      badgeColor: katakanaProgress.percentage >= 85 ? (kanjiProgress.percentage >= 100 ? colors.teal : colors.brand) : colors.darkGray,
     },
     {
       id: 'vocabulary',

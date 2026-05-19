@@ -15,12 +15,13 @@ interface ModuleProgress {
 interface LearningProgressState {
   hiragana: ModuleProgress;
   katakana: ModuleProgress;
+  kanji: ModuleProgress;
 
   // Actions - all return boolean for confirmation
-  markCharLearned: (module: 'hiragana' | 'katakana', char: string, romaji: string) => boolean;
-  markBatchLearned: (module: 'hiragana' | 'katakana', chars: Array<{ char: string; romaji: string }>) => number;
-  isCharLearned: (module: 'hiragana' | 'katakana', char: string) => boolean;
-  getModuleProgress: (module: 'hiragana' | 'katakana') => { learned: number; total: number; percentage: number };
+  markCharLearned: (module: 'hiragana' | 'katakana' | 'kanji', char: string, romaji: string) => boolean;
+  markBatchLearned: (module: 'hiragana' | 'katakana' | 'kanji', chars: Array<{ char: string; romaji: string }>) => number;
+  isCharLearned: (module: 'hiragana' | 'katakana' | 'kanji', char: string) => boolean;
+  getModuleProgress: (module: 'hiragana' | 'katakana' | 'kanji') => { learned: number; total: number; percentage: number };
   resetProgress: () => void;
 }
 
@@ -29,12 +30,14 @@ interface LearningProgressState {
 // KATAKANA_BASIC: 46
 export const HIRAGANA_TOTAL = 104;
 export const KATAKANA_TOTAL = 46;
+export const KANJI_N5_TOTAL = 103;
 
 export const useLearningProgressStore = create<LearningProgressState>()(
   persist(
     (set, get) => ({
       hiragana: { total: HIRAGANA_TOTAL, learned: [] },
       katakana: { total: KATAKANA_TOTAL, learned: [] },
+      kanji: { total: KANJI_N5_TOTAL, learned: [] },
 
       markCharLearned: (module, char, romaji) => {
         try {
@@ -147,6 +150,7 @@ export const useLearningProgressStore = create<LearningProgressState>()(
         set({
           hiragana: { total: HIRAGANA_TOTAL, learned: [] },
           katakana: { total: KATAKANA_TOTAL, learned: [] },
+          kanji: { total: KANJI_N5_TOTAL, learned: [] },
         });
       },
     }),
