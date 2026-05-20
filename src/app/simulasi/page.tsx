@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, Suspense } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -14,31 +14,64 @@ interface Question {
   explanation: string;
 }
 
-// CBT Questions for Karier Bisnis Manufacturing
+// CBT Questions for Karier Bisnis Manufacturing (50 questions, 90 minutes)
+// Topics: 生産管理, 作業管理, 工程分析, 稼働分析, 5S, 品質管理, 原価管理, 在庫管理, 安全衛生, 環境法
 const KARIER_QUESTIONS: Question[] = [
-  // Karier section
-  { id: 1, section: 'moji', question: '製造業の「業」の読み方は？', options: ['ぎょう', 'わざ', 'ため', 'わざと'], correctIndex: 0, explanation: '製造業 = せいぞうぎょう (seizou-gyou). 業 = ぎょう' },
-  { id: 2, section: 'moji', question: '「進捗状況」の読み方は？', options: ['しんちょく', 'しんちく', 'しんしょく', 'しんたく'], correctIndex: 0, explanation: '進捗 = しんちょく = progress' },
-  { id: 3, section: 'moji', question: '「品質管理」の目的是？', options: ['コスト削減', '製品の規格を守る', '納期を守る', '社員教育'], correctIndex: 1, explanation: '品質管理 = ひんしつかんり = QC (Quality Control) adalah memastikan produk memenuhi standar/specification' },
-  { id: 4, section: 'moji', question: '「発注」の意味は？', options: ['注文する', '届ける', '検査する', '包装する'], correctIndex: 0, explanation: '発注 = はっちゅう = to place an order (pemesanan)' },
-  { id: 5, section: 'moji', question: '「不良品」の反対は？', options: ['良品', '新品', '中古品', '完成品'], correctIndex: 0, explanation: '不良品 = ふりょうひん = defective product. 良品 = りょうひん = good product' },
-  { id: 6, section: 'moji', question: '「-lead time-」日本語로는？', options: ['納期', '不良率', 'コスト', '計画'], correctIndex: 0, explanation: 'Lead Time = 納期 (のうき) = waktu pengiriman / lead time dari order sampai delivery' },
-  { id: 7, section: 'moji', question: '「出勤」の読み方は？', options: ['しゅっきん', 'しゅつきん', 'しゅうきん', 'しゅくきん'], correctIndex: 0, explanation: '出勤 = しゅっきん = datang ke kantor / masuk kerja' },
-  { id: 8, section: 'moji', question: '「工場」の読み方は？', options: ['こうじょう', 'こうば', '_factory', 'てん'], correctIndex: 0, explanation: '工場 = こうじょう = factory / manufacturing plant' },
-  // Bunpou
-  { id: 9, section: 'bunpou', question: '「製造 ___ する ___ 、機械 ___ 動き ___ ます」\n正しい助詞は？', options: ['を / が / て', 'が / を / で', 'に / を / が', 'で / が / を'], correctIndex: 0, explanation: '製造する = manufactures. 機械が動く = the machine moves.「を」は объекта,「が」subject,「て」te-form' },
-  { id: 10, section: 'bunpou', question: '「明日、納品 ___ ます」\n正しいのは？', options: ['にいらっしゃい', '给您送去', 'をお届け', 'を出荷'], correctIndex: 2, explanation: 'をお届けする = to deliver (mer送货). 納品 = のうひん = delivery of goods' },
-  { id: 11, section: 'bunpou', question: '「機械が壊れ ___ 」\n正しい補助動詞は？', options: ['ている', 'てある', 'てみる', 'てしまう'], correctIndex: 0, explanation: '壊れている = is broken (status). ～ている = ongoing state/completion' },
-  { id: 12, section: 'bunpou', question: '「原料が ___ 。次は製造工程 ___ 」\n正しい語は？', options: ['够了 / 進む', '不足だ / 止める', 'ある / 終わる', '間に合う / 開始する'], correctIndex: 0, explanation: '原料が够用了 = raw materials are sufficient. 進む = to proceed. 工程 = こうてい = process' },
-  { id: 13, section: 'bunpou', question: '「品質が ___ 、再做 ___ 」\n正しいのは？', options: ['問題だ / 品的', '大丈夫だ / 没问题', '不合格だ / 品质的', '良好だ / 品質'], correctIndex: 2, explanation: '品質が不合格だ = quality failed. 再做 = やり直す = to redo' },
-  { id: 14, section: 'bunpou', question: '「納入先 ___ 製品 ___ 出荷 ___ ます」\n正しい助詞は？', options: ['に / を / を', 'へ / が / に', 'まで / を / で', 'に / が / を'], correctIndex: 0, explanation: '納入先（のうにゅうさき）= delivery destination. を出荷する = to ship. "納入先へ製品を出荷します"' },
-  { id: 15, section: 'bunpou', question: '「不良品的 Because ___ 」\n正しい文は？', options: ['品質管理が甘いからだ', 'デザインが綺麗だから', '價格が安いから', '納期が早いから'], correctIndex: 0, explanation: '～からだ = karena. 品質管理が甘い = QC is loose/lax.  потому что качественный контроль слабый' },
-  // Dokkai
-  { id: 16, section: 'dokkai', question: '「 우리의工場에서는 엄격한品質관리를実施하고 있습니다。すべての工程에서 검사를 진행하고, 불량률은0.1% 이하로 관리되고 있습니다。」\n\n質問：この工場の管理方針は？', options: ['コスト削減を優先', '品質管理を厳格に実施', '納期短縮だけ', '自動化推進'], correctIndex: 1, explanation: '엄격한品質관리 = strict quality control. 불량률 0.1% 이하 = defect rate below 0.1%. 관리되고 있습니다 = being managed.' },
-  { id: 17, section: 'dokkai', question: '「発注的增加を受けて、今後我们需要 машина一台增设生产线。」\n\n質問：工場は今後どうする？', options: ['機械を売る', '新しい機械を導入する', '社員を解雇する', '納期を延ばす'], correctIndex: 1, explanation: '增设生产线 = menambah lini produksi. 機械一台 = satu mesin. 導入する = to introduce/adopt' },
-  { id: 18, section: 'dokkai', question: '「先月、納期 atur 到着了。今月から量产 开始 되다。」\n\n質問：結果は？', options: ['遅延した', '予定通り着岸、量産開始', 'まだ到着していない', '中止した'], correctIndex: 1, explanation: '予定通り = as scheduled. 着岸 = arrive. 量产開始 = mass production started. 今月から = from this month' },
-  { id: 19, section: 'dokkai', question: '「我们的产品不符合规格，所以需要进行 品质改善。」\n\n質問：問題の原因は？', options: ['コスト太高', '製品が規格不符', '納期が延びた', '機械が古い'], correctIndex: 1, explanation: '不符合规格 = does not meet specifications. 品質改善 = quality improvement diperlukan' },
-  { id: 20, section: 'dokkai', question: '「来週、工場 audit のため、海外から客户が来社します。」\n\n質問：何が来る？', options: ['機械の納品', '監査（audit）のため客户', '新しい注文', '社員研修'], correctIndex: 1, explanation: '監査 = かんさ = audit/inspection. 来社 = らいしゃ = visit the company. 客户 = きゃくさま = customer/client' },
+  // Q1-10: 生産管理 (Production Management)
+  { id: 1, section: 'moji', question: '「生産管理」の読み方は？', options: ['せいさんかんり', 'せいぞうかんり', 'せいきんかんり', 'せいさんかんり'], correctIndex: 0, explanation: '生産管理 = せいさんかんり = production management. 製造管理不同的是製造管理.' },
+  { id: 2, section: 'moji', question: '「広義の生産管理」に関与しない管理活動は？', options: ['購買管理', '人事管理', '原価管理', '設備管理'], correctIndex: 1, explanation: '人事管理（じんじかんり）は直接的な生産管理活動ではない。生産管理は購買・原価・設備を含むが、人事管理は含まない。' },
+  { id: 3, section: 'moji', question: '「作業管理」の実施内容として関連性が低いものは？', options: ['合理的な生産性の高い作業方法の追求', '生産計画の策定と生産統制', '作業方法の標準化と標準時間の設定', '作業手順書の作成と作業指導'], correctIndex: 1, explanation: '生産計画の策定は生産管理の範囲。作業管理は作業方法・手順・標準時間・指導の設定が主要内容。' },
+  { id: 4, section: 'moji', question: '「工程分析」の目的として最も適切なものは？', options: ['材料の流れを分析して配置を改善する', '作業者の動きを分析して効率化する', '機械の能力を分析して増強する', 'コストを分析して削減する'], correctIndex: 1, explanation: '工程分析（こうていぶんせき）は作業者工程分析と製品工程分析があり、作業のやり方を改善するのが目的。' },
+  { id: 5, section: 'moji', question: '「稼働分析」の主対象は？', options: ['材料・部品・中間製品', '作業者または機械の状態', '生产成本の分析', '品質検査の判定'], correctIndex: 1, explanation: '稼働分析（かどうぶんせき）は作業者または機械の状態（作業中・待機中・休止中・故障中）を観測・分析する。' },
+  { id: 6, section: 'moji', question: '「連合作業分析」で使用される図表は？', options: ['フローダイアグラム', 'マンマシンチャート', 'PERT図', 'パレート図'], correctIndex: 1, explanation: 'マンマシンチャート（Man-Machine Chart）は人・機械の動作を時系列で記録し、同期を取って分析する。' },
+  { id: 7, section: 'moji', question: '「動作経済の原則」に分類されない項目は？', options: ['身体の使用に関する分類', '工具や設備の設計に関する分類', '材料の取り扱いに関する分類', '作業域に関する分類'], correctIndex: 2, explanation: '動作経済の原則は3分類：身体の使用・工具や設備の設計・作業域。材料の取り扱いは含まない。' },
+  { id: 8, section: 'moji', question: '「5S活動」で「整理」に該当しないものは？', options: ['不要品はルールを決めて廃棄する', '守るべきルールを見える化して周知する', '整理・整頓・躾で清潔な職場が実現できる', '部品棚に収納物と管理者の表示をする'], correctIndex: 2, explanation: '5Sは「整理→整頓→清掃→清潔→躾」の順。清潔（せいけつ）は躾（しつけ）の結果であり、「整理・整頓・躾で実現」は手順を飛んでいる。' },
+  { id: 9, section: 'moji', question: '「工程管理における緩衝」に関与しない策は？', options: ['全工程の不平衡を是正する', '能力・時間・物の緩衝を取る', '安全在庫を確保する', '予測困難な要因による時間ロスを防止する'], correctIndex: 0, explanation: 'ボトルネック工程があっても全工程に仕掛品在庫を置いても全体の生産能力は上がらない。緩衝は個別の工程間を守るもの。' },
+  { id: 10, section: 'moji', question: '「見込生産」の特徴は？', options: ['顧客の注文に応じて生産する', '製品仕様は受注まで不確定である', '生産者側が市場予測して出荷する', '受注変動に対して生産能力を調整する'], correctIndex: 2, explanation: '見込生産（みこみせいさん）は生産者側の需要予測に基づいて製品を出荷する方式。受注生産の反対。' },
+  // Q11-20: 品質管理 (Quality Control)
+  { id: 11, section: 'bunpou', question: '「品質管理」の目的として正しいものは？', options: ['コストを最小限に抑える', '製品の規格を維持すること', '納期を短縮すること', '自動化を推進すること'], correctIndex: 1, explanation: '品質管理（ひんしつかんり）は製品の品質を规格通り維持・管理すること。QC = Quality Control。' },
+  { id: 12, section: 'bunpou', question: '「全数検査」の限界として正しいものは？', options: ['検査コストが最もかかる', '全ての不良品を発見できる', '人間のミスで見落とすことがある', '検査時間が長い'], correctIndex: 2, explanation: '全数検査でも人間のミスや測定器具の精度問題で見落とす可能性がある。100%保証はできない。' },
+  { id: 13, section: 'bunpou', question: '「抜取検査」が適用される条件は？', options: ['製品価格が高く不合格混入が許されない', '製品価格が安くてある程度の不適合品混入が許される', '全数検査が法律で義務付けられている', '重要な安全部品'], correctIndex: 1, explanation: '抜取検査（ぬきとりけんさ）は製品価値が低く、多少の不良混入を許容できる場合に適用される。' },
+  { id: 14, section: 'bunpou', question: '「生産者危険」の意味は？', options: ['不合格品を合格としてしまう誤り', '合格品を不合格にしてしまう誤り', '検査コストが高くなるリスク', '納期が遅れるリスク'], correctIndex: 1, explanation: '生産者危険（せいさんしゃきけん）は実際の合格ロットを不合格判定ことで生産者に損失を与えるリスク。' },
+  { id: 15, section: 'moji', question: '「品質保証活動」の範囲として最も不適切なものは？', options: ['製造部門だけの品質管理', '全社的な品質確保活動', '顧客満足度の向上', '製品の追跡可能性確保'], correctIndex: 0, explanation: '品質保証は製造部門だけでなく全社的な活動。製造部門だけに任せるのは原則に反する。' },
+  { id: 16, section: 'moji', question: '「トレーサビリティ」の説明として正しいものは？', options: ['製品の追跡可能性', '製品の価格管理', '製品の在庫管理', '製品の物流管理'], correctIndex: 0, explanation: 'トレーサビリティは製品に問題がある時、その情報を追跡し回収・修理の活動を行うこと。' },
+  { id: 17, section: 'moji', question: '「ISO9001」と"JIS"の関係として正しいものは？', options: ['ISO9001の对应JISはない', 'ISO9001に対応ずるJIS Q 9001がある', 'JISはISOより先に制定されている', '両方は同一の規格'], correctIndex: 1, explanation: 'ISO9001は国際規格であり、日本は同等品としてJIS Q 9001制定了。' },
+  { id: 18, section: 'moji', question: '「製造物責任法」で過失がない場合の損害賠償は？', options: ['請求できない', '請求できる', '一部のみ請求可能', '裁判所が決める'], correctIndex: 1, explanation: '製造物責任法（せいぞうぶつせきにんほう）では過失がなくても損害賠償請求ができる（無過失責任）。' },
+  { id: 19, section: 'moji', question: '「品質特性」の説明として最も適切なものは？', options: ['产品价格', '製品の魅力的なデザイン', '製品の機能・性能に関する事項', '製品の納期'], correctIndex: 2, explanation: '品質特性（ひんしつとくせい）とは製品の機能・性能・耐久性など品質を表す特性。' },
+  { id: 20, section: 'moji', question: '「QC工程図」で管理項目が適切でないものは？', options: ['外観検査（チェック項目）', '寸法検査（管理項目）', '機能検査（チェック項目）', 'コスト管理（管理項目）'], correctIndex: 3, explanation: 'QC工程図の管理項目は品質関連項目（外観・寸法・機能など）が中心。コストは直接的管理項目ではない。' },
+  // Q21-30: 原価管理・コスト管理
+  { id: 21, section: 'bunpou', question: '「コストコントロール」の内容として正しいものは？', options: ['目標原価を引き下げる活動', '標準原価を引き下げる活動', '実際原価を標準原価まで引き下げる活動', '設計段階で原価見積額を目標原価まで引き下げる活動'], correctIndex: 2, explanation: 'コストコントロールは実際原価を標準原価に一致させる活動。目標原価管理とは異なる概念。' },
+  { id: 22, section: 'bunpou', question: '「原価低減」の効果が高い段階は？', options: ['製造段階', '設計段階', '検査段階', '包装段階'], correctIndex: 1, explanation: '原価低減の効果は約70-80%が設計段階（源流段階）で決まる。ここが最も効果が高い。' },
+  { id: 23, section: 'bunpou', question: '「IE」と原価低減の関係として正しいものは？', options: ['設計段階で直接的役割', '製造段階で直接的役割', '検査段階で直接的役割', '物流段階で直接的役割'], correctIndex: 1, explanation: 'IE（Industrial Engineering）は製造段階での原価改善に直接的に貢献するツール。' },
+  { id: 24, section: 'moji', question: '「成行原価」の説明として正しいものは？', options: ['目標となる原価', '現状の技術を基準に見積もった原価', '標準的な操業度での原価', '特定の要素だけを集計した原価'], correctIndex: 1, explanation: '成行原価（なりゆきげんか）は現在の技術でそのまま見積もった原価で、改善・最適化を織り込まない。' },
+  { id: 25, section: 'moji', question: '「埋没原価」の説明として正しいものは？', options: ['最も大きい利益', '選択を放弃することで生じると見込まれる受益', '既に支出して取り戻せない費用', '市場竞争优势'], correctIndex: 2, explanation: '埋没原価（まいぼつげんか）は既に発生して取り戻せない費用で、将来の意思決定に影響を与えてはならない。' },
+  { id: 26, section: 'moji', question: '「機会費用」の説明として正しいものは？', options: ['埋没原価のこと', '代替案を選択して放弃した最大利益', '標準原価のこと', '直接材料費のこと'], correctIndex: 1, explanation: '機会費用（きかいひよう）はある代替案を選択して他の代替案を放弃することで失われる最大利益。' },
+  { id: 27, section: 'moji', question: '「標準原価」の計算要素として正しくないものは？', options: ['標準の操業度', '標準の方法', '標準の能率', '市場の価格'], correctIndex: 3, explanation: '標準原価は操業度・方法・能率・原価率に基づいて算出される。市场价格は計算要素ではない。' },
+  { id: 28, section: 'moji', question: '「部分原価」の説明として正しいものは？', options: ['全ての原価要素を集計', '特定の原価要素だけを集計', '標準原価のこと', '実際原価のこと'], correctIndex: 1, explanation: '部分原価（ぶぶんげんか）は計算目的により特定原価要素だけを集計した原価（例：変動費のみ）。' },
+  { id: 29, section: 'moji', question: '「製造直接費」と「製造間接費」の分類根拠は？', options: ['操業度による分類', '製品との関係による分類', '機能による分類', '発生場所による分類'], correctIndex: 1, explanation: '直接費・間接費は製品への紐付けの容易さで分類。操業度による分類は変動費・固定費との違い。' },
+  { id: 30, section: 'moji', question: '「直課」と「配賦」の説明として正しいものは？', options: ['直課は間接費，配賦は直接費', '直課は直接費，配賦は間接費の分配', '両方とも直接費', '両方とも間接費'], correctIndex: 1, explanation: '直課（ちょっか）は直接費を製品に直接集計。配賦（はいふ）は間接費を一定の基準で製品に分配。' },
+  // Q31-40: 在庫管理・物流管理
+  { id: 31, section: 'bunpou', question: '「現品管理」の注意点として最も不適切なものは？', options: ['取り扱い・保管中の損傷防止', '生産準備での現物と帳簿の差異確認', '検査数量確認のための非標準容器使用', '原材料・製品の明確な保管場所与方法の制定'], correctIndex: 2, explanation: '現品管理では標準容器・標準包装・保管方法の表示を行い検査効率を上げる。非標準容器的使用は逆効果。' },
+  { id: 32, section: 'bunpou', question: '「安全在庫」の目的として正しいものは？', options: ['コスト削減', '納期遅延防止', '品質向上', '自動化推進'], correctIndex: 1, explanation: '安全在庫（あんぜんざいこ）は納入遅延や需要変動に対応するためのバッファ在庫で納期を守る。' },
+  { id: 33, section: 'moji', question: '「流動数曲線」の用途は？', options: ['コストの推移を示す', '工程内の物の個数と滞留時間を示す', '作業員の稼働率を示す', '不良品の発生傾向を示す'], correctIndex: 1, explanation: '流動数曲線（りゅうどうすうきょくせん）は工程にある物の個数と滞留時間を視覚的に表示する。' },
+  { id: 34, section: 'moji', question: '「棚卸」の目的として正しいものは？', options: ['販売価格的决定', '在庫の数を実際に数えて確認すること', '製品の品質を確認すること', '作業員の数を確かめること'], correctIndex: 1, explanation: '棚卸（たなおろし）は実際の在庫数量を調べて帳簿との差額を確認し、適切な在庫管理を行う。' },
+  { id: 35, section: 'moji', question: '「物流コスト」の要素として該当しないものは？', options: ['輸送コスト', '保管コスト', '加工コスト', '包装コスト'], correctIndex: 2, explanation: '物流コストは輸送・保管・包装・荷役・情報コストなど。加工コストは製造コストに含む。' },
+  { id: 36, section: 'moji', question: '「倉庫内のロケーション管理」として適切なものは？', options: ['只要存放就行', '決めた場所に決めた数量だけを置く', '有多少放多少', '定期的に場所を移動する'], correctIndex: 1, explanation: 'ロケーション管理は住所・数量・特性を明確にして置くことで効率的な出入庫を可能にする。' },
+  { id: 37, section: 'moji', question: '「包装」の目的として最も不適切なものは？', options: ['製品の保護', '輸送効率の向上', '外観の美化だけ', '情報伝達'], correctIndex: 2, explanation: '包装は保護・効率化・情報伝達が目的。外観の美化だけは目的ではない。' },
+  { id: 38, section: 'moji', question: '「かんばん方式」の説明として正しいものは？', options: ['一人の作業者が一人の機械を担当する', '後工程が前工程に必要な数量を命令する', '全工程を一括管理する', '検査段階で品質を管理する'], correctIndex: 1, explanation: 'かんばん方式は後工程が前工程に必要な数量を命令する後拉式生産方式。JIT生産の代表的な手法。' },
+  { id: 39, section: 'moji', question: '「ABC分析」の用途は？', options: ['生産計画の立案', '在庫の重要度分類', '作業員の配置', '機械の保养計画'], correctIndex: 1, explanation: 'ABC分析は在庫項目を重要度（年間消費額順）に基づいて分類し、重要な項目に最適な管理手法を適用する。' },
+  { id: 40, section: 'moji', question: '「定量発注方式」の特徴は？', options: ['発注量が常に同じ', '発注タイミングが常に同じ', '需要予測に基づいて発注', '定期的に発注'], correctIndex: 0, explanation: '定量発注方式是在庫が再注文点を下回ったら固定数量を注文する方法。発注量は常に同じ。' },
+  // Q41-50: 安全衛生・環境管理・納期管理
+  { id: 41, section: 'bunpou', question: '「安全衛生管理」で「不安全行動の撲滅」だけが効果的か？', options: ['はい、が最も効果的', 'いいえ、複合的な要因の検討が必要', 'はい、人間が最も重要', 'いいえ、機械設備が最も重要'], correctIndex: 1, explanation: '労働災害は不安全行動と不安全状態の組み合わせで発生。人間因子だけでなく機械・環境・制度の複合的分析が必要。' },
+  { id: 42, section: 'bunpou', question: '「ヒヤリ・ハット情報」の活用として正しいものは？', options: ['事故が起きてから収集する', '常習的に収集・分析して改善に活用する', '定期的に廃棄する', '上層部の報告에만使用'], correctIndex: 1, explanation: 'ヒヤリ・ハットは実際の事故前に情報を積極的に発掘し、改善活動に繋げることが重要。' },
+  { id: 43, section: 'moji', question: '「特別教育」を受ければ従事できる業務は？', options: ['つり上げ1トン以上のクレーン玉掛け業務', '小型ボイラーを除くボイラー取扱業務', 'つり上げ5トン以上のクレーン運転業務', '最大荷重1トン未満のフォークリフト運転業務'], correctIndex: 3, explanation: '労働安全衛生法令により、最大荷重1トン未満のフォークライトは特別教育で従事可能。1トン以上はブレス必需。' },
+  { id: 44, section: 'moji', question: '「四大公害病」と原因物質の正しい組み合わせは？', options: ['水俣病・と素', 'イタイイタイ病・カドミウム', '新潟水俣病・六価クロム', '四日市喘息・窒素化合物'], correctIndex: 1, explanation: '四日市喘息は硫黄化合物（SOx）が原因。水俣病は Methyl水銀、イタイイタイ病はカドミウム。' },
+  { id: 45, section: 'moji', question: '「大気汚染防止法」で事業者が守るべき記録保存期間は？', options: ['10年', '5年', '3年', '1年'], correctIndex: 2, explanation: 'ばい煙発生施設の濃度測定結果は3年間保存義務付けられている。10年ではない。' },
+  { id: 46, section: 'moji', question: '「ばい煙排出基準」の設定根拠として正しいものは？', options: ['施設の規模のみ', '汚染物質の種類と施設の規模', '事業者の希望', '市场价格'], correctIndex: 1, explanation: '排出基準は汚染物質の種類と施設の種類の両方に基づいて設定。' },
+  { id: 47, section: 'moji', question: '「納期遅延対策」として最も不適切なものは？', options: ['生産能力と仕事量のバランス調査', '日程管理の実施状況調査', '特急品・計画外作業の安易な投入調査', '全工程の在庫増加スペース確保調査'], correctIndex: 3, explanation: '在庫増加は問題の根本解決にならず、スペース・コストの浪费になる。必要なのは需給バランスの改善。' },
+  { id: 48, section: 'moji', question: '「納期遅延対策」として適切なものは？', options: ['大口発注を一括納入させる', 'カムアップシステムを活用する', '在庫を全工程で増加する', '納期遅延を無視する'], correctIndex: 1, explanation: 'カムアップシステム（カムアップ）は調達品を必要時に合わせて納入する方式で、現場での管理性を向上させる。' },
+  { id: 49, section: 'moji', question: '「納入実績グラフ」からもたらされる効果は？', options: ['市场价格の予測', 'サプライヤーの評価', '社内政治', '製品のデザイン'], correctIndex: 1, explanation: '納入実績をグラフ化すると納期遅延のパターンが明確になり、サプライヤー別の評価・改善点が分かる。' },
+  { id: 50, section: 'dokkai', question: '【読解】ある工場では、工程間の滞留時間を可視化するため毎日流動数曲線を活用している。報告書によると、粉塵処理工程の滞留時間が先週より増加傾向にあり、原因を调查中という。工程間で滞留時間が増加傾向の最も考えられる理由は？', options: ['工程の効率が上がった', '後工程の処理速度が速くなった', '前工程からくる数量が多いまたは処理速度が追い付かない', '空気が湿気が多いために品質が低下した'], correctIndex: 2, explanation: '流動数曲線で滞留時間が増加ということは、受け取る量に対して処理速度が追い付けていない、または前工程からの供給过多。前工程が早くて後工程が追いつかない状況が最も一般的。' },
 ];
 
 // CBT Questions for SSW(ii) Industrial Product Manufacturing
@@ -130,7 +163,8 @@ function SimulasiContent() {
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [showExplanation, setShowExplanation] = useState(false);
   const [examFinished, setExamFinished] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(30 * 60);
+  const timerDuration = examType === 'karier' ? 90 * 60 : examType === 'ssw' ? 90 * 60 : 30 * 60;
+  const [timeLeft, setTimeLeft] = useState(timerDuration);
 
   const filteredQuestions = useMemo(() => {
     if (examType === 'karier') return KARIER_QUESTIONS;
@@ -142,7 +176,7 @@ function SimulasiContent() {
   const answeredCount = Object.keys(answers).length;
 
   // Timer
-  useState(() => {
+  useEffect(() => {
     if (!examStarted || examFinished) return;
     const interval = setInterval(() => {
       setTimeLeft(prev => {
@@ -154,7 +188,7 @@ function SimulasiContent() {
       });
     }, 1000);
     return () => clearInterval(interval);
-  });
+  }, [examStarted, examFinished]);
 
   const handleAnswer = (optionIndex: number) => {
     setAnswers(prev => ({ ...prev, [currentQ.id]: optionIndex }));
@@ -176,7 +210,8 @@ function SimulasiContent() {
     setCurrentQuestion(0);
     setAnswers({});
     setShowExplanation(false);
-    setTimeLeft(30 * 60);
+    const startTimerDuration = examType === 'karier' ? 90 * 60 : examType === 'ssw' ? 90 * 60 : 30 * 60;
+    setTimeLeft(startTimerDuration);
   };
 
   const resetExam = () => {
@@ -249,7 +284,7 @@ function SimulasiContent() {
                 {examType === 'karier' ? '💼 CBT Karier Bisnis Manufacturing' : examType === 'ssw' ? '📋 CBT SSW(ii) Industrial Product' : '📝 JLPT N5 Simulation'}
               </h1>
               <p className="text-[#636E72]">
-                {examType === 'karier' ? 'Simulasi ujian CBT karier bisnis manufaktur — 20 soal' : examType === 'ssw' ? 'Simulasi SSW(ii) Steel Structure Welding — 20 soal' : 'Simulasi ujian N5 dengan 25 soal'}
+                {examType === 'karier' ? 'Simulasi CBT Karier Bisnis Manufaktur — 50 soal, 90 menit' : examType === 'ssw' ? 'Simulasi SSW(ii) Steel Structure Welding — 20 soal, 90 menit' : 'Simulasi ujian N5 dengan 25 soal'}
               </p>
             </motion.div>
 
@@ -303,9 +338,9 @@ function SimulasiContent() {
                   onClick={() => startExam()}
                   className="px-8 py-4 bg-gradient-to-r from-[#6C5CE7] to-[#A29BFE] rounded-xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg shadow-[#6C5CE7]/30"
                 >
-                  💼 Start CBT Karier Bisnis (20 soal)
+                  💼 Start CBT Karier Bisnis (50 soal, 90 menit)
                 </button>
-                <p className="text-xs text-[#636E72] mt-3">Waktu: 30 menit • Skor kelulusan: 80%</p>
+                <p className="text-xs text-[#636E72] mt-3">Waktu: 90 menit • Skor kelulusan: 80%</p>
               </motion.div>
             )}
 
