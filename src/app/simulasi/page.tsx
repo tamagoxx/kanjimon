@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation';
 
 interface Question {
   id: number;
-  section: 'moji' | 'bunpou' | 'dokkai';
+  section: 'moji' | 'bunpou' | 'dokkai' | 'seisan' | 'hinshitsu' | 'genka' | 'anzen';
   question: string;
   options: string[];
   correctIndex: number;
@@ -19,7 +19,46 @@ interface Question {
 // Format: Soal dalam Bahasa Indonesia + reading Jepang dalam （）
 // ⚠ Q11, Q13, Q20, Q27-40 = soal kombinasi/matching (lihat explanation untuk jawaban)
 const KARIER_QUESTIONS: Question[] = [
-  { id: 1, section: 'bunpou', question: '問題 1．広義の生産管理に関する管理活動として最も不適切なものは、次のうちどれか。', options: ['ア. Manajemen pembelian（こうばいかんり）', 'イ. Manajemen biaya（げんかかんり）', 'ウ. Manajemen sumber daya manusia（じんじかんり）', '工. Manajemen peralatan（せつびかんり）'], correctIndex: 2, explanation: '広義の生産管理不包括人事管理（じんじかんり）。人事管理属于HR领域，不是直接的生产管理活动。生产管理包括：购买管理、原价管理、设备管理。正确答案：ウ.' },
+  { id: 1, section: 'seisan', question: '問題 1．広義の生産管理に関する管理活動として最も不適切なものは、次のうちどれか。', options: ['ア. Manajemen pembelian（こうばいかんり）', 'イ. Manajemen biaya（げんかかんり）', 'ウ. Manajemen sumber daya manusia（じんじかんり）', '工. Manajemen peralatan（せつびかんり）'], correctIndex: 2, explanation: '広義の生産管理不包括人事管理（じんじかんり）。人事管理属于HR领域，不是直接的生产管理活动。生产管理包括：购买管理、原价管理、设备管理。正确答案：ウ.' },
+  { id: 2, section: 'seisan', question: '問題 2．作業管理の実施内容に関する記述として最も関連性の低いものは、次のうちどれか。', options: ['ア. Mengejar metode kerja yang rasional dan memiliki produktivitas tinggi', 'イ. Merencanakan produksi dan mengendalikan produksi', 'ウ. Menstandarkan metode kerja dan menetapkan waktu standar', 'エ. Menyusun prosedur operasi dan panduan kerja'], correctIndex: 0, explanation: '作業管理の核心是追求合理、高效的作业方法（提高生产率）。而生产计划的制定属于生产管理（生産管理）的范畴，而非作业管理的核心内容。イ是正确的作业管理内容。正确答案：ア.' },
+  { id: 3, section: 'seisan', question: '問題 3．改善を目的とした工程分析に関する記述として最も適切なものは、次のうちどれか。', options: ['ア. Dalam analisis proses kerja operator, pemeriksaan permukaan yang kotor oleh pekerja dinilai sebagai pemeriksaan kualitas.', 'イ. Dalam analisis proses produk, dapat dilakukan perbaikan untuk mengurangi transportasi atau penumpukan, tetapi tidak dapat mengurangi proses pengerjaan atau pemeriksaan.', 'ウ. Dalam analisis proses produk, penggantian cetakan mesin press dinilai sebagai proses pengerjaan.', 'エ. Saat melakukan analisis proses transportasi, jika indeks aktivitas tinggi, ubah cara penempatan barang untuk menurunkan indeks tersebut.'], correctIndex: 0, explanation: '在工序分析中，如果发现不必要的加工或检查工序，可以进行改善或消除。活性示数高表示效率好，降低它不是改善方向。金型交换是准备活动而非加工。正确答案：ア.' },
+  { id: 4, section: 'seisan', question: '問題 4．稼働分析に関する記述として最も適切なものは、次のうちどれか。', options: ['ア. Analisis aktivitas bertujuan untuk menganalisis bahan baku, komponen, dan produk setengah jadi dalam proses, kemudian menganalisis isi dan waktu pemrosesan untuk merancang sistem kerja yang lebih efisien.', 'イ. Analisis aktivitas dengan metode observasi berkelanjutan tidak hanya digunakan untuk memperbaiki sistem kerja, tetapi juga untuk menentukan tingkat kelonggaran saat menetapkan waktu standar.', 'ウ. Metode pengambilan sampel kerja (work sampling) membantu mengurangi beban analisis dari metode observasi berkelanjutan, dan dapat dilakukan tanpa survei pendahuluan.', 'エ. Saat menganalisis pekerjaan yang bersifat siklik dengan metode work sampling, pengamatan harus dilakukan pada interval waktu yang sama dengan siklus kerja.'], correctIndex: 1, explanation: '稼働分析的对象是操作员或机器的状态（作业中、待机中、休息中、故障中等）。连续观测法（連続観測法）不仅用于改善工作系统，还用于确定设定标准时间时的宽裕率。正确答案：イ.' },
+  { id: 5, section: 'seisan', question: '問題 5．連合作業分析に関する記述として最も適切なものは、次のうちどれか。', options: ['ア. Ketika satu pekerja mengoperasikan satu mesin, untuk meningkatkan efisiensi kerja, sebaiknya menggunakan analisis aktivitas, bukan analisis kerja gabungan.', 'イ. Dalam diagram orang–mesin (man–machine chart) yang digunakan untuk analisis kerja gabungan, tidak perlu mencatat pekerjaan individu atau operasi otomatis mesin, hanya bagian pekerjaan yang dilakukan bersama.', 'ウ. Ketika beberapa pekerja bekerja secara paralel dan bersamaan pada satu objek yang sama, untuk memperbaiki pekerjaan sebaiknya menggunakan analisis kerja gabungan daripada metode PTS.', 'エ. Saat meninjau jumlah mesin yang dapat dioperasikan secara bersamaan oleh satu pekerja, dalam analisis kerja gabungan tidak perlu mencatat waktu mesin menganggur, hanya waktu kerja pekerja.'], correctIndex: 2, explanation: '当多名作业人员并行同时在一个对象上工作时，应使用联合作业分析（連合作業分析）而非PTS法。PTS法适用于个别作业，联合作业分析可以掌握等待、协调、不同步的时间。正确答案：ウ.' },
+  { id: 6, section: 'seisan', question: '問題 6．動作経済の原則に関する分類項目として最も不適切なものは、次のうちどれか。', options: ['ア. Klasifikasi yang berkaitan dengan penggunaan tubuh', 'イ. Klasifikasi yang berkaitan dengan desain alat dan peralatan', 'ウ. Klasifikasi yang berkaitan dengan penanganan bahan', 'エ. Klasifikasi yang berkaitan dengan area kerja（さぎょういかんれんぶ）'], correctIndex: 2, explanation: '動作経済的原则分为3大类：①身体的使用分类、②工具和设备的设计分类、③作業域的分类。材料处理（材料的取り扱い）不属于主要分类。正确答案：ウ.' },
+  { id: 7, section: 'seisan', question: '問題 7．5S活動に関する記述として最も不適切なものは、次のうちどれか。', options: ['ア. Barang-barang yang tidak diperlukan akan dibuang sesuai dengan peraturan yang telah ditetapkan.', 'イ. Menampilkan secara visual aturan yang harus dipatuhi dan menyebarkan informasi tersebut kepada semua orang.', 'ウ. Melakukan penyortiran, penataan, dan pembiasaan akan secara otomatis menciptakan tempat kerja yang bersih.', 'エ. Pada rak penyimpanan komponen harus ditulis dengan jelas nama barang yang disimpan dan penanggung jawabnya.'], correctIndex: 2, explanation: '5S的顺序是：整理→整顿→清扫→清洁→躾。清洁（清掃）是5S中的第三步，是独立的步骤，而不是仅通过整理、整顿、躾就能自动实现。跳过清扫步骤是不正确的。正确答案：ウ.' },
+  { id: 8, section: 'seisan', question: '問題 8．工程管理における緩衝に関する記述として最も不適切なものは、次のうちどれか。', options: ['ア. Ketika ada proses bottleneck dalam lini produksi, menempatkan persediaan barang setengah jadi di semua tahap produksi dapat meningkatkan kapasitas produksi seluruh lini.', 'イ. Jenis langkah penyangga terdiri dari tiga bentuk: barang (persediaan), kapasitas (tenaga kerja/mesin), dan waktu.', 'ウ. Diperlukan persediaan pengaman untuk menjaga rencana produksi jika bahan baku terlambat dikirim.', 'エ. Untuk menghindari kerugian waktu produksi akibat faktor yang sulit diprediksi, digunakan persediaan barang dalam proses.'], correctIndex: 0, explanation: '即使在生产线某处出现瓶颈工序，在所有工序间放置半成品库存也不能提高整个生产线的生产能力。缓冲应仅在瓶颈工序前放置，防止生产线停工，而非在所有工序放置。正确答案：ア.' },
+  { id: 9, section: 'seisan', question: '問題 9．見込生産に関する記述として最も適切なものは、次のうちどれか。', options: ['ア. Merupakan bentuk produksi yang didasarkan pada pesanan dari pelanggan tertentu.', 'イ. Karena pelanggan yang menentukan spesifikasi produk utama, maka spesifikasi belum ditetapkan sampai pesanan diterima.', 'ウ. Pihak produsen memperkirakan permintaan pasar sendiri dan mengirimkan produk ke pasar berdasarkan perkiraan tersebut.', 'エ. Untuk menanggapi fluktuasi pesanan, dilakukan penyesuaian melalui kapasitas produksi.'], correctIndex: 2, explanation: '見込生産（見込生産）的特点是：厂商自行预测市场需求，并根据预测将产品投放市场。是订单生产的反面。正确答案：ウ.' },
+  { id: 10, section: 'seisan', question: '問題 10．多種少量生産に関する記述として最も適切なものは、次のうちどれか。', options: ['ア. Cocok untuk produksi lini, dengan tujuan menghasilkan produk dengan produktivitas tinggi dan biaya rendah.', 'イ. Merupakan bentuk produksi satu kali setiap kali ada pesanan tertentu.', 'ウ. Bentuk produksi bergantian berbagai jenis produk, dengan total output dihitung per jenis produk.', 'エ. Karena proses produksi dari bahan dan komponen hingga produk jadi sangat beragam, maka setiap produk memiliki proses produksi yang berbeda, menyebabkan tahapan produksi saling tumpang tindih dan menjadi kompleks.'], correctIndex: 3, explanation: '多种少量生産（多種少量生産）的特点：因产品种类多，每种产品的工序各不相同，工序间相互重叠变得复杂。与少种多量生产、个别生产不同。正确答案：エ.' },
+  { id: 11, section: 'hinshitsu', question: '問題 11．＜工数と日程に関する記述＞と＜語句＞の組合せとして最も適切なものは、次のうちどれか。', options: ['ア. A:1 B:4 C:5 D:7', 'イ. A:2 B:3 C:6 D:7', 'ウ. A:2 B:3 C:5 D:8', 'エ. A:1 B:4 C:6 D:8'], correctIndex: 0, explanation: 'A=余力管理(1)→调整产能与负荷的管理; B=バックワード法(4)→基于交货期制定日程的方法; C=有限山積法(5)→基于作业时间表分配负荷的方法; D=ディスパッチング法(7)→单件生产中的排程方法. 正确答案：ア (A-1, B-4, C-5, D-7).' },
+  { id: 12, section: 'hinshitsu', question: '問題 12．生産統制の管理業務と生産計画との関係性に関する記述として最も適切なものは、次のうちどれか。', options: ['ア. 现品管理与材料计划、运输管理相关。', 'イ. 进度管理涉及根据中等日程计划展开物资计划和外包计划。', 'ウ. 余力管理与小日程计划的作业开始日期控制相关。', 'エ. 作业分配与工数计划的修正相关。'], correctIndex: 0, explanation: '現品管理是管理实际物品如材料、零部件及生产中运输和分配的活动。因此它与材料计划和运输管理密切相关。正确答案：ア.' },
+  { id: 13, section: 'hinshitsu', question: '問題 13．以下に示す作業分配に関する記述において、（）に当てはまる＜語句＞の組合せとして最も適切なものは？', options: ['ア. A:8 B:4 C:6 D:2', 'イ. A:2 B:3 C:5 D:8', 'ウ. A:8 B:4 C:6 D:2', 'エ. A:1 B:4 C:5 D:7'], correctIndex: 2, explanation: '正确的组合是A-8(順序づけ法), B-4(バックワード法), C-6(無限山積法), D-2(工数計画)。这是关于作业分配与术语组合的匹配题。正确答案：ウ (A-8, B-4, C-6, D-2).' },
+  { id: 14, section: 'hinshitsu', question: '問題 14．現品管理に関する記述として最も不適切なものは、次のうちどれか。', options: ['ア. Dalam proses penanganan atau penyimpanan barang fisik, perlu berupaya mencegah kerusakan atau penurunan kualitas barang.', 'イ. Persiapan produksi dilakukan untuk memeriksa perbedaan jumlah antara barang fisik aktual dan jumlah yang tercatat dalam pembukuan.', 'ウ. Untuk memudahkan pemeriksaan jumlah barang, sebaiknya menggunakan wadah standar, menetapkan cara pengemasan standar, dan menyeragamkan cara penempatan saat penyimpanan sementara.', 'エ. Untuk bahan baku dan produk setengah jadi, perlu ditetapkan secara jelas lokasi dan metode penyimpanan.'], correctIndex: 1, explanation: '現品管理活动中，制备准备（製作手配）是执行生产计划的活动。核查实际物品与账簿差异的活动是盘点（棚卸），而非制备准备。イ的描述混淆了两者。正确答案：イ.' },
+  { id: 15, section: 'hinshitsu', question: '問題 15．設備管理の機能に関する記述として最も不適切なものは、次のうちどれか。', options: ['ア. Pengelolaan jadwal proyek konstruksi membantu dalam pengendalian anggaran peralatan.', 'イ. Perancangan peralatan yang dilakukan berdasarkan rencana peralatan membantu dalam penyusunan anggaran peralatan.', 'ウ. Perencanaan pemeliharaan membantu dalam penyusunan anggaran pemeliharaan.', 'エ. Penetapan standar kerja membantu dalam penyusunan anggaran pemeliharaan.'], correctIndex: 3, explanation: '设备管理功能包括：建设进度管理→设备预算管理；设备设计→设备预算编制；维护计划→维护预算编制。而作业标准制定主要用于质量管理和作业指导，与维护预算编制无直接关系。正确答案：エ.' },
+  { id: 16, section: 'hinshitsu', question: '問題 16．設備保全の目的に関する記述として最も不適切なものは、次のうちどれか。', options: ['ア. Tujuan pemeliharaan peralatan mencakup kesejahteraan karyawan.', 'イ. Tujuan pemeliharaan peralatan mencakup memastikan keselamatan.', 'ウ. Tujuan pemeliharaan peralatan mencakup menjaga kualitas produk.', 'エ. Tujuan pemeliharaan peralatan mencakup langkah-langkah penghematan energi.'], correctIndex: 0, explanation: '设备维护的目的包括：确保安全、保证产品质量、节能降耗。员工福祉属于人力资源管理范畴，不是设备维护的直接目的。正确答案：ア.' },
+  { id: 17, section: 'hinshitsu', question: '問題 17．日常保全に関する記述として最も不適切なものは、次のうちどれか。', options: ['ア. Ketika ditemukan tanda-tanda abnormal pada peralatan, harus segera melaporkannya ke bagian pemeliharaan sesuai dengan peraturan dan standar operasi.', 'イ. Pemeriksaan menggunakan palu inspeksi untuk mendeteksi suara tidak normal merupakan salah satu kegiatan pemeriksaan harian.', 'ウ. Penggantian komponen dilakukan bila diperlukan, misalnya saat pergantian proses produksi atau ketika komponen mengalami keausan.', 'エ. Prinsipnya, pemeriksaan rinci dan perbaikan peralatan dilakukan oleh operator yang mengoperasikan mesin tersebut.'], correctIndex: 3, explanation: '日常保全中，详细检查和设备修理原则上应由专职维修部门进行，而非由操作该机器的操作员进行。当发现设备异常时，应按规程向维修部门报告。エ的表述不正确。正确答案：エ.' },
+  { id: 18, section: 'hinshitsu', question: '問題 18．生産設備の劣化によって生じる損失に関する記述として最も不適切なものは、次のうちどれか。', options: ['ア. Biaya transportasi akan meningkat.', 'イ. Output produksi akan menurun.', 'ウ. Rasio konsumsi bahan baku menjadi lebih buruk (meningkat).', 'エ. Kualitas produk akan menurun.'], correctIndex: 0, explanation: '生产设备劣化不会直接导致运输费用增加。运输费用与物流活动相关，与设备状态无直接关系。设备劣化会导致：产量下降、原材料消耗率恶化、产品质量下降。正确答案：ア.' },
+  { id: 19, section: 'hinshitsu', question: '問題 19．設備保全における重点設備の選定対象となる設備として最も不適切なものは、次のうちどれか。', options: ['ア. 进入磨损故障期的设备（接近使用寿命末期）', 'イ. 用于生产重要产品的设备', 'ウ. 没有备用产能的设备', 'エ. 损坏时会导致成本大幅增加的设备'], correctIndex: 0, explanation: '已进入磨损故障期的设备意味着接近使用寿命末期。此时应进行更换或大修，而非作为维护重点。维护对此类设备效果低且不经济。正确答案：ア.' },
+  { id: 20, section: 'hinshitsu', question: '問題 20．資材管理における＜分類＞と＜対象資材＞との組合せとして最も適切なものは？', options: ['ア. 常備材料・非常備材料 (管理面)', 'イ. 直接材料・間接材料 (使用目的)', 'ウ. 有材・無材 (形態)', 'エ. 原材料・完成品 (状態)'], correctIndex: 1, explanation: '资材管理的分类：管理面分类→常备材料/非常备材料；使用目的分类→直接材料/间接材料；形态分类→有材/无材；状态分类→原材料/在制品/完成品。正确答案：イ (直接材料・間接材料 = 使用目的).' },
+  { id: 21, section: 'genka', question: '問題 21．在庫管理に関する記述として最も適切なものは、次のうちどれか。', options: ['ア. Tujuan dari manajemen persediaan adalah meningkatkan profitabilitas dengan mengurangi jumlah persediaan, meskipun hal itu dapat menyebabkan kekurangan stok atau keterlambatan pengiriman.', 'イ. Dalam metode pemesanan berkala, jumlah pesanan dihitung dengan:', 'ウ. Untuk barang penting bernilai tinggi seperti motor, metode pemesanan dengan jumlah tetap adalah yang paling sesuai.', 'エ. Dalam metode pemesanan dengan jumlah tetap, perlu dilakukan pemantauan jumlah persediaan serta penyesuaian terhadap stok pengaman dan titik pemesanan bila diperlukan.'], correctIndex: 3, explanation: '定量订货方式（定量発注法）需要监控库存水平，必要时调整安全库存和订货点。定期订货法的公式是：订货量=最高库存-现有库存+订货间隔期间的平均需求量。正确答案：エ.' },
+  { id: 22, section: 'genka', question: '問題 22．棚卸に関する記述として最も不適切なものは、次のうちどれか。', options: ['ア. 定期盘点（定期棚卸）是为了年度或季度财务报表而进行的。', 'イ. 在实物上应贴上货架标签、物品标签和盘点卡。', 'ウ. 经常盘点（常時棚卸）需要停止仓库全部作业。', 'エ. 进行盘点时，需要标准化工作程序和管理方式以保证准确性。'], correctIndex: 2, explanation: '定期盘点是为了年度或季度财务报表而进行的，需要停止仓库全部作业。而经常盘点是在日常工作中随时进行盘点，不需要停止全部活动。正确答案：ウ.' },
+  { id: 23, section: 'genka', question: '問題 23．物流コストにおける機能別分類に関する費用項目として最も不適切なものは、次のうちどれか。', options: ['ア. 运输费（ゆそうひ）', 'イ. 包装费（ほうそうひ）', 'ウ. 流通加工费（りゅうつうかこうひ）', 'エ. 销售运输费（うりあげうんちん）'], correctIndex: 3, explanation: '物流成本的功能分类包括：运输费、保管费、包装费、流通加工费、装卸费、物流信息管理费。销售运输费属于销售费用，不属于物流成本的功能分类。正确答案：エ.' },
+  { id: 24, section: 'genka', question: '問題 24．倉庫内のロケーション管理に関する記述として最も適切なものは、次のうちどれか。', options: ['ア. 固定位置管理中，物品按顺序存放在空出的可用位置。', 'イ. 自由位置管理中，物品与位置没有固定关系，因此无法高效利用存储空间。', 'ウ. 为提高拣货工作效率而放置在拣货区域的库存称为主动型库存（アクティブ型）。', 'エ. 当存在主动型和备用型库存时，不需要区分它们的放置位置。'], correctIndex: 2, explanation: '主动型库存（アクティブ型在庫）是放置在拣货区域的库存，用于提高拣货工作效率。正确答案：ウ.' },
+  { id: 25, section: 'genka', question: '問題 25．包装に関する記述として最も不適切なものは、次のうちどれか。', options: ['ア. 按形状分类，包装分为三种：个体包装、内包装、外包装。', 'イ. 内包装是位于商品外包装内部的包装。', 'ウ. 按目的分类，包装分为工业包装和商业包装。', 'エ. 用于运输货物的包装是以销售为目的的商业包装。'], correctIndex: 3, explanation: '按目的分类，包装分为工业包装和商业包装。工业包装用于运输和保护产品，商业包装用于销售。发货运送用的包装属于工业包装，而非商业包装。正确答案：エ.' },
+  { id: 26, section: 'genka', question: '問題 26．品質と品質特性に関する記述として最も不適切なものは、次のうちどれか。', options: ['ア. 品质特性应尽可能定量表示。', 'イ. 真正的特性是顾客想要的品质特性，代用特性是在无法直接测量真正特性时的替代特性。', 'ウ. 品质必须在整个产品生命周期中保持。', 'エ. 安全性是品质特性之一。'], correctIndex: 0, explanation: '品质特性应尽可能定量（定量化）表示，而非仅定性表示。定性表示不符合品质管理原则。正确答案：ア.' },
+  { id: 27, section: 'genka', question: '問題 27．品質改善に関する記述において、（）に当てはまる語句の組合せとして最も適切なものは？', options: ['ア. ①:カタヨリ ②:16.0 ③:3.0 ④:A', 'イ. ①:バラツキ ②:16.0 ③:3.0 ④:A', 'ウ. ①:カタヨリ ②:16.0 ③:3.0 ④:B', 'エ. ①:バラツキ ②:16.0 ③:3.0 ④:B'], correctIndex: 3, explanation: '①数据总是存在偏差（バラツキ）；②标准偏差4.0→方差16.0；③方差9.0→标准偏差3.0；④两个工程均值相同(50.0)，A的SD=4.0，B的SD=3.0，B更稳定。正确答案：エ (①:バラツキ, ②:16.0, ③:3.0, ④:B).' },
+  { id: 28, section: 'hinshitsu', question: '問題 28．検査の考え方に関する記述として最も不適切なものは、次のうちどれか。', options: ['ア. 外包接受检查的原则是进行全数检查。', 'イ. 当产品价格低廉且允许一定比例的不良品混入时使用抽样检查。', 'ウ. 将实际合格的批次判定为不合格的错误是生产者危险。', 'エ. 全数检查并不能保证所有产品都是合格品。'], correctIndex: 0, explanation: '外包接受检查并非原则上是全数检查。应根据物品的重要性和成本选择全数检查或抽样检查。全数检查并非基本原则。正确答案：ア.' },
+  { id: 29, section: 'hinshitsu', question: '問題 29．品質保証に関する記述として最も適切なものは、次のうちどれか。', options: ['ア. ISO9001是国际标准，JIS没有对应标准。', 'イ. 根据PL法，即使没有过失也可以要求损害赔偿（无过失责任）。', 'ウ. 品质保证活动中，品质管理可以全部委托给生产部门。', 'エ. 可追溯性是指产品有问题时，公布并回收、修理产品的活动。'], correctIndex: 1, explanation: 'ISO 9001是国际标准，日本发布了同等版本JIS Q 9001。根据PL法（制造物责任法），消费者无需证明过失即可要求损害赔偿（无过失责任）。正确答案：イ.' },
+  { id: 30, section: 'genka', question: '問題 30．コストコントロールの内容に関する記述として最も適切なものは、次のうちどれか。', options: ['ア. 成本控制是降低目标成本的活动。', 'イ. 成本降低是降低标准成本的活动。', 'ウ. 成本控制是将实际成本降至标准成本的活动。', 'エ. 成本控制是在设计阶段将估算成本降至目标成本的活动。'], correctIndex: 2, explanation: '成本控制（コストコントロール）是将实际成本降至标准成本的活动。成本降低（原価低減）是在设计阶段降低目标成本的活动，两者概念不同。正确答案：ウ.' },
+  { id: 31, section: 'genka', question: '問題 31．原価に関する記述として最も不適切なものは、次のうちどれか。', options: ['ア. 现行成本是基于现有技术估算的成本。', 'イ. 沉没成本被认为是选择替代方案时，被抛弃的替代方案所丧失的最大利益。', 'ウ. 标准成本是在标准操业度下，使用标准方法、标准能率和标准成本率计算的成本。', 'エ. 部分成本是根据计算目的，仅汇总特定成本要素的成本。'], correctIndex: 1, explanation: '选项I描述的是机会费用的定义（选择替代方案时丧失的最大利益），而非沉没成本的定义。沉没成本是已发生且无法收回的费用。正确答案：イ.' },
+  { id: 32, section: 'genka', question: '問題 32．製造直接費及び製造間接費に関する記述として最も不適切なものは、次のうちどれか。', options: ['ア. 制造直接费和制造间接费是根据操业度分类的。', 'イ. 将制造直接费按产品汇总叫做直课。', 'ウ. 将制造间接费按一定标准分配到产品叫做配赋。', 'エ. 与机器维护相关的劳务费是制造间接费。'], correctIndex: 0, explanation: '制造直接费和制造间接费是根据与产品的关系分类的，而非根据作业度分类。按作业度分类的是变动费和固定费。正确答案：ア.' },
+  { id: 33, section: 'genka', question: '問題 33．原価低減に関する記述として最も適切なものは、次のうちどれか。', options: ['ア. 成本降低效果最大的是在制造阶段。', 'イ. 成本降低包括原价策划阶段的成本降低和制造阶段的成本改善。', 'ウ. IE直接有助于设计阶段的成本改善。', 'エ. 为了降低直接材料费，需要缩短消费时间。'], correctIndex: 1, explanation: '原价降低效果约70-80%在设计阶段（原价策划阶段）就已决定，而非制造阶段。IE在制造阶段对原价改善有直接贡献。正确答案：イ.' },
+  { id: 34, section: 'anzen', question: '問題 34．日常的に発生する納期遅れに対処するための調査方法として最も不適切なものは？', options: ['ア. 生产能力与现有工作量的平衡调查（是否能力不足）', 'イ. 日程管理的实施情况调查', 'ウ. 调查是否轻易投入紧急订单或计划外工作', 'エ. 调查所有工序是否确保了增加库存的空间'], correctIndex: 3, explanation: '在所有工序增加库存并不是解决交货延迟的根本方法，反而会造成空间和成本的浪费。需要的是供需平衡的改善。正确答案：エ.' },
+  { id: 35, section: 'anzen', question: '問題 35．資材部門の外注品納期遅延対策として最も不適切なものは？', options: ['ア. 与供应商定期召开会议并确认进度情况', 'イ. 用图表分析交付实绩把握延迟模式', 'ウ. 要求供应商在最终交付日期一次性交付全部数量', 'エ. 对可能延迟的采购品活用カムアップ系统'], correctIndex: 2, explanation: '要求供应商一次性全部交付大批量货物会导致库存积压和资金占用问题，不是有效的交货延迟对策。正确答案：ウ.' },
+  { id: 36, section: 'anzen', question: '問題 36．目で見る管理が適切に行われている職場の状態として最も適切なものは？', options: ['ア. 使用流动数曲线显示工序间的物料数量和停留时间', 'イ. 作业人员离开岗位去取零部件', 'ウ. 将生产所需油脂类大量堆积在保管库深处', 'エ. 接到库存询问时员工反复确认才回答'], correctIndex: 0, explanation: '流动数曲线（流動数曲線）可以可视化显示工序间的物料流动和停滞情况，便于发现问题。是目视管理的有效工具。正确答案：ア.' },
+  { id: 37, section: 'anzen', question: '問題 37．安全衛生活動の推進に関する記述として最も不適切なものは？', options: ['ア. 依据劳动安全卫生法，雇主有确保安全工作环境的义务', 'イ. 劳动灾害只因不安全行为而产生', 'ウ. 积极活用ヒヤリ・ハット活动', 'エ. 推进机械和设备本身的本质安全化'], correctIndex: 1, explanation: '劳动灾害是不安全行为和不安全状态的组合造成的，仅强调人为因素而忽视设备、环境、制度等系统因素是不全面的。正确答案：イ.' },
+  { id: 38, section: 'anzen', question: '問題 38．特別教育を受けなくても従事できる業務は？', options: ['ア. 1吨以上起重机的挂钩作业', 'イ. 小型锅炉以外锅炉的操作业务', 'ウ. 5吨以上起重机的操作业务', 'エ. 最大载重1吨未满的叉车操作业务'], correctIndex: 3, explanation: '根据安卫则，最大荷载1吨以下的叉车只需特殊教育即可从事，不需要执照。而1吨以上起重机挂钩、锅炉操作、5吨以上起重机操作都需要国家资格证书。正确答案：エ.' },
+  { id: 39, section: 'anzen', question: '問題 39．四大公害病と原因物質の組合せとして最も適切なものは？', options: ['ア. 水俣病-砷', 'イ. イタイイタイ病-镉', 'ウ. 新潟水俣病-六价铬', 'エ. 四日市哮喘-硫黄化合物'], correctIndex: 3, explanation: '四大公害：水俣病（有机水银/甲基汞）、イタイイタイ病（镉/Cd）、新潟水俣病（有机水银）、四日市哮喘（硫氧化物/SOx）。エ的正确：水俣病对应有机水银，四日市哮喘对应硫化物。正确答案：エ.' },
+  { id: 40, section: 'anzen', question: '問題 40．大気汚染防止法に関する記述として最も適切なものは？', options: ['ア. 煤烟浓度的测量结果须保存10年', 'イ. 设施变更时也需要申报', 'ウ. 排放标准根据污染物质种类和设施种类、规模设定', 'エ. 记录有永久保存的义务'], correctIndex: 2, explanation: '排放标准的设定依据是污染物质种类和设施种类（规模）。浓度测量结果需保存3年。设施变更时需申报。正确答案：ウ.' },
   { id: 2, section: 'bunpou', question: '問題 2．作業管理の実施内容に関する記述として最も関連性の低いものは、次のうちどれか。', options: ['ア. Mengejar metode kerja yang rasional dan memiliki produktivitas tinggi', 'イ. Merencanakan produksi dan mengendalikan produksi', 'ウ. Menstandarkan metode kerja dan menetapkan waktu standar', 'エ. Menyusun prosedur operasi dan panduan kerja'], correctIndex: 0, explanation: '作業管理の核心是追求合理、高效的作业方法（提高生产率）。而生产计划的制定属于生产管理（生産管理）的范畴，而非作业管理的核心内容。正确答案：ア.' },
   { id: 3, section: 'bunpou', question: '問題 3．改善を目的とした工程分析に関する記述として最も適切なものは、次のうちどれか.', options: ['ア. Dalam analisis proses kerja operator, pemeriksaan permukaan yang kotor oleh pekerja dinilai sebagai pemeriksaan kualitas.', 'イ. Dalam analisis proses produk, dapat dilakukan perbaikan untuk mengurangi transportasi atau penumpukan, tetapi tidak dapat mengurangi proses pengerjaan atau pemeriksaan.', 'ウ. Dalam analisis proses produk, penggantian cetakan mesin press dinilai sebagai proses pengerjaan.', 'エ. Saat melakukan analisis proses transportasi, jika indeks aktivitas tinggi, ubah cara penempatan barang untuk menurunkan indeks tersebut.'], correctIndex: 0, explanation: '.operator在检查产品表面污渍时进行的质量检查属于质量检查（品質検査）。在工序分析中，如果发现不必要的加工或检查工序，可以进行改善或消除。正确答案：ア.' },
   { id: 4, section: 'bunpou', question: '問題 4．稼働分析に関する記述として最も適切なものは、次のうちどれか。', options: ['ア. Analisis aktivitas bertujuan untuk menganalisis bahan baku, komponen, dan produk setengah jadi dalam proses, kemudian menganalisis isi dan waktu pemrosesan untuk merancang sistem kerja yang lebih efisien.', 'イ. Analisis aktivitas dengan metode observasi berkelanjutan tidak hanya digunakan untuk memperbaiki sistem kerja, tetapi juga untuk menentukan tingkat kelonggaran saat menetapkan waktu standar.', 'ウ. Metode pengambilan sampel kerja (work sampling) membantu mengurangi beban analisis dari metode observasi berkelanjutan, dan dapat dilakukan tanpa survei pendahuluan.', 'エ. Saat menganalisis pekerjaan yang bersifat siklik dengan metode work sampling, pengamatan harus dilakukan pada interval waktu yang sama dengan siklus kerja.'], correctIndex: 1, explanation: '稼働分析的对象是操作员或机器的状态（作业中、待机中、休息中、故障中等）。连续观测法（連続観測法）不仅用于改善工作系统，还用于确定设定标准时间时的宽裕率。正确答案：イ.' },
@@ -32,7 +71,7 @@ const KARIER_QUESTIONS: Question[] = [
   { id: 11, section: 'bunpou', question: '問題 11．＜工数と日程に関する記述＞と＜語句＞の組合せとして最も適切なものは、次のうちどれか。', options: ['[SOAL KOMBINASI - lihat explanation untuk jawaban A/B/C/D]', '[A] Manajemen yang menyesuaikan kapasitas dan beban kerja', '[B] Metode penjadwalan berdasarkan tanggal pengiriman', '[C] Metode pembagian beban berdasarkan jam kerja (負荷工数)', '[D] Metode penjadwalan dalam produksi satuan'], correctIndex: 0, explanation: 'A=負荷工数管理(调整产能与负荷的管理), B=日程計画法(基于交货期制定日程的方法), C=割付计划(基于作业时间表分配负荷的方法), D=ロット生產計画(单件生产中的排程方法). 正确答案需对照原文组合.' },
   { id: 12, section: 'bunpou', question: '問題 12．生産統制の管理業務と生産計画との関係性に関する記述として最も適切なものは、次のうちどれか。', options: ['ア. Manajemen barang fisik berkaitan dengan perencanaan material dan manajemen transportasi.', 'イ. Manajemen kemajuan berkaitan dengan pelaksanaan rencana material dan rencana outsourcing berdasarkan rencana jangka menengah.', 'ウ. Manajemen kapasitas cadangan berkaitan dengan pengendalian jadwal mulai kerja dalam rencana jangka pendek.', 'エ. Pembagian pekerjaan berkaitan dengan penyesuaian rencana jam kerja.'], correctIndex: 0, explanation: '现品管理（現品管理）是管理实际物品如材料、零部件及生产中运输和分配的活动。因此它与材料计划（材料計画）和运输管理（運輸管理）密切相关。正确答案：ア.' },
   { id: 13, section: 'bunpou', question: '問題 13．以下に示す作業分配に関する記述において、（ ）に当てはまる＜語句＞の組合せとして最も適切なものは？', options: ['[SOAL KOMBINASI - lihat explanation]', '[A] 工数管理で調整する', '[B] 日程計画法', '[C] 負荷工数で割付', '[D] ロット生産計画'], correctIndex: 2, explanation: '正确的组合是A-8, B-4, C-6, D-2 (ウ)。这是关于作业分配与术语组合的匹配题，需对照原文表格选择正确答案。正确答案：ウ (A-8, B-4, C-6, D-2).' },
-  { id: 14, section: 'bunpou', question: '問題 14．現品管理に関する記述として最も不適切なものは、次のうちどれか。', options: ['ア. Dalam proses penanganan atau penyimpanan barang fisik, perlu berupaya mencegah kerusakan atau penurunan kualitas barang.', 'イ. Persiapan produksi dilakukan untuk memeriksa perbedaan jumlah antara barang fisik aktual dan jumlah yang tercatat dalam pembukuan.', 'ウ. Untuk memudahkan pemeriksaan jumlah barang, sebaiknya menggunakan wadah standar, menetapkan cara pengemasan standar, dan menyeragamkan cara penempatan saat penyimpanan sementara.', 'エ. Untuk bahan baku dan produk setengah jadi, perlu menetapkan secara jelas lokasi dan metode penyimpanan.'], correctIndex: 0, explanation: '在现品管理中，防止材料和产品在保管或运输过程中损坏或质量下降是正确且重要的。制备准备（製作手配）是执行生产计划的活动，而非核查实际物品与账簿差异的盘点（棚卸）活动。正确答案：イ.' },
+{ id: 14, section: 'genka', question: '問題 14．現品管理に関する記述として最も不適切なものは、次のうちどれか。', options: ['ア. Dalam proses penanganan atau penyimpanan barang fisik, perlu berupaya mencegah kerusakan atau penurunan kualitas barang.', 'イ. Persiapan produksi dilakukan untuk memeriksa perbedaan jumlah antara barang fisik aktual dan jumlah yang tercatat dalam pembukuan.', 'ウ. Untuk memudahkan pemeriksaan jumlah barang, sebaiknya menggunakan wadah standar, menetapkan cara pengemasan standar, dan menyeragamkan cara penempatan saat penyimpanan sementara.', 'エ. Untuk bahan baku dan produk setengah jadi, perlu ditetapkan secara jelas lokasi dan metode penyimpanan.'], correctIndex: 1, explanation: '現品管理活动中，制备准备（製作手配）是执行生产计划的活动。核查实际物品与账簿差异的活动是盘点（棚卸），而非制备准备。イ的描述混淆了两者。正确答案：イ.' },
   { id: 15, section: 'bunpou', question: '問題 15．設備管理の機能に関する記述として最も不適切なものは、次のうちどれか。', options: ['ア. Pengelolaan jadwal proyek konstruksi membantu dalam pengendalian anggaran peralatan.', 'イ. Perancangan peralatan yang dilakukan berdasarkan rencana peralatan membantu dalam penyusunan anggaran peralatan.', 'ウ. Perencanaan pemeliharaan membantu dalam penyusunan anggaran pemeliharaan.', 'エ. Penetapan standar kerja membantu dalam penyusunan anggaran pemeliharaan.'], correctIndex: 3, explanation: '设备管理功能包括：建设进度管理→设备预算管理；设备设计→设备预算编制；维护计划→维护预算编制。而作业标准制定（作業標準設定）主要用于质量管理和作业指导，与维护预算编制无直接关系。正确答案：エ.' },
   { id: 16, section: 'bunpou', question: '問題 16．設備保全の目的に関する記述として最も不適切なものは、次のうちどれか。', options: ['ア. Tujuan pemeliharaan peralatan mencakup kesejahteraan karyawan.', 'イ. Tujuan pemeliharaan peralatan mencakup memastikan keselamatan.', 'ウ. Tujuan pemeliharaan peralatan mencakup menjaga kualitas produk.', 'エ. Tujuan pemeliharaan peralatan mencakup langkah-langkah penghematan energi.'], correctIndex: 0, explanation: '设备维护的目的包括：确保安全、保证产品质量、节能降耗。员工福祉（福利厚生）属于人力资源管理范畴，不是设备维护的直接目的。正确答案：ア.' },
   { id: 17, section: 'bunpou', question: '問題 17．日常保全に関する記述として最も不適切なものは、次のうちどれか。', options: ['ア. Ketika ditemukan tanda-tanda abnormal pada peralatan, harus segera melaporkannya ke bagian pemeliharaan sesuai dengan peraturan dan standar operasi.', 'イ. Pemeriksaan menggunakan palu inspeksi untuk mendeteksi suara tidak normal merupakan salah satu kegiatan pemeriksaan harian.', 'ウ. Penggantian komponen dilakukan bila diperlukan, misalnya saat pergantian proses produksi atau ketika komponen mengalami keausan.', 'エ. Prinsipnya, pemeriksaan rinci dan perbaikan peralatan dilakukan oleh operator yang mengoperasikan mesin tersebut.'], correctIndex: 3, explanation: '日常保全中，详细检查和设备修理原则上应由操作该机器的操作员进行。当发现设备异常时，应按规程向维修部门报告这也是正确的。因此，最不适当的表述需要仔细辨别。正确答案需参照原文。' },
@@ -58,8 +97,7 @@ const KARIER_QUESTIONS: Question[] = [
   { id: 37, section: 'bunpou', question: '問題 37．安全衛生活動の推進に関する記述として最も不適切なものは？', options: ['[SOAL KOMBINASI - lihat explanation]', '[A] 労働安全衛生法に基づき、事業者は安全な職場環境を確保する義務がある', '[I] 労働災害は不安全行為のみで発生する', '[U] ヒヤリ・ハット活動を積極的に活用する', '[E] 機械や设备的本質安全化を進める'], correctIndex: 1, explanation: '劳动灾害是不安全行为和不安全状态的组合造成的，仅强调人为因素而忽视设备、环境、制度等系统因素是不全面的。正确答案：I.' },
   { id: 38, section: 'bunpou', question: '問題 38．特別教育を受けなくても従事できる業務は？', options: ['[SOAL KOMBINASI - lihat explanation]', '[A] 最大荷重1トン未満のフォークリフト運転', '[I] つり上げ1トン以上のクレーン玉掛け', '[U] 小型ボイラーの取扱', '[E] 特定化学物質取扱作業'], correctIndex: 0, explanation: '根据安卫则，最大荷载1吨以下的叉车和1吨以下的起重机挂钩作业只需特殊教育即可从事，不需要执照。正确答案：A.' },
   { id: 39, section: 'bunpou', question: '問題 39．四大公害病と原因物質の組合せとして最も適切なものは？', options: ['[SOAL KOMBINASI - lihat explanation]', '[水俣病] イタイイタイ病:カドミウム', '[イタイイタイ病] 新潟水俣病:水銀', '[四日市喘息] 四日市喘息:硫黄化合物(SOx)', '[水俣病] 水俣病:有機水銀'], correctIndex: 3, explanation: '四大公害：水俣病（有机水银/甲基汞）、イタイイタイ病（镉/Cd）、新潟水俣病（有机水银）、四日市哮喘（硫氧化物/SOx）。エ的四日市哮喘对应硫化物，是正确答案。' },
-  { id: 40, section: 'bunpou', question: '問題 40．大気汚染防止法に関する記述として最も適切なものは？', options: ['[SOAL KOMBINASI - lihat explanation]', '[A] ばい煙濃度の測定結果は3年間保存', '[I] 施設を変更した場合も提出義務あり', '[U] 排出基準は汚染物質の種類と施設の規模に基づいて設定', '[E] 記録は永久保存が義務付けられている'], correctIndex: 2, explanation: '排放标准的设定依据是污染物质种类和设施种类（规模）。浓度测量结果需保存3年。设施变更时需申报。正确答案：U.' },
-];
+  ];
 
 // CBT Questions for SSW(ii) Industrial Product Manufacturing
 const SSW_QUESTIONS: Question[] = [
@@ -120,9 +158,13 @@ const DEMO_QUESTIONS: Question[] = [
 ];
 
 const SECTION_INFO = {
-  moji: { name: '文字 (Moji)', description: 'Kanji & Vocabulary', icon: '漢', duration: '25 questions' },
-  bunpou: { name: '文法 (Bunpou)', description: 'Grammar', icon: '📖', duration: '25 questions' },
-  dokkai: { name: '読解 (Dokkai)', description: 'Reading Comprehension', icon: '📚', duration: '25 questions' },
+  moji: { name: '文字 (Moji)', description: 'Kanji & Vocabulary', icon: '漢', duration: '10 questions' },
+  bunpou: { name: '文法 (Bunpou)', description: 'Grammar', icon: '📖', duration: '10 questions' },
+  dokkai: { name: '読解 (Dokkai)', description: 'Reading Comprehension', icon: '📚', duration: '5 questions' },
+  seisan: { name: '生産管理', description: 'Production Management', icon: '🏭', duration: '10 questions' },
+  hinshitsu: { name: '品質管理', description: 'Quality Management', icon: '✅', duration: '10 questions' },
+  genka: { name: '原価管理', description: 'Cost Management', icon: '💴', duration: '10 questions' },
+  anzen: { name: '安全衛生・物流', description: 'Safety & Logistics', icon: '⚠️', duration: '10 questions' },
 };
 
 export default function SimulasiPage() {
@@ -212,24 +254,35 @@ function SimulasiContent() {
   // Calculate scores
   const scores = useMemo(() => {
     const total = filteredQuestions.length;
-    let correct = { moji: 0, bunpou: 0, dokkai: 0 };
-    let totalSection = { moji: 0, bunpou: 0, dokkai: 0 };
+    const sectionKeys = examType === 'karier'
+      ? ['seisan', 'hinshitsu', 'genka', 'anzen'] as const
+      : ['moji', 'bunpou', 'dokkai'] as const;
+
+    let correctCount: Record<string, number> = {};
+    let totalSection: Record<string, number> = {};
+    sectionKeys.forEach(k => { correctCount[k] = 0; totalSection[k] = 0; });
 
     filteredQuestions.forEach(q => {
-      totalSection[q.section as keyof typeof totalSection]++;
+      totalSection[q.section] = (totalSection[q.section] || 0) + 1;
       if (answers[q.id] === q.correctIndex) {
-        correct[q.section as keyof typeof correct]++;
+        correctCount[q.section] = (correctCount[q.section] || 0) + 1;
       }
     });
 
+    const totalCorrect = Object.values(correctCount).reduce((a, b) => a + b, 0);
+    const passed = total > 0 && (totalCorrect / total) >= 0.8;
+
     return {
       total,
-      correct: correct.moji + correct.bunpou + correct.dokkai,
-      moji: { correct: correct.moji, total: totalSection.moji },
-      bunpou: { correct: correct.bunpou, total: totalSection.bunpou },
-      dokkai: { correct: correct.dokkai, total: totalSection.dokkai },
-      percentage: total > 0 ? Math.round(((correct.moji + correct.bunpou + correct.dokkai) / total) * 100) : 0,
-      passed: total > 0 && ((correct.moji + correct.bunpou + correct.dokkai) / total) >= 0.8,
+      correct: totalCorrect,
+      sectionScores: sectionKeys.map(k => ({
+        key: k,
+        correct: correctCount[k] || 0,
+        total: totalSection[k] || 0,
+        ...SECTION_INFO[k],
+      })),
+      percentage: total > 0 ? Math.round((totalCorrect / total) * 100) : 0,
+      passed,
     };
   }, [filteredQuestions, answers]);
 
@@ -367,9 +420,13 @@ function SimulasiContent() {
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                       currentQ.section === 'moji' ? 'bg-[#E17055]/20 text-[#E17055]' :
                       currentQ.section === 'bunpou' ? 'bg-[#6C5CE7]/20 text-[#6C5CE7]' :
-                      'bg-[#00B894]/20 text-[#00B894]'
+                      currentQ.section === 'dokkai' ? 'bg-[#00B894]/20 text-[#00B894]' :
+                      currentQ.section === 'seisan' ? 'bg-[#FDCB6E]/20 text-[#FDCB6E]' :
+                      currentQ.section === 'hinshitsu' ? 'bg-[#74B9FF]/20 text-[#74B9FF]' :
+                      currentQ.section === 'genka' ? 'bg-[#A29BFE]/20 text-[#A29BFE]' :
+                      'bg-[#55EFC4]/20 text-[#55EFC4]'
                     }`}>
-                      {SECTION_INFO[currentQ.section as keyof typeof SECTION_INFO].name}
+                      {SECTION_INFO[currentQ.section].name}
                     </span>
                   </div>
                   <div className="flex items-center gap-4">
@@ -483,30 +540,23 @@ function SimulasiContent() {
                 </p>
 
                 {/* Section Breakdown */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  {[
-                    { key: 'moji' as const, label: 'Moji', icon: '漢' },
-                    { key: 'bunpou' as const, label: 'Bunpou', icon: '📖' },
-                    { key: 'dokkai' as const, label: 'Dokkai', icon: '📚' },
-                  ].map(s => {
-                    const sectionScore = scores[s.key];
-                    return (
-                      <div key={s.key} className="p-3 bg-[#2D2D44] rounded-xl">
-                        <div className="text-xl mb-1">{s.icon}</div>
-                        <div className="text-lg font-bold text-white">
-                          {'correct' in sectionScore ? `${sectionScore.correct}/${sectionScore.total}` : sectionScore}
-                        </div>
-                        <div className="text-xs text-[#636E72]">{s.label}</div>
+                <div className={`grid gap-4 mb-6 ${examType === 'karier' ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                  {scores.sectionScores.map(s => (
+                    <div key={s.key} className="p-3 bg-[#2D2D44] rounded-xl">
+                      <div className="text-xl mb-1">{s.icon}</div>
+                      <div className="text-lg font-bold text-white">
+                        {s.correct}/{s.total}
                       </div>
-                    );
-                  })}
+                      <div className="text-xs text-[#636E72]">{s.name}</div>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Pass/Fail indicator */}
                 <div className={`p-4 rounded-xl ${scores.passed ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
                   <p className={scores.passed ? 'text-green-400' : 'text-red-400'}>
                     {scores.passed
-                      ? '✨ Skor kamu di atas 80%! Kamu siap untuk N5!'
+                      ? '✨ Skor kamu di atas 80%! Kamu siap untuk CBT!'
                       : '📖 Kamu perlu skor 80% untuk lulus. Terus belajar!'}
                   </p>
                 </div>
