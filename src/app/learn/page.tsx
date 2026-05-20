@@ -1515,19 +1515,6 @@ export default function LearnPage() {
       badge: '🔒 85% Kosakata N5',
       badgeColor: colors.darkGray,
     },
-    {
-      id: 'premium-modul',
-      title: 'Modul Premium',
-      subtitle: 'Bisnis Korespondensi & Hyouka TG2',
-      icon: '👑',
-      jlptLevel: 'N5' as const,
-      status: 'learning' as const,
-      progress: 0,
-      learned: 0,
-      total: 16,
-      badge: '5000 💎 untuk unlock',
-      badgeColor: colors.gold,
-    },
     // N4 Group
     {
       id: 'kanji-n4',
@@ -1685,6 +1672,40 @@ export default function LearnPage() {
               ? `● Sedang Belajar • ${hiraganaProgress.learned}/${hiraganaProgress.total} karakter` 
               : '● Tap untuk mulai belajar'}
           </p>
+        </motion.div>
+
+        {/* Modul Premium Banner */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          onClick={() => handleModuleClick('premium-modul')}
+          className="p-4 rounded-2xl cursor-pointer"
+          style={{ background: `linear-gradient(135deg, #1a1a2e 0%, #2a1a3e 100%)`, border: `1px solid ${colors.gold}40` }}
+        >
+          <div className="flex items-center gap-4">
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl"
+              style={{ backgroundColor: `${colors.gold}20` }}
+            >
+              👑
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-base font-bold text-[#f0bf63]">Modul Premium</span>
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${colors.gold}30`, color: colors.gold }}>
+                  5000 💎
+                </span>
+              </div>
+              <p className="text-sm text-[#c8c4d7]">Bisnis Korespondensi & Hyouka TG2</p>
+              <p className="text-xs text-[#c8c4d7]/60 mt-1">16 lesson • 2 modul eksklusif</p>
+            </div>
+            <div className="text-[#f0bf63]">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M7 4l6 6-6 6" />
+              </svg>
+            </div>
+          </div>
         </motion.div>
 
         {/* Modules by JLPT Level */}
