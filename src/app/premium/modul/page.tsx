@@ -118,6 +118,21 @@ const MODULES: Modul[] = [
       { id: 's8', title: 'CBT Simulasi SSW(ii)', desc: 'Simulasi ujian SSW(ii) Industrial Product', icon: '💻', premium: false },
     ],
   },
+  {
+    id: 'gino2',
+    title: 'GINO2 令和3年度',
+    subtitle: 'CBT GINO2 Manufakturing',
+    icon: '🎯',
+    color: colors.coral,
+    badge: 'GINO2',
+    lessons: [
+      { id: 'g1', title: '生産管理 (Seisan Kanri)', desc: 'Production Management - Q1-10', icon: '🏭', premium: false },
+      { id: 'g2', title: '品質管理・設備管理', desc: 'Quality & Equipment Management - Q11-20', icon: '✅', premium: false },
+      { id: 'g3', title: '原価管理・物流管理', desc: 'Cost & Logistics Management - Q21-30', icon: '💴', premium: false },
+      { id: 'g4', title: '安全衛生・環境管理', desc: 'Safety, Health & Environment - Q31-40', icon: '⚠️', premium: false },
+      { id: 'g5', title: 'CBT Simulasi GINO2', desc: 'Simulasi ujian CBT GINO2 Manufakturing (40 soal)', icon: '💻', premium: false },
+    ],
+  },
 ];
 
 // ── Premium Lock Banner ───────────────────────────────────────
@@ -211,6 +226,8 @@ function ModuleDetail({ modul, onBack, isPremium }: { modul: Modul; onBack: () =
       router.push('/simulasi?type=karier');
     } else if (modul.id === 'ssw' && lessonId === 's8') {
       router.push('/simulasi?type=ssw');
+    } else if (modul.id === 'gino2' && lessonId === 'g5') {
+      router.push('/simulasi?type=gino2');
     }
   };
 
