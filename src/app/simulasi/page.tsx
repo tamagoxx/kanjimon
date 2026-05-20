@@ -64,21 +64,68 @@ const FURIGANA_MAP: Record<string, string> = {
   "排出基準": "はいしゅつきじゅん",
 };
 
-// Apply furigana to Japanese text by replacing known terms with ruby markup
+// Apply furigana to Japanese text using known term map + per-character fallback
+// Strategy: replace known multi-char terms first (with ruby), then process remaining kanji
 function applyFurigana(text: string): string {
   let result = text;
-  // Sort by length descending to replace longer terms first
+
+  // First pass: replace known multi-char terms with character-level ruby markup
+  // Sort longest first to avoid partial replacements
   const terms = Object.keys(FURIGANA_MAP).sort((a, b) => b.length - a.length);
   for (const term of terms) {
+    if (!result.includes(term)) continue;
     const reading = FURIGANA_MAP[term];
-    // Replace each kanji character with ruby markup
-    const ruby = reading.split('').map((char, i) => {
-      const kanji = term[i] || '';
-      return kanji !== char ? `<ruby><rb>${kanji}</rb><rt>${char}</rt></ruby>` : kanji;
+    const ruby = term.split('').map((kanji, idx) => {
+      const rc = reading[idx] || '';
+      return (rc && rc !== kanji)
+        ? `<ruby><rb>${kanji}</rb><rt>${rc}</rt></ruby>`
+        : kanji;
     }).join('');
-    result = result.replace(new RegExp(term, 'g'), ruby);
+    result = result.replace(new RegExp(escapeRegExp(term), 'g'), ruby);
   }
-  return result;
+
+  // Second pass: wrap remaining bare kanji (not already inside <ruby> tags) with furigana
+  // Split text by <ruby>...</ruby> tags, only process non-ruby parts
+  const parts: string[] = [];
+  let lastIndex = 0;
+  const KANJI = /[一-龥]/g;
+
+  // Split result by ruby tags - find each <ruby> block and push non-ruby content
+  let scanIndex = 0;
+  let rubyTagStart = result.indexOf('<ruby>');
+  while (rubyTagStart !== -1) {
+    // Push text before this ruby tag
+    if (rubyTagStart > lastIndex) {
+      parts.push(result.substring(lastIndex, rubyTagStart));
+    }
+    // Find end of this ruby block
+    const rubyEnd = result.indexOf('</ruby>', rubyTagStart);
+    lastIndex = rubyEnd !== -1 ? rubyEnd + 7 : rubyTagStart + 6;
+    // Next search from after ruby block
+    rubyTagStart = result.indexOf('<ruby>', lastIndex);
+  }
+  // Push remaining text after last ruby tag
+  if (lastIndex < result.length) {
+    parts.push(result.substring(lastIndex));
+  }
+
+  // Now process each non-ruby part for remaining kanji
+  const processed = parts.map(part => {
+    return part.replace(KANJI, (char) => {
+      // Try to find reading in FURIGANA_MAP as single-char key
+      const entry = Object.entries(FURIGANA_MAP).find(([k]) => k === char);
+      if (entry) {
+        return `<ruby><rb>${char}</rb><rt>${entry[1]}</rt></ruby>`;
+      }
+      return char;
+    });
+  });
+
+  return processed.join('');
+}
+
+function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 // FuriganaQuestion component renders a question with furigana + Indonesian translation
