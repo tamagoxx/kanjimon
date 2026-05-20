@@ -83,39 +83,39 @@ interface Modul {
 
 const MODULES: Modul[] = [
   {
-    id: 'bunin',
-    title: 'ビジネス中国語',
-    subtitle: 'Bisnis & Korespondensi Bisnis',
-    icon: '💼',
+    id: 'manufacturing',
+    title: '製造業中国語',
+    subtitle: 'Manufaktur & Produksi',
+    icon: '🏭',
     color: colors.brand,
-    badge: 'Bisnis',
+    badge: 'Manufaktur',
     lessons: [
-      { id: 'l1', title: 'Dasar Percakapan Bisnis', desc: 'Salam, perkenalan, dan ungkapan sopan dalam situasi bisnis', icon: '🗣️', premium: false },
-      { id: 'l2', title: 'Surat Dagang (Faksimili)', desc: 'Format & ungkapan surat niaga, pesanan, komplain', icon: '📄', premium: false },
-      { id: 'l3', title: 'Telepon Bisnis', desc: 'Ungkapan menerima & menelfon, menghubungkan telepon', icon: '📞', premium: false },
-      { id: 'l4', title: 'Presentasi Bisnis', desc: 'Membuka, menyampaikan, dan menutup presentasi', icon: '📊', premium: false },
-      { id: 'l5', title: 'Kontrak & Negosiasi', desc: 'Ungkapan negosiasi, persetujuan, penolakan sopan', icon: '🤝', premium: false },
-      { id: 'l6', title: 'Laporan & Memo', desc: 'Format laporan bisnis, memo internal perusahaan', icon: '📝', premium: false },
-      { id: 'l7', title: 'Etiket Bisnis', desc: 'Kepatuhan, nama kartu nama, jam kerja, jamuan', icon: '🎌', premium: false },
-      { id: 'l8', title: 'Meetings & Minutes', desc: 'Ungkapan rapat, mencatat minutes (riai)', icon: '🏢', premium: false },
+      { id: 'm1', title: 'Factory Greeting & Etiquette', desc: 'Salam, perkenalan, etiket di lantai produksi', icon: '🏭', premium: false },
+      { id: 'm2', title: 'Surat Permintaan & Penawaran', desc: 'Format surat perdagangan, quotation, purchase order', icon: '📄', premium: false },
+      { id: 'm3', title: '電話 производства (Produksi)', desc: 'Ungkapan telephone manufacturing, confer dengan supplier', icon: '📞', premium: false },
+      { id: 'm4', title: 'Quality Control Discussion', desc: 'Pembahasan QC, defect, 検品, standar kualitas', icon: '✅', premium: false },
+      { id: 'm5', title: 'Supply Chain & Supplier', desc: 'Ungkapan procurement, Lead Time, поставка', icon: '🚚', premium: false },
+      { id: 'm6', title: 'Maintenance & Breakdown', desc: '報告・保全・故障・修理 dalam konteks pabrik', icon: '🔧', premium: false },
+      { id: 'm7', title: 'Safety & Compliance', desc: 'keselamatan kerja, 5S, ISO standard, audit工厂', icon: '🦺', premium: false },
+      { id: 'm8', title: '生産会議 & 進捗報告', desc: 'Rapat produksi, 打合, progress report mingguan', icon: '📊', premium: false },
     ],
   },
   {
     id: 'hyouka',
-    title: '評価試験',
-    subtitle: 'Hyouka — Tes Evaluasi Kemampuan',
+    title: '製造業評価試験',
+    subtitle: 'Tes Evaluasi Manufaktur',
     icon: '📋',
     color: colors.teal,
     badge: 'Evaluasi',
     lessons: [
-      { id: 'l1', title: 'JLPT N5 Simulation', desc: 'Simulasi full test JLPT N5 — listening, reading, grammar', icon: '📖', premium: false },
-      { id: 'l2', title: 'JLPT N4 Simulation', desc: 'Simulasi full test JLPT N4 — listening, reading, grammar', icon: '📖', premium: false },
-      { id: 'l3', title: 'JLPT N3 Simulation', desc: 'Simulasi full test JLPT N3 — listening, reading, grammar', icon: '📖', premium: false },
-      { id: 'l4', title: 'Kanken N5 Practice', desc: 'Practice test Kanji Proficiency Test Level N5', icon: '漢', premium: false },
-      { id: 'l5', title: 'Kanken N4 Practice', desc: 'Practice test Kanji Proficiency Test Level N4', icon: '漢', premium: false },
-      { id: 'l6', title: 'Business Communication Test', desc: 'Evaluasi kemampuan komunikasi bisnis TG2', icon: '💬', premium: false },
-      { id: 'l7', title: 'Keigo Mastery Test', desc: 'Tes penilaian pemahaman 敬語 (bahasa sopan/j尊敬)', icon: '🙇', premium: false },
-      { id: 'l8', title: 'Overall Proficiency Report', desc: 'Laporan kemampuan keseluruhan dengan rekomendasi', icon: '📈', premium: false },
+      { id: 'h1', title: 'Vocabulary Manufaktur N5', desc: 'Tes kosakata 製造業 (manufacturing) level N5', icon: '🏭', premium: false },
+      { id: 'h2', title: 'Reading: 品質仕様書', desc: 'Membaca dokumen quality specification sheets', icon: '📖', premium: false },
+      { id: 'h3', title: 'Listening: 作業指示', desc: 'Memahami instructions工場 (factory instructions)', icon: '🎧', premium: false },
+      { id: 'h4', title: 'Keigo Manufaktur', desc: '敬語 dalam konteks lingkungan produksi & QC', icon: '🙇', premium: false },
+      { id: 'h5', title: 'JLPT N5 Manufaktur', desc: 'Simulasi JLPT N5 dengan tema manufaktur', icon: '📝', premium: false },
+      { id: 'h6', title: 'Kanji Produksi N5', desc: 'Kanji khusus industri: 製造・品質・検査・設備', icon: '漢', premium: false },
+      { id: 'h7', title: 'Kanji Produksi N4', desc: 'Kanji lanjutan manufaktur: 計画・工程・改善・安全管理', icon: '漢', premium: false },
+      { id: 'h8', title: 'Overall Proficiency Report', desc: 'Laporan kemampuan lengkap + рекомендации', icon: '📈', premium: false },
     ],
   },
 ];
@@ -134,7 +134,7 @@ function PremiumBanner() {
         <span className="text-3xl">👑</span>
         <div className="flex-1">
           <h3 className="text-base font-black text-[#d8e4ea]">Premium Module</h3>
-          <p className="text-sm text-[#c8c4d7]">Buka semua materi bisnis & evaluasi dengan langganan premium</p>
+          <p className="text-sm text-[#c8c4d7]">Buka semua materi manufaktur dengan langganan premium</p>
         </div>
       </div>
       <div className="mt-3 flex gap-2">
@@ -259,7 +259,7 @@ export default function PremiumModulPage() {
         <div className="text-center p-8 rounded-2xl max-w-sm" style={{ backgroundColor: colors.cardBg }}>
           <span className="text-5xl mb-4 block">👑</span>
           <h2 className="text-xl font-black text-[#d8e4ea] mb-2">Premium Diperlukan</h2>
-          <p className="text-sm text-[#c8c4d7] mb-4">Unlock Modul Premium dengan 5000 💎 untuk akses ビジネス中国語 & 評価試験</p>
+<p className="text-sm text-[#c8c4d7]">Unlock Modul Premium dengan 5000 💎 untuk akses 製造業中国語 & 製造業評価試験</p>
           <button
             onClick={() => router.push('/learn')}
             className="px-6 py-3 rounded-xl font-bold text-white w-full"
@@ -293,7 +293,7 @@ export default function PremiumModulPage() {
             📚
           </div>
           <h1 className="text-xl font-black text-[#d8e4ea]">Premium Modul</h1>
-          <p className="text-sm text-[#c8c4d7] mt-1">Materi TG2 — ビジネス中国語 & 評価試験</p>
+<p className="text-sm text-[#c8c4d7]">Materi TG2 — 製造業中国語 & 製造業評価試験</p>
           {!isPremium && (
             <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full" style={{ backgroundColor: `${colors.gold}20` }}>
               <span className="text-sm">👑</span>
