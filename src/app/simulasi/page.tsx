@@ -158,23 +158,28 @@ function FuriganaQuestion({
           const isCorrect = i === q.correctIndex;
 
           return (
-            <div key={i} className={`p-4 rounded-xl font-medium transition-all ${
-              showExplanation
-                ? isCorrect
-                  ? 'bg-green-500/20 border-2 border-green-500 text-green-400'
+            <button
+              key={i}
+              onClick={() => !showExplanation && onAnswer(i)}
+              disabled={showExplanation}
+              className={`w-full p-4 rounded-xl text-left font-medium transition-all ${
+                showExplanation
+                  ? isCorrect
+                    ? 'bg-green-500/20 border-2 border-green-500 text-green-400'
+                    : isSelected
+                      ? 'bg-red-500/20 border-2 border-red-500 text-red-400'
+                      : 'bg-[#2D2D44] text-[#636E72]'
                   : isSelected
-                    ? 'bg-red-500/20 border-2 border-red-500 text-red-400'
-                    : 'bg-[#2D2D44] text-[#636E72]'
-                : isSelected
-                  ? 'bg-[#6C5CE7]/30 border-2 border-[#6C5CE7] text-white'
-                  : 'bg-[#2D2D44] text-white hover:bg-[#3D3D54] border border-transparent'
-            }`}>
+                    ? 'bg-[#6C5CE7]/30 border-2 border-[#6C5CE7] text-white'
+                    : 'bg-[#2D2D44] text-white hover:bg-[#3D3D54] border border-transparent'
+              }`}
+            >
               <span className="mr-3 font-bold">{String.fromCharCode(65 + i)}.</span>
               <span className="text-sm">{optionJa}</span>
               {optionId && <span className="text-xs text-[#636E72] block ml-8 mt-0.5">{optionId}</span>}
               {showExplanation && isCorrect && <span className="ml-2">✓</span>}
               {showExplanation && isSelected && !isCorrect && <span className="ml-2">✗</span>}
-            </div>
+            </button>
           );
         })}
       </div>
