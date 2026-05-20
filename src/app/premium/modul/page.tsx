@@ -83,39 +83,39 @@ interface Modul {
 
 const MODULES: Modul[] = [
   {
-    id: 'manufacturing',
-    title: '製造業中国語',
-    subtitle: 'Manufaktur & Produksi',
-    icon: '🏭',
+    id: 'karier-bisnis',
+    title: 'キャリア・ビスネス製造業',
+    subtitle: 'Karier Bisnis Manufacturing',
+    icon: '💼',
     color: colors.brand,
-    badge: 'Manufaktur',
+    badge: 'Karier',
     lessons: [
-      { id: 'm1', title: 'Factory Greeting & Etiquette', desc: 'Salam, perkenalan, etiket di lantai produksi', icon: '🏭', premium: false },
-      { id: 'm2', title: 'Surat Permintaan & Penawaran', desc: 'Format surat perdagangan, quotation, purchase order', icon: '📄', premium: false },
-      { id: 'm3', title: '電話 производства (Produksi)', desc: 'Ungkapan telephone manufacturing, confer dengan supplier', icon: '📞', premium: false },
-      { id: 'm4', title: 'Quality Control Discussion', desc: 'Pembahasan QC, defect, 検品, standar kualitas', icon: '✅', premium: false },
-      { id: 'm5', title: 'Supply Chain & Supplier', desc: 'Ungkapan procurement, Lead Time, поставка', icon: '🚚', premium: false },
-      { id: 'm6', title: 'Maintenance & Breakdown', desc: '報告・保全・故障・修理 dalam konteks pabrik', icon: '🔧', premium: false },
-      { id: 'm7', title: 'Safety & Compliance', desc: 'keselamatan kerja, 5S, ISO standard, audit工厂', icon: '🦺', premium: false },
-      { id: 'm8', title: '生産会議 & 進捗報告', desc: 'Rapat produksi, 打合, progress report mingguan', icon: '📊', premium: false },
+      { id: 'k1', title: 'Factory Greeting & Etiquette', desc: 'Salam, perkenalan, etiket di lantai produksi', icon: '🏭', premium: false },
+      { id: 'k2', title: 'Surat Permintaan & Penawaran', desc: 'Format surat perdagangan, quotation, purchase order', icon: '📄', premium: false },
+      { id: 'k3', title: '電話 производства (Produksi)', desc: 'Ungkapan telephone manufacturing, confer dengan supplier', icon: '📞', premium: false },
+      { id: 'k4', title: 'Quality Control Discussion', desc: 'Pembahasan QC, defect, 検品, standar kualitas', icon: '✅', premium: false },
+      { id: 'k5', title: 'Supply Chain & Supplier', desc: 'Ungkapan procurement, Lead Time, поставка', icon: '🚚', premium: false },
+      { id: 'k6', title: 'Maintenance & Breakdown', desc: '報告・保全・故障・修理 dalam konteks pabrik', icon: '🔧', premium: false },
+      { id: 'k7', title: 'Safety & Compliance', desc: 'keselamatan kerja, 5S, ISO standard, audit工場', icon: '🦺', premium: false },
+      { id: 'k8', title: 'CBT Simulasi Karier Bisnis', desc: 'Simulasi ujian CBT karier bisnis manufaktur', icon: '💻', premium: false },
     ],
   },
   {
-    id: 'hyouka',
-    title: '製造業評価試験',
-    subtitle: 'Tes Evaluasi Manufaktur',
+    id: 'ssw',
+    title: 'SSW(ii) Exam',
+    subtitle: 'Industrial Product Manufacturing',
     icon: '📋',
     color: colors.teal,
-    badge: 'Evaluasi',
+    badge: 'SSW(ii)',
     lessons: [
-      { id: 'h1', title: 'Vocabulary Manufaktur N5', desc: 'Tes kosakata 製造業 (manufacturing) level N5', icon: '🏭', premium: false },
-      { id: 'h2', title: 'Reading: 品質仕様書', desc: 'Membaca dokumen quality specification sheets', icon: '📖', premium: false },
-      { id: 'h3', title: 'Listening: 作業指示', desc: 'Memahami instructions工場 (factory instructions)', icon: '🎧', premium: false },
-      { id: 'h4', title: 'Keigo Manufaktur', desc: '敬語 dalam konteks lingkungan produksi & QC', icon: '🙇', premium: false },
-      { id: 'h5', title: 'JLPT N5 Manufaktur', desc: 'Simulasi JLPT N5 dengan tema manufaktur', icon: '📝', premium: false },
-      { id: 'h6', title: 'Kanji Produksi N5', desc: 'Kanji khusus industri: 製造・品質・検査・設備', icon: '漢', premium: false },
-      { id: 'h7', title: 'Kanji Produksi N4', desc: 'Kanji lanjutan manufaktur: 計画・工程・改善・安全管理', icon: '漢', premium: false },
-      { id: 'h8', title: 'Overall Proficiency Report', desc: 'Laporan kemampuan lengkap + рекомендации', icon: '📈', premium: false },
+      { id: 's1', title: 'Vocabulary Manufaktur N5', desc: 'Tes kosakata 製造業 (manufacturing) level N5', icon: '🏭', premium: false },
+      { id: 's2', title: 'Reading: 品質仕様書', desc: 'Membaca dokumen quality specification sheets', icon: '📖', premium: false },
+      { id: 's3', title: 'Listening: 作業指示', desc: 'Memahami instructions工場 (factory instructions)', icon: '🎧', premium: false },
+      { id: 's4', title: 'Keigo Manufaktur', desc: '敬語 dalam konteks lingkungan produksi & QC', icon: '🙇', premium: false },
+      { id: 's5', title: 'JLPT N5 Manufaktur', desc: 'Simulasi JLPT N5 dengan tema manufaktur', icon: '📝', premium: false },
+      { id: 's6', title: 'Kanji Produksi N5', desc: 'Kanji khusus industri: 製造・品質・検査・設備', icon: '漢', premium: false },
+      { id: 's7', title: 'Kanji Produksi N4', desc: 'Kanji lanjutan manufaktur: 計画・工程・改善・安全管理', icon: '漢', premium: false },
+      { id: 's8', title: 'CBT Simulasi SSW(ii)', desc: 'Simulasi ujian SSW(ii) Industrial Product', icon: '💻', premium: false },
     ],
   },
 ];
@@ -151,13 +151,19 @@ function PremiumBanner() {
 
 // ── Lesson Card ──────────────────────────────────────────────
 
-function LessonCard({ lesson, index, locked }: { lesson: Lesson; index: number; locked: boolean }) {
+function LessonCard({ lesson, index, locked, onClick }: { lesson: Lesson; index: number; locked: boolean; onClick?: () => void }) {
+  const handleClick = () => {
+    if (locked) return;
+    onClick?.();
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.06 }}
-      className="p-4 rounded-xl flex items-center gap-3"
+      onClick={handleClick}
+      className={`p-4 rounded-xl flex items-center gap-3 transition-all ${locked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:opacity-90'}`}
       style={{ backgroundColor: colors.cardBg }}
     >
       <div
@@ -197,6 +203,17 @@ function LessonCard({ lesson, index, locked }: { lesson: Lesson; index: number; 
 // ── Module Detail View ───────────────────────────────────────
 
 function ModuleDetail({ modul, onBack, isPremium }: { modul: Modul; onBack: () => void; isPremium: boolean }) {
+  const router = useRouter();
+
+  const handleLessonClick = (lessonId: string) => {
+    // Map lesson IDs to simulation types
+    if (modul.id === 'karier-bisnis' && lessonId === 'k8') {
+      router.push('/simulasi?type=karier');
+    } else if (modul.id === 'ssw' && lessonId === 's8') {
+      router.push('/simulasi?type=ssw');
+    }
+  };
+
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: colors.background }}>
       <TopAppBar title={modul.title} showBack onBack={onBack} />
@@ -236,7 +253,7 @@ function ModuleDetail({ modul, onBack, isPremium }: { modul: Modul; onBack: () =
         {/* Lessons */}
         <div className="space-y-2">
           {modul.lessons.map((lesson, i) => (
-            <LessonCard key={lesson.id} lesson={lesson} index={i} locked={false} />
+            <LessonCard key={lesson.id} lesson={lesson} index={i} locked={false} onClick={() => handleLessonClick(lesson.id)} />
           ))}
         </div>
       </main>
@@ -259,7 +276,7 @@ export default function PremiumModulPage() {
         <div className="text-center p-8 rounded-2xl max-w-sm" style={{ backgroundColor: colors.cardBg }}>
           <span className="text-5xl mb-4 block">👑</span>
           <h2 className="text-xl font-black text-[#d8e4ea] mb-2">Premium Diperlukan</h2>
-<p className="text-sm text-[#c8c4d7]">Unlock Modul Premium dengan 5000 💎 untuk akses 製造業中国語 & 製造業評価試験</p>
+<p className="text-sm text-[#c8c4d7]">Unlock Modul Premium dengan 5000 💎 untuk akses キャリア・ビスネス製造業 & SSW(ii) Exam</p>
           <button
             onClick={() => router.push('/learn')}
             className="px-6 py-3 rounded-xl font-bold text-white w-full"
@@ -293,7 +310,7 @@ export default function PremiumModulPage() {
             📚
           </div>
           <h1 className="text-xl font-black text-[#d8e4ea]">Premium Modul</h1>
-<p className="text-sm text-[#c8c4d7]">Materi TG2 — 製造業中国語 & 製造業評価試験</p>
+<p className="text-sm text-[#c8c4d7]">Materi TG2 — キャリア・ビスネス製造業 & SSW(ii) Exam</p>
           {!isPremium && (
             <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full" style={{ backgroundColor: `${colors.gold}20` }}>
               <span className="text-sm">👑</span>
@@ -325,7 +342,11 @@ export default function PremiumModulPage() {
 
             <div className="space-y-2 mb-4">
               {modul.lessons.map((lesson, j) => (
-                <LessonCard key={lesson.id} lesson={lesson} index={j} locked={!isPremium && lesson.premium} />
+                <LessonCard key={lesson.id} lesson={lesson} index={j} locked={!isPremium && lesson.premium} onClick={() => {
+                  if (lesson.id === 'k8' || lesson.id === 's8') {
+                    router.push('/simulasi?type=' + (lesson.id === 'k8' ? 'karier' : 'ssw'));
+                  }
+                }} />
               ))}
             </div>
 

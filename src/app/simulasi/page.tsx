@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 interface Question {
   id: number;
@@ -12,6 +13,59 @@ interface Question {
   correctIndex: number;
   explanation: string;
 }
+
+// CBT Questions for Karier Bisnis Manufacturing
+const KARIER_QUESTIONS: Question[] = [
+  // Karier section
+  { id: 1, section: 'moji', question: '製造業の「業」の読み方は？', options: ['ぎょう', 'わざ', 'ため', 'わざと'], correctIndex: 0, explanation: '製造業 = せいぞうぎょう (seizou-gyou). 業 = ぎょう' },
+  { id: 2, section: 'moji', question: '「進捗状況」の読み方は？', options: ['しんちょく', 'しんちく', 'しんしょく', 'しんたく'], correctIndex: 0, explanation: '進捗 = しんちょく = progress' },
+  { id: 3, section: 'moji', question: '「品質管理」の目的是？', options: ['コスト削減', '製品の規格を守る', '納期を守る', '社員教育'], correctIndex: 1, explanation: '品質管理 = ひんしつかんり = QC (Quality Control) adalah memastikan produk memenuhi standar/specification' },
+  { id: 4, section: 'moji', question: '「発注」の意味は？', options: ['注文する', '届ける', '検査する', '包装する'], correctIndex: 0, explanation: '発注 = はっちゅう = to place an order (pemesanan)' },
+  { id: 5, section: 'moji', question: '「不良品」の反対は？', options: ['良品', '新品', '中古品', '完成品'], correctIndex: 0, explanation: '不良品 = ふりょうひん = defective product. 良品 = りょうひん = good product' },
+  { id: 6, section: 'moji', question: '「-lead time-」日本語로는？', options: ['納期', '不良率', 'コスト', '計画'], correctIndex: 0, explanation: 'Lead Time = 納期 (のうき) = waktu pengiriman / lead time dari order sampai delivery' },
+  { id: 7, section: 'moji', question: '「出勤」の読み方は？', options: ['しゅっきん', 'しゅつきん', 'しゅうきん', 'しゅくきん'], correctIndex: 0, explanation: '出勤 = しゅっきん = datang ke kantor / masuk kerja' },
+  { id: 8, section: 'moji', question: '「工場」の読み方は？', options: ['こうじょう', 'こうば', '_factory', 'てん'], correctIndex: 0, explanation: '工場 = こうじょう = factory / manufacturing plant' },
+  // Bunpou
+  { id: 9, section: 'bunpou', question: '「製造 ___ する ___ 、機械 ___ 動き ___ ます」\n正しい助詞は？', options: ['を / が / て', 'が / を / で', 'に / を / が', 'で / が / を'], correctIndex: 0, explanation: '製造する = manufactures. 機械が動く = the machine moves.「を」は объекта,「が」subject,「て」te-form' },
+  { id: 10, section: 'bunpou', question: '「明日、納品 ___ ます」\n正しいのは？', options: ['にいらっしゃい', '给您送去', 'をお届け', 'を出荷'], correctIndex: 2, explanation: 'をお届けする = to deliver (mer送货). 納品 = のうひん = delivery of goods' },
+  { id: 11, section: 'bunpou', question: '「機械が壊れ ___ 」\n正しい補助動詞は？', options: ['ている', 'てある', 'てみる', 'てしまう'], correctIndex: 0, explanation: '壊れている = is broken (status). ～ている = ongoing state/completion' },
+  { id: 12, section: 'bunpou', question: '「原料が ___ 。次は製造工程 ___ 」\n正しい語は？', options: ['够了 / 進む', '不足だ / 止める', 'ある / 終わる', '間に合う / 開始する'], correctIndex: 0, explanation: '原料が够用了 = raw materials are sufficient. 進む = to proceed. 工程 = こうてい = process' },
+  { id: 13, section: 'bunpou', question: '「品質が ___ 、再做 ___ 」\n正しいのは？', options: ['問題だ / 品的', '大丈夫だ / 没问题', '不合格だ / 品质的', '良好だ / 品質'], correctIndex: 2, explanation: '品質が不合格だ = quality failed. 再做 = やり直す = to redo' },
+  { id: 14, section: 'bunpou', question: '「納入先 ___ 製品 ___ 出荷 ___ ます」\n正しい助詞は？', options: ['に / を / を', 'へ / が / に', 'まで / を / で', 'に / が / を'], correctIndex: 0, explanation: '納入先（のうにゅうさき）= delivery destination. を出荷する = to ship. "納入先へ製品を出荷します"' },
+  { id: 15, section: 'bunpou', question: '「不良品的 Because ___ 」\n正しい文は？', options: ['品質管理が甘いからだ', 'デザインが綺麗だから', '價格が安いから', '納期が早いから'], correctIndex: 0, explanation: '～からだ = karena. 品質管理が甘い = QC is loose/lax.  потому что качественный контроль слабый' },
+  // Dokkai
+  { id: 16, section: 'dokkai', question: '「 우리의工場에서는 엄격한品質관리를実施하고 있습니다。すべての工程에서 검사를 진행하고, 불량률은0.1% 이하로 관리되고 있습니다。」\n\n質問：この工場の管理方針は？', options: ['コスト削減を優先', '品質管理を厳格に実施', '納期短縮だけ', '自動化推進'], correctIndex: 1, explanation: '엄격한品質관리 = strict quality control. 불량률 0.1% 이하 = defect rate below 0.1%. 관리되고 있습니다 = being managed.' },
+  { id: 17, section: 'dokkai', question: '「発注的增加を受けて、今後我们需要 машина一台增设生产线。」\n\n質問：工場は今後どうする？', options: ['機械を売る', '新しい機械を導入する', '社員を解雇する', '納期を延ばす'], correctIndex: 1, explanation: '增设生产线 = menambah lini produksi. 機械一台 = satu mesin. 導入する = to introduce/adopt' },
+  { id: 18, section: 'dokkai', question: '「先月、納期 atur 到着了。今月から量产 开始 되다。」\n\n質問：結果は？', options: ['遅延した', '予定通り着岸、量産開始', 'まだ到着していない', '中止した'], correctIndex: 1, explanation: '予定通り = as scheduled. 着岸 = arrive. 量产開始 = mass production started. 今月から = from this month' },
+  { id: 19, section: 'dokkai', question: '「我们的产品不符合规格，所以需要进行 品质改善。」\n\n質問：問題の原因は？', options: ['コスト太高', '製品が規格不符', '納期が延びた', '機械が古い'], correctIndex: 1, explanation: '不符合规格 = does not meet specifications. 品質改善 = quality improvement diperlukan' },
+  { id: 20, section: 'dokkai', question: '「来週、工場 audit のため、海外から客户が来社します。」\n\n質問：何が来る？', options: ['機械の納品', '監査（audit）のため客户', '新しい注文', '社員研修'], correctIndex: 1, explanation: '監査 = かんさ = audit/inspection. 来社 = らいしゃ = visit the company. 客户 = きゃくさま = customer/client' },
+];
+
+// CBT Questions for SSW(ii) Industrial Product Manufacturing
+const SSW_QUESTIONS: Question[] = [
+  { id: 1, section: 'moji', question: 'SSW(ii) の正式名称は？', options: ['Standard Software Workshop ii', 'Specialized Sheet Worker ii', 'Steel Structure Welding ii', 'Standard Specification Writing ii'], correctIndex: 2, explanation: 'SSW(ii) = Steel Structure Welding (ii級) = Kompetensi las struktur baja tingkat ii' },
+  { id: 2, section: 'moji', question: '「熔接」の読み方は？', options: ['ようせつ', 'ゆうせつ', 'ようせつ', 'ゆせつ'], correctIndex: 0, explanation: '熔接（ようせつ）= welding. 「熔」= mencairkan, 「接」= menyambung' },
+  { id: 3, section: 'moji', question: '「構造用鋼材」の読み方は？', options: ['こうぞうようこうざい', 'こうちくようはがね', 'けんぞうようはまだ', 'こうそうよう钢材'], correctIndex: 0, explanation: '構造用鋼材 = こうぞうようこうざい = structural steel material' },
+  { id: 4, section: 'moji', question: '「板」の読み方は？', options: ['いた', 'ことは', 'かん', 'ぶつ'], correctIndex: 0, explanation: '板 = いた = plate / sheet (baja plat) digunakan dalam manufacturing' },
+  { id: 5, section: 'moji', question: '「開先」の読み方は？', options: ['かいせん', 'ひらきさき', 'かいさき', ' начинать'], correctIndex: 0, explanation: '開先（かいせん）= grooving (groove untuk las). 開先加工 = groove machining' },
+  { id: 6, section: 'moji', question: '「不下」の意味は？', options: ['降らない', '现场不使用', '现场 Super', '不下（ふげ）= tidak turun/material'], correctIndex: 3, explanation: '不下 = ふげ = material yang tidak diturunkan/digunakan (synonym: 不使用材)' },
+  { id: 7, section: 'moji', question: '「仮付け」の読み方は？', options: ['かりつけ', 'かみつけ', 'かりどこ', 'たとえつけ'], correctIndex: 0, explanation: '仮付け（かりつけ）= tack welding = pengelasan sementara untuk holding' },
+  { id: 8, section: 'moji', question: '「通り止め」の読み方は？', options: ['とおりどめ', 'かようどめ', 'つうurd', 'とめない'], correctIndex: 0, explanation: '通り止め = とおりどめ = welding stopper / stop welding at specific point' },
+  // Bunpou
+  { id: 9, section: 'bunpou', question: '「 steel plate ___ 切断 ___ 加工 ___ 行い ___ ます」\n正しい助詞は？', options: ['を / を / を / を', 'が / に / を / に', 'の / で / を / に', 'を / で / を / に'], correctIndex: 3, explanation: '钢板を切断で加工を行う = memotong dan memproses plat baja.「を」object,「で」 alat/purpose,「を」object,「に」direction' },
+  { id: 10, section: 'bunpou', question: '「開先 ___ 加工 ___ 行い ___ ます」\n正しい助詞は？', options: ['を / を / を', 'に / で / に', 'の / の / を', 'を / で / を'], correctIndex: 3, explanation: '開先を加工を行う = melakukan groove machining.「を」(objek),「で」= menggunakan,「を」(objek)' },
+  { id: 11, section: 'bunpou', question: '「この钢材 ___ 使用 ___ 済み ___ です」\n正しいのは？', options: ['は / が / を', 'は / に / だ', 'が / は / だ', 'は / だ / に'], correctIndex: 1, explanation: 'この钢材は使用済みだ = Material ini sudah dipakai. 使用済み = しようずみ = already used' },
+  { id: 12, section: 'bunpou', question: '「仮付け ___ 行い ___ ます ___ 」\n正しい敬語は？', options: ['を / を / ます', 'に / を / します', 'を / を / します', 'は / が / です'], correctIndex: 2, explanation: '仮付けを行う → 仮付けを为您做します (keigo). いたします = humble form of します' },
+  { id: 13, section: 'bunpou', question: '「不通」の反対は？', options: ['不通（ふつう）', '痛通（つうつう）', '通了（とおり）', '通線（つうせん）'], correctIndex: 2, explanation: '不通（ふつう）= blocked/not passable. 通了（とおり）= can pass through / 完了した' },
+  { id: 14, section: 'bunpou', question: '「検査 ___ 合格 ___ しました」\n正しい助詞は？', options: ['は / が', 'が / に', 'を / に', 'の / を'], correctIndex: 1, explanation: '検査が合格しました = inspection passed.「が」subject,「に」direction (result)' },
+  // Dokkai
+  { id: 15, section: 'dokkai', question: '「 SSW(ii) 試験では、構造用鋼材に対する熔接技術と安全管理が出題範囲です。実技試験では、板熔接と-tube熔接が表示されます。」\n\n質問：実技試験の内容は？', options: [' только 学科試験', '板熔接と-tube熔接', '安全管理の面接', '材料の切断'], correctIndex: 1, explanation: '板熔接 = plat welding. tube熔接 = pipa welding. 实技 = じつぎ = practical test' },
+  { id: 16, section: 'dokkai', question: '「不开 ERP 系统，你们就无法进行工程管理。」\n\n質問：この文の意図は？', options: ['ERP系统很难使用', '不开ERP就无法管理工程', '他们没有电脑', '需要先买机器'], correctIndex: 1, explanation: '不开 = tidak membuka. 无法 = tidak bisa. 工程管理 = 工程管理 (engineering management). 隐含：必须使用系统才能管理' },
+  { id: 17, section: 'dokkai', question: '「熔接施工 hier werden 检查后，后续加工に進みます。」\n\n質問：熔接施工後の工程は？', options: ['検査してから次工程', 'そのまま終了', 'やり直し', '在庫保管'], correctIndex: 0, explanation: '検査して = after inspection. 后续加工 = こうずいかこう = subsequent processing. 進みます = proceeds to' },
+  { id: 18, section: 'dokkai', question: '「 nosso factory 采用了严格的品质管理系统，所有钢材均经过来料檢驗后才入庫。」\n\n質問：品質管理在哪裡做？', options: ['入库前（来料检验）', '出厂前', '生产中', '随机抽查'], correctIndex: 0, explanation: '来料检验 = らいりけんせき = incoming material inspection. 入庫前 = sebelum storage. 严格的 = ketat' },
+  { id: 19, section: 'dokkai', question: '「安全第一が 우리 工場の 基本方針です。作業员は защитный снаряжение 를 필수로 착용해야 합니다。」\n\n質問：作業員に必要なことは？', options: ['英語能力', ' защитный снаряжение 필수 착용', '資格所持', '中国語堪能'], correctIndex: 1, explanation: '保護具 = ほごぐ = protective equipment. 着用 = ちゃくよう = to wear. 必须 = ひつぜん = wajib/mandatory' },
+  { id: 20, section: 'dokkai', question: '「この钢材は 不通 のため、使用できません。」\n\n質問：钢材的问题是什么？', options: ['型号不对', '已不通（使用済み）', '太贵了', '刚到货'], correctIndex: 1, explanation: '不通 = ふつう = blocked / 不使用. 已经完成焊接且检查不合格的材料不能再次使用' },
+];
 
 // Demo questions - real N5 style
 const DEMO_QUESTIONS: Question[] = [
@@ -52,18 +106,37 @@ const SECTION_INFO = {
 };
 
 export default function SimulasiPage() {
+  return (
+    <Suspense fallback={<SimulasiLoading />}>
+      <SimulasiContent />
+    </Suspense>
+  );
+}
+
+function SimulasiLoading() {
+  return (
+    <div className="min-h-screen bg-[#0F0F1A] flex items-center justify-center">
+      <div className="text-white">Loading...</div>
+    </div>
+  );
+}
+
+function SimulasiContent() {
+  const searchParams = useSearchParams();
+  const examType = searchParams.get('type') || 'n5'; // 'n5' | 'karier' | 'ssw'
+
   const [examStarted, setExamStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [showExplanation, setShowExplanation] = useState(false);
   const [examFinished, setExamFinished] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(30 * 60); // 30 minutes
-  const [sectionFilter, setSectionFilter] = useState<string>('all');
+  const [timeLeft, setTimeLeft] = useState(30 * 60);
 
   const filteredQuestions = useMemo(() => {
-    if (sectionFilter === 'all') return DEMO_QUESTIONS;
-    return DEMO_QUESTIONS.filter(q => q.section === sectionFilter);
-  }, [sectionFilter]);
+    if (examType === 'karier') return KARIER_QUESTIONS;
+    if (examType === 'ssw') return SSW_QUESTIONS;
+    return DEMO_QUESTIONS;
+  }, [examType]);
 
   const currentQ = filteredQuestions[currentQuestion];
   const answeredCount = Object.keys(answers).length;
@@ -97,8 +170,7 @@ export default function SimulasiPage() {
     }
   };
 
-  const startExam = (section?: string) => {
-    if (section) setSectionFilter(section);
+  const startExam = () => {
     setExamStarted(true);
     setExamFinished(false);
     setCurrentQuestion(0);
@@ -113,7 +185,6 @@ export default function SimulasiPage() {
     setCurrentQuestion(0);
     setAnswers({});
     setShowExplanation(false);
-    setSectionFilter('all');
   };
 
   // Calculate scores
@@ -155,7 +226,9 @@ export default function SimulasiPage() {
             <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-[#6C5CE7] to-[#A29BFE] bg-clip-text text-transparent">
               KanjiMon
             </Link>
-            <span className="text-[#636E72]">/ JLPT N5 Simulation</span>
+            <span className="text-[#636E72]">
+                {examType === 'karier' ? '/ CBT Karier Bisnis' : examType === 'ssw' ? '/ SSW(ii) Industrial' : '/ JLPT N5 Simulation'}
+              </span>
           </div>
           <Link href="/" className="text-sm text-[#B2BEC3] hover:text-white">
             ← Home
@@ -172,43 +245,87 @@ export default function SimulasiPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mb-6 text-center"
             >
-              <h1 className="text-2xl font-bold text-white mb-2">📝 JLPT N5 Simulation</h1>
-              <p className="text-[#636E72]">Simulasi ujian N5 dengan 25 soal</p>
+              <h1 className="text-2xl font-bold text-white mb-2">
+                {examType === 'karier' ? '💼 CBT Karier Bisnis Manufacturing' : examType === 'ssw' ? '📋 CBT SSW(ii) Industrial Product' : '📝 JLPT N5 Simulation'}
+              </h1>
+              <p className="text-[#636E72]">
+                {examType === 'karier' ? 'Simulasi ujian CBT karier bisnis manufaktur — 20 soal' : examType === 'ssw' ? 'Simulasi SSW(ii) Steel Structure Welding — 20 soal' : 'Simulasi ujian N5 dengan 25 soal'}
+              </p>
             </motion.div>
 
-            {/* Section Cards */}
-            <div className="grid grid-cols-3 gap-4 mb-8">
-              {Object.entries(SECTION_INFO).map(([key, info]) => (
-                <motion.button
-                  key={key}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  onClick={() => startExam(key)}
-                  className="p-6 bg-[#1A1A2E] rounded-xl border border-[#2D2D44] hover:border-[#6C5CE7] transition-all text-center group"
+            {/* Section Cards - N5 only */}
+            {examType === 'n5' && (
+              <>
+                <div className="grid grid-cols-3 gap-4 mb-8">
+                  {Object.entries(SECTION_INFO).map(([key, info]) => (
+                    <motion.button
+                      key={key}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      onClick={() => startExam()}
+                      className="p-6 bg-[#1A1A2E] rounded-xl border border-[#2D2D44] hover:border-[#6C5CE7] transition-all text-center group"
+                    >
+                      <div className="text-4xl mb-3">{info.icon}</div>
+                      <h3 className="font-bold text-white mb-1">{info.name}</h3>
+                      <p className="text-sm text-[#636E72] mb-2">{info.description}</p>
+                      <p className="text-xs text-[#6C5CE7]">{info.duration}</p>
+                    </motion.button>
+                  ))}
+                </div>
+
+                {/* Full Test */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-center"
                 >
-                  <div className="text-4xl mb-3">{info.icon}</div>
-                  <h3 className="font-bold text-white mb-1">{info.name}</h3>
-                  <p className="text-sm text-[#636E72] mb-2">{info.description}</p>
-                  <p className="text-xs text-[#6C5CE7]">{info.duration}</p>
-                </motion.button>
-              ))}
-            </div>
+                  <button
+                    onClick={() => startExam()}
+                    className="px-8 py-4 bg-gradient-to-r from-[#6C5CE7] to-[#A29BFE] rounded-xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg shadow-[#6C5CE7]/30"
+                  >
+                    🎯 Start Full N5 Test (25 soal)
+                  </button>
+                  <p className="text-xs text-[#636E72] mt-3">Waktu: 30 menit • Skor kelulusan: 80%</p>
+                </motion.div>
+              </>
+            )}
 
-            {/* Full Test */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="text-center"
-            >
-              <button
-                onClick={() => startExam()}
-                className="px-8 py-4 bg-gradient-to-r from-[#6C5CE7] to-[#A29BFE] rounded-xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg shadow-[#6C5CE7]/30"
+            {/* Karier CBT */}
+            {examType === 'karier' && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="text-center"
               >
-                🎯 Start Full N5 Test (25 soal)
-              </button>
-              <p className="text-xs text-[#636E72] mt-3">Waktu: 30 menit • Skor kelulusan: 80%</p>
-            </motion.div>
+                <button
+                  onClick={() => startExam()}
+                  className="px-8 py-4 bg-gradient-to-r from-[#6C5CE7] to-[#A29BFE] rounded-xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg shadow-[#6C5CE7]/30"
+                >
+                  💼 Start CBT Karier Bisnis (20 soal)
+                </button>
+                <p className="text-xs text-[#636E72] mt-3">Waktu: 30 menit • Skor kelulusan: 80%</p>
+              </motion.div>
+            )}
+
+            {/* SSW CBT */}
+            {examType === 'ssw' && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="text-center"
+              >
+                <button
+                  onClick={() => startExam()}
+                  className="px-8 py-4 bg-gradient-to-r from-[#6C5CE7] to-[#A29BFE] rounded-xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg shadow-[#6C5CE7]/30"
+                >
+                  📋 Start CBT SSW(ii) (20 soal)
+                </button>
+                <p className="text-xs text-[#636E72] mt-3">Waktu: 30 menit • Skor kelulusan: 80%</p>
+              </motion.div>
+            )}
           </>
         )}
 
