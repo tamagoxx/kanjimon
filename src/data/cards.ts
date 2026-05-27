@@ -12,6 +12,11 @@ const RARITY_STATS: Record<Rarity, { hp: [number, number]; attack: [number, numb
   LIMITED_EDITION: { hp: [200, 230], attack: [80, 100] },
   LEGENDARY: { hp: [230, 270], attack: [100, 130] },
   MYTHICAL: { hp: [270, 350], attack: [130, 180] },
+  TRANSCENDENT: { hp: [350, 420], attack: [180, 220] },
+  CELESTIAL: { hp: [420, 500], attack: [220, 270] },
+  DIVINE: { hp: [500, 600], attack: [270, 330] },
+  ULTIMATE: { hp: [600, 720], attack: [330, 400] },
+  ETERNAL: { hp: [720, 900], attack: [400, 500] },
 };
 
 const DEFENSE_BY_TYPE: Record<CardType, number> = {

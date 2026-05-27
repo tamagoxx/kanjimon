@@ -4,7 +4,7 @@
 
 // --- Card Types ---
 export type CardType = 'VERB' | 'NOUN' | 'ADJECTIVE' | 'PARTICLE';
-export type Rarity = 'COMMON' | 'UNCOMMON' | 'RARE' | 'ULTRA_RARE' | 'LIMITED_EDITION' | 'LEGENDARY' | 'MYTHICAL';
+export type Rarity = 'COMMON' | 'UNCOMMON' | 'RARE' | 'ULTRA_RARE' | 'LIMITED_EDITION' | 'LEGENDARY' | 'MYTHICAL' | 'TRANSCENDENT' | 'CELESTIAL' | 'DIVINE' | 'ULTIMATE' | 'ETERNAL';
 export type Element = 'FIRE' | 'WATER' | 'GRASS' | 'ELECTRIC' | 'PSYCHIC' | 'NORMAL';
 export type ElementEssence = 'FIRE_ESSENCE' | 'WATER_ESSENCE' | 'GRASS_ESSENCE' | 'ELECTRIC_ESSENCE' | 'PSYCHIC_ESSENCE' | 'NORMAL_ESSENCE';
 
@@ -376,6 +376,31 @@ export const FUSION_RECIPES: Record<Rarity, FusionRecipe> = {
     cost: 1000,
     statBonus: { hp: 5, attack: 5, defense: 1 },
   },
+  TRANSCENDENT: {
+    resultRarity: 'TRANSCENDENT',
+    cost: 0,
+    statBonus: { hp: 0, attack: 0, defense: 0 },
+  },
+  CELESTIAL: {
+    resultRarity: 'CELESTIAL',
+    cost: 0,
+    statBonus: { hp: 0, attack: 0, defense: 0 },
+  },
+  DIVINE: {
+    resultRarity: 'DIVINE',
+    cost: 0,
+    statBonus: { hp: 0, attack: 0, defense: 0 },
+  },
+  ULTIMATE: {
+    resultRarity: 'ULTIMATE',
+    cost: 0,
+    statBonus: { hp: 0, attack: 0, defense: 0 },
+  },
+  ETERNAL: {
+    resultRarity: 'ETERNAL',
+    cost: 0,
+    statBonus: { hp: 0, attack: 0, defense: 0 },
+  },
 };
 
 // --- Pokemon Fusion ---
@@ -448,6 +473,31 @@ export const POKEMON_FUSION_RECIPES: Record<Rarity, PokemonFusionRecipe> = {
     cost: 1000,
     statBonus: { hp: 5, attack: 5, defense: 1, speed: 2 },
   },
+  TRANSCENDENT: {
+    resultRarity: 'TRANSCENDENT',
+    cost: 0,
+    statBonus: { hp: 0, attack: 0, defense: 0, speed: 0 },
+  },
+  CELESTIAL: {
+    resultRarity: 'CELESTIAL',
+    cost: 0,
+    statBonus: { hp: 0, attack: 0, defense: 0, speed: 0 },
+  },
+  DIVINE: {
+    resultRarity: 'DIVINE',
+    cost: 0,
+    statBonus: { hp: 0, attack: 0, defense: 0, speed: 0 },
+  },
+  ULTIMATE: {
+    resultRarity: 'ULTIMATE',
+    cost: 0,
+    statBonus: { hp: 0, attack: 0, defense: 0, speed: 0 },
+  },
+  ETERNAL: {
+    resultRarity: 'ETERNAL',
+    cost: 0,
+    statBonus: { hp: 0, attack: 0, defense: 0, speed: 0 },
+  },
 };
 
 // Evolution tier requirements
@@ -488,7 +538,7 @@ export const EVOLUTION_REQUIREMENTS: Record<EvolutionTier, EvolutionRequirement>
   },
 };
 
-export const RARITY_ORDER: Rarity[] = ['COMMON', 'UNCOMMON', 'RARE', 'ULTRA_RARE', 'LIMITED_EDITION', 'LEGENDARY', 'MYTHICAL'];
+export const RARITY_ORDER: Rarity[] = ['COMMON', 'UNCOMMON', 'RARE', 'ULTRA_RARE', 'LIMITED_EDITION', 'LEGENDARY', 'MYTHICAL', 'TRANSCENDENT', 'CELESTIAL', 'DIVINE', 'ULTIMATE', 'ETERNAL'];
 
 export const RARITY_COLORS: Record<Rarity, string> = {
   COMMON: '#c8c4d7',
@@ -498,6 +548,11 @@ export const RARITY_COLORS: Record<Rarity, string> = {
   LIMITED_EDITION: '#ff8c00',
   LEGENDARY: '#ff6b35',
   MYTHICAL: '#ff2d55',
+  TRANSCENDENT: '#00ffff',
+  CELESTIAL: '#ffd700',
+  DIVINE: '#ff00ff',
+  ULTIMATE: '#ff4500',
+  ETERNAL: '#ffffff',
 };
 
 export const RARITY_BORDER_COLORS: Record<Rarity, string> = {
@@ -508,4 +563,165 @@ export const RARITY_BORDER_COLORS: Record<Rarity, string> = {
   LIMITED_EDITION: '#ff6600',
   LEGENDARY: '#e74c3c',
   MYTHICAL: '#ff1493',
+  TRANSCENDENT: '#00cccc',
+  CELESTIAL: '#cc9900',
+  DIVINE: '#cc00cc',
+  ULTIMATE: '#cc3300',
+  ETERNAL: '#cccccc',
 };
+
+// ============================================================
+// Card Evolution System (tiers above MYTHICAL)
+// ============================================================
+
+// Evolution materials - special items consumed during evolution
+export type EvolutionMaterial =
+  | 'COSMIC_DUST'      // Basic evolution material
+  | 'CELESTIAL_SHARD'   // Mid-tier evolution material
+  | 'DIVINE_ESSENCE'   // High-tier evolution material
+  | 'ULTIMATE_CORE'    // Top-tier evolution material
+  | 'ETERNAL_FRAGMENT'; // Max-tier evolution material
+
+export const EVOLUTION_MATERIALS: Record<EvolutionMaterial, {
+  name: string;
+  description: string;
+  icon: string;
+  tierRequired: Rarity;
+}> = {
+  COSMIC_DUST: {
+    name: 'Cosmic Dust',
+    description: 'Stardust infused with cosmic energy. Used to evolve MYTHICAL cards.',
+    icon: '✨',
+    tierRequired: 'MYTHICAL',
+  },
+  CELESTIAL_SHARD: {
+    name: 'Celestial Shard',
+    description: 'A shard from a fallen star. Used to evolve TRANSCENDENT cards.',
+    icon: '💎',
+    tierRequired: 'TRANSCENDENT',
+  },
+  DIVINE_ESSENCE: {
+    name: 'Divine Essence',
+    description: 'Essence of divine power. Used to evolve CELESTIAL cards.',
+    icon: '🌟',
+    tierRequired: 'CELESTIAL',
+  },
+  ULTIMATE_CORE: {
+    name: 'Ultimate Core',
+    description: 'Core of ultimate power. Used to evolve DIVINE cards.',
+    icon: '🔮',
+    tierRequired: 'DIVINE',
+  },
+  ETERNAL_FRAGMENT: {
+    name: 'Eternal Fragment',
+    description: 'Fragment of eternity itself. Used to evolve ULTIMATE cards.',
+    icon: '💫',
+    tierRequired: 'ULTIMATE',
+  },
+};
+
+// Evolution tiers above MYTHICAL
+export type EvoTier = 'TRANSCENDENT' | 'CELESTIAL' | 'DIVINE' | 'ULTIMATE' | 'ETERNAL';
+
+// Full evolution tier chain
+export const EVO_TIER_ORDER: EvoTier[] = ['TRANSCENDENT', 'CELESTIAL', 'DIVINE', 'ULTIMATE', 'ETERNAL'];
+
+// Stat boost percentage per evolution tier above base MYTHICAL
+export const STAT_BOOST_PER_TIER: Record<EvoTier, number> = {
+  TRANSCENDENT: 0.15,   // +15%
+  CELESTIAL: 0.30,      // +30%
+  DIVINE: 0.50,         // +50%
+  ULTIMATE: 0.75,       // +75%
+  ETERNAL: 1.00,        // +100%
+};
+
+// Evolution requirements for each tier
+export interface EvoRequirement {
+  gold: number;
+  materials: Partial<Record<EvolutionMaterial, number>>;
+  fusionCount?: number; // minimum fusion count required
+  description: string;
+}
+
+export const EVO_REQUIREMENTS: Record<EvoTier, EvoRequirement> = {
+  TRANSCENDENT: {
+    gold: 10000,
+    materials: { COSMIC_DUST: 3 },
+    fusionCount: 0,
+    description: 'Requires MYTHICAL card + Cosmic Dust',
+  },
+  CELESTIAL: {
+    gold: 25000,
+    materials: { COSMIC_DUST: 5, CELESTIAL_SHARD: 2 },
+    fusionCount: 2,
+    description: 'Requires TRANSCENDENT card + materials',
+  },
+  DIVINE: {
+    gold: 50000,
+    materials: { CELESTIAL_SHARD: 5, DIVINE_ESSENCE: 3 },
+    fusionCount: 4,
+    description: 'Requires CELESTIAL card + materials',
+  },
+  ULTIMATE: {
+    gold: 100000,
+    materials: { DIVINE_ESSENCE: 5, ULTIMATE_CORE: 3 },
+    fusionCount: 6,
+    description: 'Requires DIVINE card + materials',
+  },
+  ETERNAL: {
+    gold: 250000,
+    materials: { ULTIMATE_CORE: 5, ETERNAL_FRAGMENT: 3 },
+    fusionCount: 8,
+    description: 'Requires ULTIMATE card + materials',
+  },
+};
+
+// Check if a card can be evolved to a specific tier
+export function canEvolveToTier(
+  currentRarity: Rarity,
+  fusionCount: number = 0
+): { canEvolve: boolean; nextTier: EvoTier | null } {
+  const tierOrder: Rarity[] = ['COMMON', 'UNCOMMON', 'RARE', 'ULTRA_RARE', 'LIMITED_EDITION', 'LEGENDARY', 'MYTHICAL', 'TRANSCENDENT', 'CELESTIAL', 'DIVINE', 'ULTIMATE', 'ETERNAL'];
+
+  const currentIndex = tierOrder.indexOf(currentRarity);
+
+  // Can only evolve from MYTHICAL and above (except ETERNAL which is max)
+  if (currentRarity === 'ETERNAL') {
+    return { canEvolve: false, nextTier: null };
+  }
+
+  if (currentRarity === 'MYTHICAL') {
+    return { canEvolve: true, nextTier: 'TRANSCENDENT' };
+  }
+
+  // For already evolved tiers, check if can go further
+  if (currentRarity === 'TRANSCENDENT') return { canEvolve: true, nextTier: 'CELESTIAL' };
+  if (currentRarity === 'CELESTIAL') return { canEvolve: true, nextTier: 'DIVINE' };
+  if (currentRarity === 'DIVINE') return { canEvolve: true, nextTier: 'ULTIMATE' };
+  if (currentRarity === 'ULTIMATE') return { canEvolve: true, nextTier: 'ETERNAL' };
+
+  return { canEvolve: false, nextTier: null };
+}
+
+// Get stat boost multiplier for evolved cards
+export function getEvoStatMultiplier(currentRarity: Rarity): number {
+  if (currentRarity === 'TRANSCENDENT') return 1 + STAT_BOOST_PER_TIER.TRANSCENDENT;
+  if (currentRarity === 'CELESTIAL') return 1 + STAT_BOOST_PER_TIER.CELESTIAL;
+  if (currentRarity === 'DIVINE') return 1 + STAT_BOOST_PER_TIER.DIVINE;
+  if (currentRarity === 'ULTIMATE') return 1 + STAT_BOOST_PER_TIER.ULTIMATE;
+  if (currentRarity === 'ETERNAL') return 1 + STAT_BOOST_PER_TIER.ETERNAL;
+  return 1;
+}
+
+// Extended OwnedCard to support evolution info
+export interface EvolvedCard {
+  cardId: string;
+  evolutionTier: EvoTier;
+  originalRarity: Rarity;
+  boostedStats: {
+    hp: number;
+    attack: number;
+    defense: number;
+  };
+  evolvedAt: string;
+}

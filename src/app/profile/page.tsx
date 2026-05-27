@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useCollectionStore } from '@/store/collectionStore';
+import { useEvolutionStore } from '@/store/evolutionStore';
+import { EVOLUTION_MATERIALS, type EvolutionMaterial } from '@/types';
 
 const colors = {
   background: '#0a1519',
@@ -471,6 +473,10 @@ export default function ProfilePage() {
   const { user, isAuthenticated, isLoading, totalBattles, totalWins, studySessions } = useAuthStore();
   const { coins, diamonds, streakDays, ownedCards, ownedPokemon, fusedPokemon, decks, activeDeckId,
     hiraganaProgress, katakanaProgress, kanjiProgress, vocabularyProgress, grammarProgress } = useCollectionStore();
+  const { materials } = useEvolutionStore();
+
+  // Evolution materials display
+  const evolutionMaterialsList = (Object.entries(materials) as [EvolutionMaterial, number][]).filter(([_, count]) => count > 0);
 
   // Wait for Zustand persist to rehydrate before checking auth
   const [ready, setReady] = useState(false);
@@ -647,6 +653,33 @@ export default function ProfilePage() {
                 <div className="text-xs" style={{ color: colors.darkText }}>Win Rate</div>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Evolution Materials */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold tracking-wider" style={{ color: colors.darkText }}>EVOLUTION MATERIALS</h3>
+            <button
+              className="text-xs font-medium"
+              style={{ color: colors.brand }}
+              onClick={() => router.push('/shop')}
+            >
+              Get More
+            </button>
+          </div>
+          <div className="grid grid-cols-5 gap-2">
+            {(Object.keys(EVOLUTION_MATERIALS) as EvolutionMaterial[]).map(mat => {
+              const info = EVOLUTION_MATERIALS[mat];
+              const count = materials[mat] || 0;
+              return (
+                <div key={mat} className="flex flex-col items-center p-2 rounded-xl" style={{ backgroundColor: colors.cardBg }}>
+                  <span className="text-xl mb-1">{info.icon}</span>
+                  <span className="text-xs font-bold" style={{ color: colors.lightText }}>{count}</span>
+                  <span className="text-[10px] text-center" style={{ color: colors.darkText }}>{info.name.replace(' ', '\n')}</span>
+                </div>
+              );
+            })}
           </div>
         </section>
 

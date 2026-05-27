@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, usePathname } from 'next/navigation';
 import { useCollectionStore, PokemonCard } from '@/store/collectionStore';
+import { useEvolutionStore } from '@/store/evolutionStore';
 import { CARDS_BY_ID, ALL_CARDS } from '@/data/cards';
 import { Heart, Swords, Shield, Zap, Star, X, Loader2, Crown, Package } from 'lucide-react';
+import { EvolutionModal } from '@/components/evolution/EvolutionModal';
 
 const colors = {
   background: '#0a1519',
@@ -631,9 +633,14 @@ function PokemonCardItem({ card, index, onClick }: { card: PokemonCard; index: n
 }
 
 // Pokemon Detail Modal
-function PokemonDetailModal({ card, onClose }: { card: PokemonCard; onClose: () => void }) {
+function PokemonDetailModal({ card, onClose, onEvolve }: { card: PokemonCard; onClose: () => void; onEvolve?: () => void }) {
   const typeColor = TYPE_COLORS[card.types[0]] || '#a8a8a8';
   const elementColor = elementColors[card.types[0] as keyof typeof elementColors] || '#a8a8a8';
+
+  // Check if this card can evolve
+  const { canEvolveCard } = useEvolutionStore();
+  const evolutionCheck = canEvolveCard(card.id);
+  const canEvolve = evolutionCheck.canEvolve && evolutionCheck.nextTier;
 
   return (
     <motion.div
@@ -800,6 +807,18 @@ function PokemonDetailModal({ card, onClose }: { card: PokemonCard; onClose: () 
               <p className="text-sm font-bold text-white capitalize">{card.types[0].toLowerCase()}</p>
             </div>
           </div>
+
+          {/* Evolve Button */}
+          {canEvolve && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEvolve?.(); }}
+              className="w-full mt-4 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{ background: 'linear-gradient(135deg, #6c5ce7 0%, #a855f7 100%)', color: 'white' }}
+            >
+              <span>✨</span>
+              <span>Evolve to {evolutionCheck.nextTier}</span>
+            </button>
+          )}
         </div>
       </motion.div>
     </motion.div>
@@ -847,6 +866,7 @@ export default function CollectionPage() {
   const [categoryFilter, setCategoryFilter] = useState<FilterType>('all');
   const [tierFilter, setTierFilter] = useState<string>('all');
   const [selectedPokemon, setSelectedPokemon] = useState<PokemonCard | null>(null);
+  const [evolvingCard, setEvolvingCard] = useState<PokemonCard | null>(null);
 
   // Convert FusedPokemon to PokemonCard for display and combine with ownedPokemon
   const allPokemonCards: PokemonCard[] = [
@@ -1077,7 +1097,23 @@ export default function CollectionPage() {
       {/* Pokemon Detail Modal */}
       <AnimatePresence>
         {selectedPokemon && (
-          <PokemonDetailModal card={selectedPokemon} onClose={() => setSelectedPokemon(null)} />
+          <PokemonDetailModal 
+            card={selectedPokemon} 
+            onClose={() => setSelectedPokemon(null)} 
+            onEvolve={() => { setEvolvingCard(selectedPokemon); setSelectedPokemon(null); }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Evolution Modal */}
+      <AnimatePresence>
+        {evolvingCard && (
+          <EvolutionModal
+            isOpen={true}
+            onClose={() => setEvolvingCard(null)}
+            card={evolvingCard}
+            cardType="pokemon"
+          />
         )}
       </AnimatePresence>
 
