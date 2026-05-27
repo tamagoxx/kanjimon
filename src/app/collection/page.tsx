@@ -21,6 +21,9 @@ const colors = {
   darkGray: '#2b363b',
 };
 
+const RARITY_ORDER: string[] = ['COMMON', 'UNCOMMON', 'RARE', 'ULTRA_RARE', 'LIMITED_EDITION', 'LEGENDARY', 'MYTHICAL'];
+const RARITY_SORT_INDEX: Record<string, number> = RARITY_ORDER.reduce((acc, r, i) => ({ ...acc, [r]: i }), {});
+
 const elementColors: Record<string, string> = {
   FIRE: '#ffb4ab',
   WATER: '#6c5ce7',
@@ -43,6 +46,9 @@ const rarityColors: Record<string, string> = {
   UNCOMMON: '#4bddb7',
   RARE: '#6c5ce7',
   ULTRA_RARE: '#f0bf63',
+  LIMITED_EDITION: '#ff8c00',
+  LEGENDARY: '#ff6b35',
+  MYTHICAL: '#ff2d55',
 };
 
 const allJapaneseCards = Object.values(CARDS_BY_ID);
@@ -836,10 +842,45 @@ const navItems = [
 
 export default function CollectionPage() {
   const router = useRouter();
-  const { ownedPokemon, coins, ownedCards } = useCollectionStore();
+  const { ownedPokemon, coins, ownedCards, fusedPokemon } = useCollectionStore();
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [categoryFilter, setCategoryFilter] = useState<FilterType>('all');
+  const [tierFilter, setTierFilter] = useState<string>('all');
   const [selectedPokemon, setSelectedPokemon] = useState<PokemonCard | null>(null);
+
+  // Convert FusedPokemon to PokemonCard for display and combine with ownedPokemon
+  const allPokemonCards: PokemonCard[] = [
+    ...ownedPokemon,
+    ...fusedPokemon.map(fp => ({
+      id: fp.id,
+      pokemonId: fp.pokemonId,
+      name: fp.name,
+      types: fp.types,
+      image: fp.image,
+      shinyImage: fp.image,
+      hp: fp.baseHp,
+      attack: fp.baseAttack,
+      defense: fp.baseDefense,
+      speed: fp.baseSpeed,
+      height: 0,
+      weight: 0,
+      ability: '',
+      rarity: (fp.rarity || 'ULTRA_RARE') as PokemonCard['rarity'],
+      element: fp.element,
+      flavorText: `Fusion ${fp.fusionCount}x • ${fp.evolutionTier}`,
+      color: '#c77dff',
+      moves: [],
+    })),
+  ];
+
+  // Sort by tier ascending (lowest to highest) then filter
+  const sortedAllPokemon = [...allPokemonCards].sort((a, b) =>
+    (RARITY_SORT_INDEX[a.rarity] ?? 99) - (RARITY_SORT_INDEX[b.rarity] ?? 99)
+  );
+
+  const filteredPokemon = tierFilter === 'all'
+    ? sortedAllPokemon
+    : sortedAllPokemon.filter(p => p.rarity === tierFilter);
 
   // For Japanese tab: show owned cards directly from ownedCards store
   // (starter cards jp_starter_1-5 are NOT in CARDS_BY_ID, they exist only in ownedCards)
@@ -849,7 +890,7 @@ export default function CollectionPage() {
       ? ownedCards.slice(0, 6).map(oc => oc.card)
       : ownedCards.map(oc => oc.card);
 
-  const totalOwned = ownedCards.length + ownedPokemon.length;
+  const totalOwned = ownedCards.length + allPokemonCards.length;
 
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: colors.background }}>
@@ -973,7 +1014,26 @@ export default function CollectionPage() {
                   <div className="h-px flex-1 bg-white/10" />
                 </div>
               )}
-              {ownedPokemon.length === 0 ? (
+              {/* Tier filter row for Pokemon tab */}
+              {activeTab === 'pokemon' && (
+                <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
+                  {['all', ...RARITY_ORDER].map(tier => (
+                    <button
+                      key={tier}
+                      onClick={() => setTierFilter(tier)}
+                      className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all"
+                      style={
+                        tierFilter === tier
+                          ? { backgroundColor: colors.brand, color: 'white' }
+                          : { backgroundColor: '#162125', color: colors.darkText }
+                      }
+                    >
+                      {tier === 'all' ? 'Semua' : tier.replace('_', ' ')}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {allPokemonCards.length === 0 ? (
                 <div className="text-center py-8 rounded-2xl" style={{ backgroundColor: colors.cardBg }}>
                   <span className="text-4xl">🎮</span>
                   <p className="text-sm text-[#c8c4d7] mt-2 mb-3">Belum ada Pokemon</p>
@@ -983,7 +1043,7 @@ export default function CollectionPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-3 gap-2">
-                  {ownedPokemon.map((card, i) => (
+                  {filteredPokemon.map((card, i) => (
                     <PokemonCardItem key={card.id} card={card} index={i} onClick={setSelectedPokemon} />
                   ))}
                 </div>

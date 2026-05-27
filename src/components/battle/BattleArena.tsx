@@ -36,6 +36,20 @@ const BOSS_OPPONENTS: AIOpponent[] = [
     specialMoves: ['Inferno Rush', 'Flame Burst', 'Blaze Storm'],
     difficulty: 'INSANE',
   },
+  { 
+    id: 'final_boss', 
+    name: 'KEIZER', 
+    title: 'The Final Emperor', 
+    strategy: 'boss_adaptive', 
+    deckTheme: ['FIRE', 'WATER', 'GRASS', 'ELECTRIC', 'PSYCHIC', 'NORMAL'], 
+    unlockLevel: 100, 
+    avatarUrl: '👑',
+    isBoss: true,
+    maxHP: 1000,
+    phases: ['PHASE_1', 'PHASE_2', 'PHASE_3', 'ENRAGED'],
+    specialMoves: ['World Ender', 'Nova Burst', 'Annihilation'],
+    difficulty: 'INSANE',
+  },
 ];
 
 // Regular AI opponents with difficulty scaling
@@ -1083,6 +1097,21 @@ export function BattleArena({ playerDeck, opponentId = 'sensei', onBattleEnd, on
               <span className="text-white font-bold">HP</span>
               <span className="text-[#636E72]">{battle.aiHP}/{battle.aiMaxHP}</span>
             </div>
+            {/* AI Buff/Debuff Icons */}
+            <div className="flex gap-1 mb-1">
+              {battle.aiDebuffs.map((debuff, i) => (
+                <div key={`debuff-${i}`} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/30 border border-red-500/50 text-xs" title={`${debuff.type} - ${debuff.turnsRemaining} turns`}>
+                  <span>{DEBUFF_ICONS[debuff.type] || '💀'}</span>
+                  <span className="text-red-300 font-bold">{debuff.turnsRemaining}</span>
+                </div>
+              ))}
+              {battle.aiBuffs.map((buff, i) => (
+                <div key={`buff-${i}`} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/30 border border-green-500/50 text-xs" title={`${buff.type} - ${buff.turnsRemaining} turns`}>
+                  <span>{BUFF_ICONS[buff.type] || '✨'}</span>
+                  <span className="text-green-300 font-bold">{buff.turnsRemaining}</span>
+                </div>
+              ))}
+            </div>
             <div className="h-3 bg-[#2D2D44] rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
@@ -1230,6 +1259,21 @@ export function BattleArena({ playerDeck, opponentId = 'sensei', onBattleEnd, on
           <div className="flex items-center justify-between text-xs mb-1">
             <span className="text-white font-bold">HP Player</span>
             <span className="text-[#636E72]">{battle.playerHP}/{battle.playerMaxHP}</span>
+          </div>
+          {/* Player Buff/Debuff Icons */}
+          <div className="flex gap-1 mb-1">
+            {battle.playerDebuffs.map((debuff, i) => (
+              <div key={`pdebuff-${i}`} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/30 border border-red-500/50 text-xs" title={`${debuff.type} - ${debuff.turnsRemaining} turns`}>
+                <span>{DEBUFF_ICONS[debuff.type] || '💀'}</span>
+                <span className="text-red-300 font-bold">{debuff.turnsRemaining}</span>
+              </div>
+            ))}
+            {battle.playerBuffs.map((buff, i) => (
+              <div key={`pbuff-${i}`} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/30 border border-green-500/50 text-xs" title={`${buff.type} - ${buff.turnsRemaining} turns`}>
+                <span>{BUFF_ICONS[buff.type] || '✨'}</span>
+                <span className="text-green-300 font-bold">{buff.turnsRemaining}</span>
+              </div>
+            ))}
           </div>
           <div className="h-3 bg-[#2D2D44] rounded-full overflow-hidden">
             <motion.div
