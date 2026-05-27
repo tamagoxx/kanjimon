@@ -143,3 +143,54 @@ body {
 .animate-shake {
   animation: shake 0.3s ease-in-out;
 }
+
+/* Shimmer effect for HP bars */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+/* Pulse slow animation */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.02); }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s ease-in-out infinite;
+}
+
+/* Glow pulse for cards */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(108, 92, 231, 0.4); }
+  50% { box-shadow: 0 0 40px rgba(108, 92, 231, 0.7); }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* Spin animation for loading */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
+}
+
+/* Particle burst keyframe */
+@keyframes particle-burst {
+  0% { transform: scale(0); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.8; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+.animate-particle-burst {
+  animation: particle-burst 0.6s ease-out forwards;
+}

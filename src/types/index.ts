@@ -98,9 +98,44 @@ export interface Deck {
   updatedAt: string;
 }
 
-// --- Battle ---
+// --- Battle --
 export type BattlePhase = 'SETUP' | 'DRAW' | 'ACTION' | 'END' | 'VICTORY' | 'DEFEAT';
 export type BattleAction = 'ATTACK' | 'STUDY' | 'DEFEND' | 'SPECIAL';
+export type BossPhase = 'PHASE_1' | 'PHASE_2' | 'PHASE_3' | 'ENRAGED';
+export type Difficulty = 'EASY' | 'NORMAL' | 'HARD' | 'INSANE';
+export type BuffType = 'SHIELD' | 'BARRIER' | 'FURY' | 'FOCUS' | 'REGENERATION';
+export type DebuffType = 'BURN' | 'SLOW' | 'POISON' | 'STUN' | 'WEAKEN';
+
+// Status effect interface
+export interface StatusEffect {
+  type: BuffType | DebuffType;
+  duration: number;      // turns remaining
+  value: number;         // effect potency (damage, % boost, etc.)
+  source: string;         // cardId that applied the effect
+}
+
+// Buff applied to a combatant
+export interface Buff {
+  type: BuffType;
+  turnsRemaining: number;
+  value: number;
+}
+
+// Debuff applied to a combatant
+export interface Debuff {
+  type: DebuffType;
+  turnsRemaining: number;
+  value: number;
+}
+
+// AI pattern tracking
+export interface AIBehaviorPattern {
+  lastActions: BattleAction[];
+  defenseCount: number;
+  attackCount: number;
+  studyCount: number;
+  lastPlayerAction: BattleAction | null;
+}
 
 export interface BattleState {
   id: string;
@@ -108,6 +143,13 @@ export interface BattleState {
   opponentId: string;
   opponentName: string;
   phase: BattlePhase;
+  // Boss battle system
+  bossPhase: BossPhase;
+  isBossBattle: boolean;
+  bossChargingMove: boolean;       // Boss is telegraphing a special move
+  bossCurrentMove: string | null; // Name of the charged move
+  difficulty: Difficulty;
+  // Decks and hands
   playerDeck: string[];          // card IDs
   playerHand: string[];
   playerActiveCard: string | null;
@@ -116,12 +158,35 @@ export interface BattleState {
   aiHand: string[];
   aiActiveCard: string | null;
   aiDiscard: string[];
+  // Turn management
   turn: number;
+  maxTurns: number;              // Turn limit (default 15)
   isPlayerTurn: boolean;
+  // HP system with shields
+  playerHP: number;
+  playerMaxHP: number;
+  playerShield: number;          // Shield absorbs damage
+  aiHP: number;
+  aiMaxHP: number;
+  aiShield: number;
+  // Buffs and debuffs
+  playerBuffs: Buff[];
+  playerDebuffs: Debuff[];
+  aiBuffs: Buff[];
+  aiDebuffs: Debuff[];
+  // Status effects tracking
+  playerStatusEffects: StatusEffect[];
+  aiStatusEffects: StatusEffect[];
+  // Battle state
   battleLog: BattleLogEntry[];
   studyQuestion: StudyQuestion | null;
   playerDefending: boolean;
   aiDefending: boolean;
+  // AI behavior tracking
+  aiBehavior: AIBehaviorPattern;
+  // Rewards tracking
+  battleRewardMultiplier: number; // Increases with win streak
+  flawlessVictory: boolean;       // True if player never took damage
 }
 
 export interface BattleLogEntry {
@@ -140,15 +205,21 @@ export interface StudyQuestion {
   type: 'meaning' | 'reading' | 'kanji';
 }
 
-// --- AI Opponents ---
+// --- AI Opponents --
 export interface AIOpponent {
   id: string;
   name: string;
   title: string;
-  strategy: 'random' | 'aggressive' | 'defensive' | 'balanced';
+  strategy: 'random' | 'aggressive' | 'defensive' | 'balanced' | 'boss_adaptive';
   deckTheme: Element[];
   unlockLevel: number;
   avatarUrl: string;
+  // Boss-specific properties
+  isBoss?: boolean;
+  maxHP?: number;
+  phases?: BossPhase[];
+  specialMoves?: string[];
+  difficulty?: Difficulty;
 }
 
 // --- Daily Quests ---
