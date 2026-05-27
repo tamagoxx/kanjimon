@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { EvolutionMaterial, EvoTier, Rarity, FusedPokemon } from '@/types';
-import { EVO_REQUIREMENTS, STAT_BOOST_PER_TIER, EVO_TIER_ORDER } from '@/types';
+import { EVO_REQUIREMENTS, STAT_BOOST_PER_TIER, EVO_TIER_ORDER, RARITY_ORDER } from '@/types';
 import { useCollectionStore } from './collectionStore';
 
 // Fusion card sacrifice value by rarity (what materials they replace)
@@ -97,10 +97,12 @@ export const useEvolutionStore = create<EvolutionState>()(
 
       getEligibleFusionCards: () => {
         const collection = useCollectionStore.getState();
+        const urIndex = RARITY_ORDER.indexOf('ULTRA_RARE');
         // Only fusion cards with rarity >= ULTRA_RARE can be sacrificed
+        // Use RARITY_ORDER.indexOf for proper ordinal comparison (not lexicographic string comparison)
         return collection.fusedPokemon.filter(fp => {
-          const value = FUSION_SACRIFICE_VALUES[fp.rarity];
-          return value.cosmicDust > 0 || value.celestialShard > 0;
+          const rarityIndex = RARITY_ORDER.indexOf(fp.rarity);
+          return rarityIndex >= urIndex;
         });
       },
 
