@@ -1,8 +1,24 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { EvolutionMaterial, EvoTier, Rarity } from '@/types';
+import type { EvolutionMaterial, EvoTier, Rarity, FusedPokemon } from '@/types';
 import { EVO_REQUIREMENTS, STAT_BOOST_PER_TIER, EVO_TIER_ORDER } from '@/types';
 import { useCollectionStore } from './collectionStore';
+
+// Fusion card sacrifice value by rarity (what materials they replace)
+export const FUSION_SACRIFICE_VALUES: Record<Rarity, { cosmicDust: number; celestialShard: number }> = {
+  COMMON: { cosmicDust: 0, celestialShard: 0 },
+  UNCOMMON: { cosmicDust: 0, celestialShard: 0 },
+  RARE: { cosmicDust: 0, celestialShard: 0 },
+  ULTRA_RARE: { cosmicDust: 1, celestialShard: 0 },      // 1 UR = 1 Cosmic Dust
+  LIMITED_EDITION: { cosmicDust: 1, celestialShard: 0 },// 1 LE = 1 Cosmic Dust
+  LEGENDARY: { cosmicDust: 2, celestialShard: 0 },       // 1 LEG = 2 Cosmic Dust
+  MYTHICAL: { cosmicDust: 3, celestialShard: 1 },        // 1 MYTH = 3 Cosmic Dust + 1 Celestial Shard
+  TRANSCENDENT: { cosmicDust: 3, celestialShard: 1 },    // 1 TRANS = 3 Cosmic Dust + 1 Celestial Shard
+  CELESTIAL: { cosmicDust: 4, celestialShard: 2 },       // 1 CEL = 4 Cosmic Dust + 2 Celestial Shard
+  DIVINE: { cosmicDust: 5, celestialShard: 2 },           // 1 DIV = 5 Cosmic Dust + 2 Celestial Shard
+  ULTIMATE: { cosmicDust: 6, celestialShard: 3 },        // 1 ULT = 6 Cosmic Dust + 3 Celestial Shard
+  ETERNAL: { cosmicDust: 8, celestialShard: 4 },          // 1 ETERN = 8 Cosmic Dust + 4 Celestial Shard
+};
 
 // ============================================================
 // Evolution Store - manages card evolution system
@@ -32,11 +48,11 @@ interface EvolutionState {
   // Get material costs for a specific evolution
   getMaterialCost: (targetTier: EvoTier) => { gold: number; materials: Partial<Record<EvolutionMaterial, number>> };
 
-  // Check if user has enough materials for evolution
-  hasEnoughMaterials: (targetTier: EvoTier) => boolean;
+  // Check if user has enough materials for evolution (optionally including fusion card sacrifices)
+  hasEnoughMaterials: (targetTier: EvoTier, sacrificeContribution?: { cosmicDust: number; celestialShard: number }) => boolean;
 
-  // Evolve a card
-  evolveCard: (cardId: string, currentRarity: Rarity, cardStats: { hp: number; attack: number; defense: number }) => {
+  // Evolve a card (optionally pass sacrificed fusion card IDs to use them as materials)
+  evolveCard: (cardId: string, currentRarity: Rarity, cardStats: { hp: number; attack: number; defense: number }, sacrificedCardIds?: string[]) => {
     success: boolean;
     error?: string;
     newTier?: EvoTier;
@@ -55,6 +71,11 @@ interface EvolutionState {
 
   // Get current material counts
   getMaterialCount: (material: EvolutionMaterial) => number;
+
+  // Fusion card sacrifice system
+  getFusionSacrificeValue: (card: FusedPokemon) => { cosmicDust: number; celestialShard: number };
+  getEligibleFusionCards: () => FusedPokemon[];
+  calculateSacrificeContribution: (sacrificedCardIds: string[]) => { cosmicDust: number; celestialShard: number };
 }
 
 export const useEvolutionStore = create<EvolutionState>()(
@@ -69,6 +90,36 @@ export const useEvolutionStore = create<EvolutionState>()(
       },
 
       evolvedCards: {},
+
+      getFusionSacrificeValue: (card: FusedPokemon) => {
+        return FUSION_SACRIFICE_VALUES[card.rarity] || { cosmicDust: 0, celestialShard: 0 };
+      },
+
+      getEligibleFusionCards: () => {
+        const collection = useCollectionStore.getState();
+        // Only fusion cards with rarity >= ULTRA_RARE can be sacrificed
+        return collection.fusedPokemon.filter(fp => {
+          const value = FUSION_SACRIFICE_VALUES[fp.rarity];
+          return value.cosmicDust > 0 || value.celestialShard > 0;
+        });
+      },
+
+      calculateSacrificeContribution: (sacrificedCardIds: string[]) => {
+        const collection = useCollectionStore.getState();
+        let totalCosmicDust = 0;
+        let totalCelestialShard = 0;
+
+        for (const id of sacrificedCardIds) {
+          const card = collection.fusedPokemon.find(fp => fp.id === id);
+          if (card) {
+            const value = FUSION_SACRIFICE_VALUES[card.rarity];
+            totalCosmicDust += value.cosmicDust;
+            totalCelestialShard += value.celestialShard;
+          }
+        }
+
+        return { cosmicDust: totalCosmicDust, celestialShard: totalCelestialShard };
+      },
 
       canEvolveCard: (cardId: string) => {
         const collection = useCollectionStore.getState();
@@ -146,24 +197,33 @@ export const useEvolutionStore = create<EvolutionState>()(
         return { gold: req.gold, materials: req.materials };
       },
 
-      hasEnoughMaterials: (targetTier: EvoTier) => {
+      hasEnoughMaterials: (targetTier: EvoTier, sacrificeContribution?: { cosmicDust: number; celestialShard: number }) => {
         const collection = useCollectionStore.getState();
         const req = EVO_REQUIREMENTS[targetTier];
 
         // Check gold
         if (collection.coins < req.gold) return false;
 
-        // Check materials
+        // Check materials with optional sacrifice contribution
         const state = get();
+        const cosmicDust = (sacrificeContribution?.cosmicDust || 0);
+        const celestialShard = (sacrificeContribution?.celestialShard || 0);
+
+        // Calculate effective materials
+        const effectiveCosmicDust = (state.materials.COSMIC_DUST + cosmicDust);
+        const effectiveCelestialShard = (state.materials.CELESTIAL_SHARD + celestialShard);
+
         for (const [mat, count] of Object.entries(req.materials)) {
-          if ((state.materials as any)[mat] < count) return false;
+          if (mat === 'COSMIC_DUST' && effectiveCosmicDust < (count as number)) return false;
+          if (mat === 'CELESTIAL_SHARD' && effectiveCelestialShard < (count as number)) return false;
+          if (mat !== 'COSMIC_DUST' && mat !== 'CELESTIAL_SHARD' && (state.materials as any)[mat] < count) return false;
         }
 
         return true;
       },
 
-      evolveCard: (cardId, currentRarity, cardStats) => {
-        const { canEvolveCard, hasEnoughMaterials } = get();
+      evolveCard: (cardId, currentRarity, cardStats, sacrificedCardIds = []) => {
+        const { canEvolveCard, hasEnoughMaterials, calculateSacrificeContribution } = get();
 
         const check = canEvolveCard(cardId);
         if (!check.canEvolve || !check.nextTier) {
@@ -173,8 +233,13 @@ export const useEvolutionStore = create<EvolutionState>()(
         const nextTier = check.nextTier;
         const req = EVO_REQUIREMENTS[nextTier];
 
-        // Check materials and gold again
-        if (!hasEnoughMaterials(nextTier)) {
+        // Calculate sacrifice contribution if any cards are being sacrificed
+        const sacrificeContribution = sacrificedCardIds.length > 0
+          ? calculateSacrificeContribution(sacrificedCardIds)
+          : undefined;
+
+        // Check materials and gold again (including sacrifice contribution)
+        if (!hasEnoughMaterials(nextTier, sacrificeContribution)) {
           return { success: false, error: 'Not enough materials or gold' };
         }
 
@@ -184,10 +249,22 @@ export const useEvolutionStore = create<EvolutionState>()(
           return { success: false, error: 'Not enough coins' };
         }
 
-        // Deduct materials
+        // Deduct materials (subtract sacrifice contribution from requirements)
         const newMaterials = { ...get().materials };
         for (const [mat, count] of Object.entries(req.materials)) {
-          newMaterials[mat as EvolutionMaterial] -= count as number;
+          if (mat === 'COSMIC_DUST' && sacrificeContribution?.cosmicDust) {
+            newMaterials.COSMIC_DUST -= Math.min(count as number, sacrificeContribution.cosmicDust);
+          } else if (mat === 'CELESTIAL_SHARD' && sacrificeContribution?.celestialShard) {
+            newMaterials.CELESTIAL_SHARD -= Math.min(count as number, sacrificeContribution.celestialShard);
+          } else {
+            newMaterials[mat as EvolutionMaterial] -= count as number;
+          }
+        }
+
+        // Remove sacrificed fusion cards from collection
+        let updatedFusedPokemon = [...collection.fusedPokemon];
+        for (const id of sacrificedCardIds) {
+          updatedFusedPokemon = updatedFusedPokemon.filter(fp => fp.id !== id);
         }
 
         // Calculate boosted stats
@@ -210,10 +287,16 @@ export const useEvolutionStore = create<EvolutionState>()(
           evolvedAt: new Date().toISOString(),
         };
 
+        // Update both stores
         set({
           materials: newMaterials,
           evolvedCards: newEvolvedCards,
         });
+
+        // Update collection store to remove sacrificed cards
+        if (sacrificedCardIds.length > 0) {
+          useCollectionStore.setState({ fusedPokemon: updatedFusedPokemon });
+        }
 
         return {
           success: true,
