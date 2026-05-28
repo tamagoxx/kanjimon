@@ -1,17 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Rarity, FusedPokemon } from '@/types';
-import { POKEMON_FUSION_RECIPES as RECIPES } from '@/types';
+import { POKEMON_FUSION_RECIPES as RECIPES, RARITY_ORDER } from '@/types';
 import { useCollectionStore } from './collectionStore';
 
 function getHigherRarity(a: Rarity, b: Rarity): Rarity {
-  const order: Rarity[] = ['COMMON', 'UNCOMMON', 'RARE', 'ULTRA_RARE'];
-  return order.indexOf(a) >= order.indexOf(b) ? a : b;
+  return RARITY_ORDER.indexOf(a) >= RARITY_ORDER.indexOf(b) ? a : b;
 }
 
 function getLowerRarity(a: Rarity, b: Rarity): Rarity {
-  const order: Rarity[] = ['COMMON', 'UNCOMMON', 'RARE', 'ULTRA_RARE'];
-  return order.indexOf(a) <= order.indexOf(b) ? a : b;
+  return RARITY_ORDER.indexOf(a) <= RARITY_ORDER.indexOf(b) ? a : b;
 }
 
 interface FusionCheck {
