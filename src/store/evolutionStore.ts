@@ -123,63 +123,109 @@ export const useEvolutionStore = create<EvolutionState>()(
         return { cosmicDust: totalCosmicDust, celestialShard: totalCelestialShard };
       },
 
-      canEvolveCard: (cardId: string) => {
+canEvolveCard: (cardId: string) => {
         const collection = useCollectionStore.getState();
-        const card = collection.ownedCards.find(oc => oc.cardId === cardId)?.card ||
-                     collection.fusedPokemon.find(fp => fp.id === cardId);
-
-        if (!card) {
-          return { canEvolve: false, nextTier: null, reason: 'Card not found' };
+        // First check in ownedCards (Japanese cards)
+        const ownedCard = collection.ownedCards.find(oc => oc.cardId === cardId);
+        if (ownedCard) {
+          return { canEvolve: false, nextTier: null, reason: 'Japanese cards cannot be evolved' };
         }
 
-        const rarity = 'rarity' in card ? card.rarity : 'MYTHICAL';
+        // Check in fusedPokemon (fused Pokemon)
+        const fusedPokemon = collection.fusedPokemon.find(fp => fp.id === cardId);
+        if (fusedPokemon) {
+          const rarity = fusedPokemon.rarity;
 
-        // Check if already at max tier
-        if (rarity === 'ETERNAL') {
-          return { canEvolve: false, nextTier: null, reason: 'Already at max tier' };
-        }
-
-        // Check if it's MYTHICAL or above
-        const evolvableTiers: Rarity[] = ['MYTHICAL', 'TRANSCENDENT', 'CELESTIAL', 'DIVINE', 'ULTIMATE'];
-        if (!evolvableTiers.includes(rarity)) {
-          return { canEvolve: false, nextTier: null, reason: 'Only MYTHICAL+ cards can evolve' };
-        }
-
-        // Check if it's a fused Pokemon (they have fusionCount)
-        const fusionCount = 'fusionCount' in card ? card.fusionCount : 0;
-
-        // Get next tier
-        let nextTier: EvoTier | null = null;
-        if (rarity === 'MYTHICAL') nextTier = 'TRANSCENDENT';
-        else if (rarity === 'TRANSCENDENT') nextTier = 'CELESTIAL';
-        else if (rarity === 'CELESTIAL') nextTier = 'DIVINE';
-        else if (rarity === 'DIVINE') nextTier = 'ULTIMATE';
-        else if (rarity === 'ULTIMATE') nextTier = 'ETERNAL';
-
-        if (!nextTier) {
-          return { canEvolve: false, nextTier: null, reason: 'Already at max tier' };
-        }
-
-        // Check fusion count requirement
-        const requirements = EVO_REQUIREMENTS[nextTier];
-        if (requirements.fusionCount && fusionCount < requirements.fusionCount) {
-          return { canEvolve: false, nextTier, reason: `Need ${requirements.fusionCount} fusion count (current: ${fusionCount})` };
-        }
-
-        // Check materials
-        const state = get();
-        for (const [mat, count] of Object.entries(requirements.materials)) {
-          if ((state.materials as any)[mat] < count) {
-            return { canEvolve: false, nextTier, reason: `Need more ${mat.replace('_', ' ').toLowerCase()}` };
+          // Check if already at max tier
+          if (rarity === 'ETERNAL') {
+            return { canEvolve: false, nextTier: null, reason: 'Already at max tier' };
           }
+
+          // Check if it's MYTHICAL or above
+          const evolvableTiers: Rarity[] = ['MYTHICAL', 'TRANSCENDENT', 'CELESTIAL', 'DIVINE', 'ULTIMATE'];
+          if (!evolvableTiers.includes(rarity)) {
+            return { canEvolve: false, nextTier: null, reason: 'Only MYTHICAL+ cards can evolve' };
+          }
+
+          // Get next tier
+          let nextTier: EvoTier | null = null;
+          if (rarity === 'MYTHICAL') nextTier = 'TRANSCENDENT';
+          else if (rarity === 'TRANSCENDENT') nextTier = 'CELESTIAL';
+          else if (rarity === 'CELESTIAL') nextTier = 'DIVINE';
+          else if (rarity === 'DIVINE') nextTier = 'ULTIMATE';
+          else if (rarity === 'ULTIMATE') nextTier = 'ETERNAL';
+
+          if (!nextTier) {
+            return { canEvolve: false, nextTier: null, reason: 'Already at max tier' };
+          }
+
+          // Check fusion count requirement
+          const requirements = EVO_REQUIREMENTS[nextTier];
+          if (requirements.fusionCount && fusedPokemon.fusionCount < requirements.fusionCount) {
+            return { canEvolve: false, nextTier, reason: `Need ${requirements.fusionCount} fusion count (current: ${fusedPokemon.fusionCount})` };
+          }
+
+          // Check materials
+          const state = get();
+          for (const [mat, count] of Object.entries(requirements.materials)) {
+            if ((state.materials as any)[mat] < count) {
+              return { canEvolve: false, nextTier, reason: `Need more ${mat.replace('_', ' ').toLowerCase()}` };
+            }
+          }
+
+          // Check gold
+          if (collection.coins < requirements.gold) {
+            return { canEvolve: false, nextTier, reason: `Need ${requirements.gold.toLocaleString()} coins (have: ${collection.coins.toLocaleString()})` };
+          }
+
+          return { canEvolve: true, nextTier };
         }
 
-        // Check gold
-        if (collection.coins < requirements.gold) {
-          return { canEvolve: false, nextTier, reason: `Need ${requirements.gold.toLocaleString()} coins (have: ${collection.coins.toLocaleString()})` };
+        // Check in ownedPokemon (regular caught Pokemon)
+        const ownedPokemon = collection.ownedPokemon.find(p => p.id === cardId);
+        if (ownedPokemon) {
+          const rarity = ownedPokemon.rarity;
+
+          // Check if already at max tier
+          if (rarity === 'ETERNAL') {
+            return { canEvolve: false, nextTier: null, reason: 'Already at max tier' };
+          }
+
+          // Check if it's MYTHICAL or above
+          const evolvableTiers: Rarity[] = ['MYTHICAL', 'TRANSCENDENT', 'CELESTIAL', 'DIVINE', 'ULTIMATE'];
+          if (!evolvableTiers.includes(rarity)) {
+            return { canEvolve: false, nextTier: null, reason: 'Only MYTHICAL+ cards can evolve' };
+          }
+
+          // Get next tier
+          let nextTier: EvoTier | null = null;
+          if (rarity === 'MYTHICAL') nextTier = 'TRANSCENDENT';
+          else if (rarity === 'TRANSCENDENT') nextTier = 'CELESTIAL';
+          else if (rarity === 'CELESTIAL') nextTier = 'DIVINE';
+          else if (rarity === 'DIVINE') nextTier = 'ULTIMATE';
+          else if (rarity === 'ULTIMATE') nextTier = 'ETERNAL';
+
+          if (!nextTier) {
+            return { canEvolve: false, nextTier: null, reason: 'Already at max tier' };
+          }
+
+          // Check materials
+          const state = get();
+          for (const [mat, count] of Object.entries(EVO_REQUIREMENTS[nextTier].materials)) {
+            if ((state.materials as any)[mat] < count) {
+              return { canEvolve: false, nextTier, reason: `Need more ${mat.replace('_', ' ').toLowerCase()}` };
+            }
+          }
+
+          // Check gold
+          if (collection.coins < EVO_REQUIREMENTS[nextTier].gold) {
+            return { canEvolve: false, nextTier, reason: `Need ${EVO_REQUIREMENTS[nextTier].gold.toLocaleString()} coins (have: ${collection.coins.toLocaleString()})` };
+          }
+
+          return { canEvolve: true, nextTier };
         }
 
-        return { canEvolve: true, nextTier };
+        return { canEvolve: false, nextTier: null, reason: 'Card not found' };
       },
 
       getEvolutionRequirements: (currentRarity: Rarity) => {
