@@ -50,10 +50,11 @@ const MATERIAL_ICONS: Record<EvolutionMaterial, string> = {
 };
 
 export function EvolutionModal({ isOpen, onClose, card }: EvolutionModalProps) {
-  const { canEvolveCard, getMaterialCost, hasEnoughMaterials, evolveCard, getMaterialCount } = useEvolutionStore();
+  const { canEvolveCard, getMaterialCost, hasEnoughMaterials, evolveCard, getMaterialCount, getEligibleFusionCards, calculateSacrificeContribution } = useEvolutionStore();
   const { coins, spendCoins } = useCollectionStore();
 
   const [isEvolving, setIsEvolving] = useState(false);
+  const [sacrificedCardIds, setSacrificedCardIds] = useState<string[]>([]);
   const [evolutionResult, setEvolutionResult] = useState<{
     success: boolean;
     newTier?: EvoTier;
@@ -63,8 +64,21 @@ export function EvolutionModal({ isOpen, onClose, card }: EvolutionModalProps) {
 
   if (!isOpen) return null;
 
-  const check = canEvolveCard(card.id);
+  // Eligible fusion cards (UR+) that can be sacrificed
+  const eligibleFusionCards = getEligibleFusionCards();
+  // Live contribution from currently-selected sacrifices
+  const sacrificeContribution = sacrificedCardIds.length > 0
+    ? calculateSacrificeContribution(sacrificedCardIds)
+    : undefined;
+  // Eligibility check accounts for sacrifice
+  const check = canEvolveCard(card.id, sacrificeContribution);
   const nextTier = check.nextTier;
+
+  const toggleSacrifice = (id: string) => {
+    setSacrificedCardIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
 
   const handleEvolve = async () => {
     if (!nextTier || !check.canEvolve) return;
@@ -74,17 +88,23 @@ export function EvolutionModal({ isOpen, onClose, card }: EvolutionModalProps) {
     // Simulate evolution animation delay
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    const result = evolveCard(card.id, card.rarity as any, {
-      hp: card.hp,
-      attack: card.attack,
-      defense: card.defense,
-    });
+    const result = evolveCard(
+      card.id,
+      card.rarity as any,
+      {
+        hp: card.hp,
+        attack: card.attack,
+        defense: card.defense,
+      },
+      sacrificedCardIds
+    );
 
     setEvolutionResult(result);
     setIsEvolving(false);
   };
 
   const handleClose = () => {
+    setSacrificedCardIds([]);
     setEvolutionResult(null);
     onClose();
   };
@@ -138,7 +158,7 @@ export function EvolutionModal({ isOpen, onClose, card }: EvolutionModalProps) {
   const tierColors = TIER_COLORS[nextTier];
   const requirements = EVO_REQUIREMENTS[nextTier];
   const cost = getMaterialCost(nextTier);
-  const enoughMaterials = hasEnoughMaterials(nextTier);
+  const enoughMaterials = hasEnoughMaterials(nextTier, sacrificeContribution);
   const boostMultiplier = 1 + STAT_BOOST_PER_TIER[nextTier];
 
   // Success state
@@ -276,7 +296,11 @@ export function EvolutionModal({ isOpen, onClose, card }: EvolutionModalProps) {
                 const material = mat as EvolutionMaterial;
                 const owned = getMaterialCount(material);
                 const needed = count as number;
-                const hasEnough = owned >= needed;
+                // For COSMIC_DUST / CELESTIAL_SHARD the sacrifice contribution can cover part of the cost
+                const sacrificeCover =
+                  material === 'COSMIC_DUST' ? (sacrificeContribution?.cosmicDust || 0) :
+                  material === 'CELESTIAL_SHARD' ? (sacrificeContribution?.celestialShard || 0) : 0;
+                const hasEnough = (owned + sacrificeCover) >= needed;
 
                 return (
                   <div key={mat} className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: '#162125' }}>
@@ -285,13 +309,88 @@ export function EvolutionModal({ isOpen, onClose, card }: EvolutionModalProps) {
                       <span className="text-sm text-white">{EVOLUTION_MATERIALS[material].name}</span>
                     </div>
                     <span className={`font-bold ${hasEnough ? 'text-green-400' : 'text-red-400'}`}>
-                      {owned} / {needed}
+                      {owned + sacrificeCover} / {needed}
+                      {sacrificeCover > 0 && (
+                        <span className="ml-1 text-xs text-white/50">(-{sacrificeCover})</span>
+                      )}
                     </span>
                   </div>
                 );
               })}
             </div>
           </div>
+
+          {/* Fusion card sacrifice picker (UR+ cards from collection) */}
+          {eligibleFusionCards.length > 0 && (
+            <div>
+              <h3 className="text-sm font-bold text-white/60 uppercase tracking-wider mb-3">
+                Kartu Korban (Sacrifice)
+              </h3>
+              <p className="text-xs text-yellow-400/80 mb-3 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                Kartu yang dipilih akan hilang permanen dari koleksi
+              </p>
+              <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                {eligibleFusionCards.map(fp => {
+                  const isSelected = sacrificedCardIds.includes(fp.id);
+                  const value = useEvolutionStore.getState().getFusionSacrificeValue(fp);
+                  return (
+                    <button
+                      key={fp.id}
+                      type="button"
+                      onClick={() => toggleSacrifice(fp.id)}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-all"
+                      style={{
+                        backgroundColor: isSelected ? 'rgba(108, 92, 231, 0.25)' : '#162125',
+                        border: isSelected ? '1px solid #6c5ce7' : '1px solid transparent',
+                      }}
+                    >
+                      {fp.image && (
+                        <img src={fp.image} alt={fp.name} className="w-10 h-10 object-contain rounded-lg" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-white truncate">{fp.name}</p>
+                        <p className="text-xs text-white/50">{fp.rarity}</p>
+                      </div>
+                      <div className="text-right text-xs">
+                        {value.cosmicDust > 0 && (
+                          <p className="text-white/70">+{value.cosmicDust} ✨</p>
+                        )}
+                        {value.celestialShard > 0 && (
+                          <p className="text-white/70">+{value.celestialShard} 💎</p>
+                        )}
+                      </div>
+                      <div
+                        className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
+                        style={{
+                          backgroundColor: isSelected ? '#6c5ce7' : '#0a1519',
+                          border: '1px solid #6c5ce7',
+                        }}
+                      >
+                        {isSelected && <Check className="w-3 h-3 text-white" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              {sacrificedCardIds.length > 0 && (
+                <div
+                  className="mt-3 p-2.5 rounded-xl text-xs flex items-center justify-between"
+                  style={{ backgroundColor: 'rgba(75, 221, 183, 0.1)', border: '1px solid #4bddb7' }}
+                >
+                  <span className="text-white/70">Total kontribusi:</span>
+                  <span className="font-bold text-white">
+                    {sacrificeContribution && sacrificeContribution.cosmicDust > 0 && (
+                      <span className="mr-2">+{sacrificeContribution.cosmicDust} ✨</span>
+                    )}
+                    {sacrificeContribution && sacrificeContribution.celestialShard > 0 && (
+                      <span>+{sacrificeContribution.celestialShard} 💎</span>
+                    )}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Stat preview */}
           <div className="p-4 rounded-2xl" style={{ backgroundColor: '#162125' }}>

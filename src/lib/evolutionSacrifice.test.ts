@@ -1,0 +1,197 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { useCollectionStore } from '@/store/collectionStore';
+import { useEvolutionStore, FUSION_SACRIFICE_VALUES } from '@/store/evolutionStore';
+import type { FusedPokemon } from '@/types';
+
+// Reset stores between tests
+const resetStores = () => {
+  useCollectionStore.setState({
+    ownedCards: [],
+    ownedPokemon: [],
+    fusedPokemon: [],
+    coins: 100000,
+    diamonds: 1000,
+  });
+  useEvolutionStore.setState({
+    materials: { COSMIC_DUST: 0, CELESTIAL_SHARD: 0, DIVINE_ESSENCE: 0, ULTIMATE_CORE: 0, ETERNAL_FRAGMENT: 0 },
+    evolvedCards: {},
+  });
+};
+
+const makeFusion = (id: string, rarity: FusedPokemon['rarity']): FusedPokemon => ({
+  id,
+  pokemonId: 10000 + parseInt(id.split('-')[1] || '0'),
+  parentPokemonIds: [1, 2],
+  name: `Fusion ${id}`,
+  types: ['NORMAL'],
+  baseHp: 100,
+  baseAttack: 50,
+  baseDefense: 30,
+  baseSpeed: 20,
+  level: 1,
+  exp: 0,
+  fusionCount: 1,
+  learnedAt: new Date().toISOString(),
+  element: 'NORMAL',
+  image: '',
+  rarity,
+  evolutionTier: 'NONE',
+});
+
+describe('FUSION_SACRIFICE_VALUES', () => {
+  it('UR yields 1 cosmic dust only (the user’s case)', () => {
+    expect(FUSION_SACRIFICE_VALUES.ULTRA_RARE).toEqual({ cosmicDust: 1, celestialShard: 0 });
+  });
+
+  it('higher tiers yield more dust and shards', () => {
+    expect(FUSION_SACRIFICE_VALUES.MYTHICAL.celestialShard).toBe(1);
+    expect(FUSION_SACRIFICE_VALUES.ETERNAL.celestialShard).toBeGreaterThan(FUSION_SACRIFICE_VALUES.MYTHICAL.celestialShard);
+  });
+
+  it('tiers below UR yield nothing (cannot sacrifice)', () => {
+    expect(FUSION_SACRIFICE_VALUES.COMMON).toEqual({ cosmicDust: 0, celestialShard: 0 });
+    expect(FUSION_SACRIFICE_VALUES.RARE).toEqual({ cosmicDust: 0, celestialShard: 0 });
+  });
+});
+
+describe('getEligibleFusionCards', () => {
+  beforeEach(resetStores);
+
+  it('returns empty when no fusion cards', () => {
+    expect(useEvolutionStore.getState().getEligibleFusionCards()).toEqual([]);
+  });
+
+  it('excludes COMMON/UNCOMMON/RARE fusion cards', () => {
+    useCollectionStore.setState({
+      fusedPokemon: [
+        makeFusion('f-1', 'COMMON'),
+        makeFusion('f-2', 'RARE'),
+        makeFusion('f-3', 'ULTRA_RARE'),
+      ],
+    });
+    const eligible = useEvolutionStore.getState().getEligibleFusionCards();
+    expect(eligible.map(c => c.id)).toEqual(['f-3']);
+  });
+
+  it('includes UR and all higher tiers', () => {
+    useCollectionStore.setState({
+      fusedPokemon: [
+        makeFusion('f-1', 'ULTRA_RARE'),
+        makeFusion('f-2', 'LEGENDARY'),
+        makeFusion('f-3', 'MYTHICAL'),
+        makeFusion('f-4', 'ETERNAL'),
+      ],
+    });
+    const ids = useEvolutionStore.getState().getEligibleFusionCards().map(c => c.id);
+    expect(ids).toEqual(['f-1', 'f-2', 'f-3', 'f-4']);
+  });
+});
+
+describe('calculateSacrificeContribution', () => {
+  beforeEach(resetStores);
+
+  it('sums dust and shards across multiple fusion cards', () => {
+    useCollectionStore.setState({
+      fusedPokemon: [
+        makeFusion('f-1', 'ULTRA_RARE'),   // 1 dust
+        makeFusion('f-2', 'ULTRA_RARE'),   // 1 dust
+        makeFusion('f-3', 'MYTHICAL'),     // 3 dust + 1 shard
+      ],
+    });
+    const result = useEvolutionStore.getState().calculateSacrificeContribution(['f-1', 'f-2', 'f-3']);
+    expect(result.cosmicDust).toBe(5);
+    expect(result.celestialShard).toBe(1);
+  });
+
+  it('returns zeros for empty selection', () => {
+    expect(useEvolutionStore.getState().calculateSacrificeContribution([])).toEqual({ cosmicDust: 0, celestialShard: 0 });
+  });
+
+  it('skips non-existent card ids', () => {
+    useCollectionStore.setState({ fusedPokemon: [makeFusion('f-1', 'ULTRA_RARE')] });
+    const result = useEvolutionStore.getState().calculateSacrificeContribution(['f-1', 'f-999']);
+    expect(result.cosmicDust).toBe(1);
+  });
+});
+
+describe('hasEnoughMaterials with sacrifice', () => {
+  beforeEach(resetStores);
+
+  it('returns false when no dust AND no sacrifice covers gap', () => {
+    const result = useEvolutionStore.getState().hasEnoughMaterials('TRANSCENDENT');
+    expect(result).toBe(false);
+  });
+
+  it('returns true when sacrifice contribution covers the gap', () => {
+    // TRANSCENDENT needs 3 cosmic dust + 1 celestial shard + 5000 gold
+    useCollectionStore.setState({ coins: 100000 });
+    useCollectionStore.setState({
+      fusedPokemon: [
+        makeFusion('f-1', 'MYTHICAL'),  // 3 dust + 1 shard
+      ],
+    });
+    const contribution = useEvolutionStore.getState().calculateSacrificeContribution(['f-1']);
+    const result = useEvolutionStore.getState().hasEnoughMaterials('TRANSCENDENT', contribution);
+    expect(result).toBe(true);
+  });
+});
+
+describe('evolveCard with sacrifice', () => {
+  beforeEach(resetStores);
+
+  it('removes sacrificed fusion cards from collection after evolve', () => {
+    // Setup: a MYTHICAL pokemon to evolve, plus 2 UR fusions to sacrifice
+    const target = {
+      id: 'poke-target',
+      pokemonId: 25,
+      name: 'Pikachu',
+      types: ['ELECTRIC'],
+      hp: 100,
+      attack: 50,
+      defense: 30,
+      speed: 90,
+      level: 1,
+      exp: 0,
+      fusionCount: 1,
+      learnedAt: new Date().toISOString(),
+      element: 'ELECTRIC',
+      image: '',
+      rarity: 'MYTHICAL' as const,
+    };
+    useCollectionStore.setState({
+      ownedPokemon: [target as any],
+      coins: 100000,
+      fusedPokemon: [
+        makeFusion('f-1', 'ULTRA_RARE'),
+        makeFusion('f-2', 'ULTRA_RARE'),
+        makeFusion('f-3', 'ULTRA_RARE'),
+      ],
+    });
+
+    const sacrifice = useEvolutionStore.getState().calculateSacrificeContribution(['f-1', 'f-2', 'f-3']);
+    expect(sacrifice.cosmicDust).toBe(3);
+    const canCheck = useEvolutionStore.getState().canEvolveCard('poke-target', sacrifice);
+    if (!canCheck.canEvolve) {
+      // eslint-disable-next-line no-console
+      console.error('CAN EVOLVE FAILED:', canCheck.reason);
+    }
+    expect(canCheck.canEvolve).toBe(true);
+
+    const result = useEvolutionStore.getState().evolveCard(
+      'poke-target',
+      'MYTHICAL',
+      { hp: 100, attack: 50, defense: 30 },
+      ['f-1', 'f-2', 'f-3']
+    );
+    if (!result.success) console.error('EVOLVE FAILED:', result.error);
+    // eslint-disable-next-line no-console
+    expect(result.error).toBeUndefined();
+    expect(result.success).toBe(true);
+
+    // Sacrificed cards removed
+    const remaining = useCollectionStore.getState().fusedPokemon;
+    expect(remaining.map(c => c.id)).toEqual([]);
+    // Evolved card tracked
+    expect(useEvolutionStore.getState().evolvedCards['poke-target']).toBeDefined();
+  });
+});

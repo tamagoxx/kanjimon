@@ -39,8 +39,8 @@ interface EvolutionState {
     evolvedAt: string;
   }>;
 
-  // Check if a card can evolve
-  canEvolveCard: (cardId: string) => { canEvolve: boolean; nextTier: EvoTier | null; reason?: string };
+  // Check if a card can evolve (optionally with fusion card sacrifice contribution)
+  canEvolveCard: (cardId: string, sacrificeContribution?: { cosmicDust: number; celestialShard: number }) => { canEvolve: boolean; nextTier: EvoTier | null; reason?: string };
 
   // Get evolution requirements for next tier
   getEvolutionRequirements: (currentRarity: Rarity) => typeof EVO_REQUIREMENTS[EvoTier] | null;
@@ -123,7 +123,7 @@ export const useEvolutionStore = create<EvolutionState>()(
         return { cosmicDust: totalCosmicDust, celestialShard: totalCelestialShard };
       },
 
-canEvolveCard: (cardId: string) => {
+canEvolveCard: (cardId: string, sacrificeContribution?: { cosmicDust: number; celestialShard: number }) => {
         const collection = useCollectionStore.getState();
         // First check in ownedCards (Japanese cards)
         const ownedCard = collection.ownedCards.find(oc => oc.cardId === cardId);
@@ -165,10 +165,18 @@ canEvolveCard: (cardId: string) => {
             return { canEvolve: false, nextTier, reason: `Need ${requirements.fusionCount} fusion count (current: ${fusedPokemon.fusionCount})` };
           }
 
-          // Check materials
+          // Check materials (with optional sacrifice contribution)
           const state = get();
+          const effectiveDust = state.materials.COSMIC_DUST + (sacrificeContribution?.cosmicDust || 0);
+          const effectiveShard = state.materials.CELESTIAL_SHARD + (sacrificeContribution?.celestialShard || 0);
           for (const [mat, count] of Object.entries(requirements.materials)) {
-            if ((state.materials as any)[mat] < count) {
+            if (mat === 'COSMIC_DUST' && effectiveDust < (count as number)) {
+              return { canEvolve: false, nextTier, reason: `Need more cosmic dust` };
+            }
+            if (mat === 'CELESTIAL_SHARD' && effectiveShard < (count as number)) {
+              return { canEvolve: false, nextTier, reason: `Need more celestial shard` };
+            }
+            if (mat !== 'COSMIC_DUST' && mat !== 'CELESTIAL_SHARD' && (state.materials as any)[mat] < count) {
               return { canEvolve: false, nextTier, reason: `Need more ${mat.replace('_', ' ').toLowerCase()}` };
             }
           }
@@ -209,10 +217,18 @@ canEvolveCard: (cardId: string) => {
             return { canEvolve: false, nextTier: null, reason: 'Already at max tier' };
           }
 
-          // Check materials
+          // Check materials (with optional sacrifice contribution)
           const state = get();
+          const effectiveDust = state.materials.COSMIC_DUST + (sacrificeContribution?.cosmicDust || 0);
+          const effectiveShard = state.materials.CELESTIAL_SHARD + (sacrificeContribution?.celestialShard || 0);
           for (const [mat, count] of Object.entries(EVO_REQUIREMENTS[nextTier].materials)) {
-            if ((state.materials as any)[mat] < count) {
+            if (mat === 'COSMIC_DUST' && effectiveDust < (count as number)) {
+              return { canEvolve: false, nextTier, reason: `Need more cosmic dust` };
+            }
+            if (mat === 'CELESTIAL_SHARD' && effectiveShard < (count as number)) {
+              return { canEvolve: false, nextTier, reason: `Need more celestial shard` };
+            }
+            if (mat !== 'COSMIC_DUST' && mat !== 'CELESTIAL_SHARD' && (state.materials as any)[mat] < count) {
               return { canEvolve: false, nextTier, reason: `Need more ${mat.replace('_', ' ').toLowerCase()}` };
             }
           }
@@ -273,18 +289,18 @@ canEvolveCard: (cardId: string) => {
       evolveCard: (cardId, currentRarity, cardStats, sacrificedCardIds = []) => {
         const { canEvolveCard, hasEnoughMaterials, calculateSacrificeContribution } = get();
 
-        const check = canEvolveCard(cardId);
-        if (!check.canEvolve || !check.nextTier) {
-          return { success: false, error: check.reason };
-        }
-
-        const nextTier = check.nextTier;
-        const req = EVO_REQUIREMENTS[nextTier];
-
         // Calculate sacrifice contribution if any cards are being sacrificed
         const sacrificeContribution = sacrificedCardIds.length > 0
           ? calculateSacrificeContribution(sacrificedCardIds)
           : undefined;
+
+        // Pass contribution to canEvolveCard so eligibility check accounts for sacrificed materials
+        const check = canEvolveCard(cardId, sacrificeContribution);
+        if (!check.canEvolve || !check.nextTier) {
+          return { success: false, error: check.reason };
+        }
+        const nextTier = check.nextTier;
+        const req = EVO_REQUIREMENTS[nextTier];
 
         // Check materials and gold again (including sacrifice contribution)
         if (!hasEnoughMaterials(nextTier, sacrificeContribution)) {
