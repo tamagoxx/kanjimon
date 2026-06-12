@@ -195,3 +195,88 @@ describe('evolveCard with sacrifice', () => {
     expect(useEvolutionStore.getState().evolvedCards['poke-target']).toBeDefined();
   });
 });
+
+// ============================================================
+// Evolution chain: card's actual rarity must advance
+// MYTHICAL → TRANSCENDENT → CELESTIAL → DIVINE → ULTIMATE → ETERNAL
+// ============================================================
+
+describe('evolution chain: rarity actually advances', () => {
+  beforeEach(resetStores);
+
+  const makeMythicalTarget = (id: string) => ({
+    id,
+    pokemonId: 25,
+    name: 'Pikachu',
+    types: ['ELECTRIC'],
+    hp: 100,
+    attack: 50,
+    defense: 30,
+    speed: 90,
+    level: 1,
+    exp: 0,
+    fusionCount: 2,  // satisfies TRANSCENDENT+ fusionCount req
+    learnedAt: new Date().toISOString(),
+    element: 'ELECTRIC',
+    image: '',
+    rarity: 'MYTHICAL' as const,
+  });
+
+  const topUpMaterials = () => {
+    useEvolutionStore.setState({
+      materials: { COSMIC_DUST: 99, CELESTIAL_SHARD: 99, DIVINE_ESSENCE: 99, ULTIMATE_CORE: 99, ETERNAL_FRAGMENT: 99 },
+    });
+  };
+
+  it('evolveCard updates the actual card rarity to TRANSCENDENT', () => {
+    useCollectionStore.setState({ ownedPokemon: [makeMythicalTarget('p')] as any, coins: 1_000_000 });
+    topUpMaterials();
+    const result = useEvolutionStore.getState().evolveCard('p', 'MYTHICAL', { hp: 100, attack: 50, defense: 30 });
+    expect(result.success).toBe(true);
+    const card = useCollectionStore.getState().ownedPokemon.find(p => p.id === 'p');
+    expect(card?.rarity).toBe('TRANSCENDENT');
+  });
+
+  it('evolveCard updates fusedPokemon rarity when target is a fusion', () => {
+    const fusion: FusedPokemon = { ...makeFusion('f-1', 'MYTHICAL'), fusionCount: 2 };
+    useCollectionStore.setState({ fusedPokemon: [fusion], coins: 1_000_000 });
+    topUpMaterials();
+    const result = useEvolutionStore.getState().evolveCard('f-1', 'MYTHICAL', { hp: 100, attack: 50, defense: 30 });
+    expect(result.success).toBe(true);
+    const card = useCollectionStore.getState().fusedPokemon.find(p => p.id === 'f-1');
+    expect(card?.rarity).toBe('TRANSCENDENT');
+  });
+
+  it('chain: MYTHICAL → TRANSCENDENT → CELESTIAL → DIVINE → ULTIMATE → ETERNAL', () => {
+    useCollectionStore.setState({ ownedPokemon: [makeMythicalTarget('p')] as any, coins: 1_000_000 });
+    topUpMaterials();
+    const tiers: Array<'MYTHICAL' | 'TRANSCENDENT' | 'CELESTIAL' | 'DIVINE' | 'ULTIMATE' | 'ETERNAL'> =
+      ['MYTHICAL', 'TRANSCENDENT', 'CELESTIAL', 'DIVINE', 'ULTIMATE', 'ETERNAL'];
+    for (let i = 0; i < tiers.length - 1; i++) {
+      const before = useCollectionStore.getState().ownedPokemon.find(p => p.id === 'p')!;
+      expect(before.rarity).toBe(tiers[i]);
+      const result = useEvolutionStore.getState().evolveCard('p', tiers[i], { hp: 100, attack: 50, defense: 30 });
+      if (!result.success) throw new Error(`evolve ${tiers[i]}→${tiers[i+1]} failed: ${result.error}`);
+      const after = useCollectionStore.getState().ownedPokemon.find(p => p.id === 'p')!;
+      expect(after.rarity).toBe(tiers[i + 1]);
+    }
+    // Now ETERNAL: canEvolve should say no
+    const check = useEvolutionStore.getState().canEvolveCard('p');
+    expect(check.canEvolve).toBe(false);
+    expect(check.reason).toBe('Already at max tier');
+  });
+
+  it('chain works for fusedPokemon too (f-1 evolves to ETERNAL)', () => {
+    const fusion: FusedPokemon = { ...makeFusion('f-1', 'MYTHICAL'), fusionCount: 8 };
+    useCollectionStore.setState({ fusedPokemon: [fusion], coins: 1_000_000 });
+    topUpMaterials();
+    let current: 'MYTHICAL' | 'TRANSCENDENT' | 'CELESTIAL' | 'DIVINE' | 'ULTIMATE' | 'ETERNAL' = 'MYTHICAL';
+    while (current !== 'ETERNAL') {
+      const result = useEvolutionStore.getState().evolveCard('f-1', current, { hp: 100, attack: 50, defense: 30 });
+      if (!result.success) throw new Error(`evolve ${current} failed: ${result.error}`);
+      const card = useCollectionStore.getState().fusedPokemon.find(p => p.id === 'f-1')!;
+      current = card.rarity as typeof current;
+    }
+    expect(current).toBe('ETERNAL');
+  });
+});

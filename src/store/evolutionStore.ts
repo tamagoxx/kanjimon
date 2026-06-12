@@ -357,9 +357,30 @@ canEvolveCard: (cardId: string, sacrificeContribution?: { cosmicDust: number; ce
           evolvedCards: newEvolvedCards,
         });
 
+        // BUGFIX: actually advance the card's rarity in the collection store
+        // so canEvolveCard sees the new tier next time the user opens the modal.
+        // Without this, the card stayed MYTHICAL and the evolution chain was broken.
+        const targetNewRarity = nextTier as Rarity;  // EvoTier values match Rarity values
+        const collectionAfter = useCollectionStore.getState();
+        const updatedFused = collectionAfter.fusedPokemon.map(fp =>
+          fp.id === cardId ? { ...fp, rarity: targetNewRarity } : fp
+        );
+        const updatedOwned = collectionAfter.ownedPokemon.map(p =>
+          p.id === cardId ? { ...p, rarity: targetNewRarity } : p
+        );
+        const hasChange =
+          updatedFused.some((fp, i) => fp !== collectionAfter.fusedPokemon[i]) ||
+          updatedOwned.some((p, i) => p !== collectionAfter.ownedPokemon[i]);
+        if (hasChange) {
+          useCollectionStore.setState({ fusedPokemon: updatedFused, ownedPokemon: updatedOwned });
+        }
+
         // Update collection store to remove sacrificed cards
         if (sacrificedCardIds.length > 0) {
-          useCollectionStore.setState({ fusedPokemon: updatedFusedPokemon });
+          // Re-read after our setState to make sure we don't overwrite our rarity bump
+          const post = useCollectionStore.getState();
+          const removed = post.fusedPokemon.filter(fp => !sacrificedCardIds.includes(fp.id));
+          useCollectionStore.setState({ fusedPokemon: removed });
         }
 
         return {
