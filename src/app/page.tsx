@@ -258,6 +258,56 @@ function QuickAction({ icon, label, color, route }: { icon: string; label: strin
   );
 }
 
+function GameModeCard({
+  icon,
+  title,
+  subtitle,
+  color,
+  isNew,
+  onClick,
+}: {
+  icon: string;
+  title: string;
+  subtitle: string;
+  color: string;
+  isNew?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <motion.button
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className="relative p-3 rounded-2xl text-left flex items-center gap-3 overflow-hidden"
+      style={{
+        backgroundColor: colors.cardBg,
+        border: `1px solid ${color}40`,
+      }}
+    >
+      <div
+        className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+        style={{ backgroundColor: `${color}25` }}
+      >
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="font-bold text-sm" style={{ color: colors.lightText }}>{title}</span>
+          {isNew && (
+            <span
+              className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+              style={{ backgroundColor: colors.teal, color: '#0a1519' }}
+            >
+              NEW
+            </span>
+          )}
+        </div>
+        <div className="text-xs" style={{ color: colors.darkText }}>{subtitle}</div>
+      </div>
+    </motion.button>
+  );
+}
+
 // Get featured cards: top 3 by combined ATK+DEF across ALL owned cards (Japanese + Pokemon)
 // Starter cards only shown for new users with very few cards
 function useFeaturedCards() {
@@ -378,6 +428,30 @@ export default function HomePage() {
           <QuickAction icon="🃏" label="Kartu" color={colors.lightPurple} route="/collection" />
           <QuickAction icon="🏆" label="Peringkat" color={colors.gold} route="/leaderboard" />
         </div>
+
+        {/* Game Modes - featured */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="mb-4 grid grid-cols-2 gap-3"
+        >
+          <GameModeCard
+            icon="⚔️"
+            title="Battle"
+            subtitle="Turn-based kartu"
+            color={colors.coral}
+            onClick={() => router.push('/battle')}
+          />
+          <GameModeCard
+            icon="⏬"
+            title="Kanji Drop"
+            subtitle="Ketik romaji!"
+            color={colors.teal}
+            isNew
+            onClick={() => router.push('/kanji-drop')}
+          />
+        </motion.div>
 
         {/* Continue Learning Card */}
         <motion.div
