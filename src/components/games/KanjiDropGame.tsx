@@ -6,12 +6,14 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Pause, Play, RotateCcw, Home, Heart, Zap, Trophy } from 'lucide-react';
 import { allJapaneseCards, ALL_CARDS } from '@/data/cards';
 import {
-  findActiveTarget,
+  pickActiveTarget,
   pickNextKanji,
   getWaveConfig,
+  generateOptions,
   scoreForKill,
   comboMultiplier,
   type ActiveKanji,
+  type ChoiceOption,
 } from '@/lib/kanjiDropLogic';
 import { useKanjiDropStore } from '@/store/kanjiDropStore';
 
@@ -19,9 +21,9 @@ import { useKanjiDropStore } from '@/store/kanjiDropStore';
 // Kanji Drop — Game Component
 // ============================================================
 //
-// Falling kanji typing game (Guitar Hero for kanji).
-// Kanji drop from top, player types the romaji to destroy them.
-// Wanakana converts romaji→kana and matches against card.reading.
+// Falling kanji multiple-choice game.
+// Kanji drop from top; player picks the correct romaji (A/B/C) to destroy them.
+// Options are pre-generated at spawn (deterministic per instance).
 //
 // State management:
 //   - useReducer: discrete game state (lives, score, phase, etc.)
@@ -68,21 +70,22 @@ interface GameState {
   maxCombo: number;
   wave: number;
   kills: number;
-  typedBuffer: string;
   startedAt: number;
   destroyed: string[];
   // active kanji state lives in a ref to avoid 60fps re-renders;
   // a counter here forces re-render on add/remove
   activeVersion: number;
+  // brief feedback for wrong answer: which button was wrong, when, for which kanji
+  lastWrong: { instanceId: string; choice: string; at: number } | null;
 }
 
 type Action =
   | { type: 'START'; now: number }
   | { type: 'TICK_FALL' }
   | { type: 'TICK_SPAWN' }
-  | { type: 'TYPE'; char: string }
-  | { type: 'BACKSPACE' }
-  | { type: 'COMPLETE'; cardId: string; rarity: string }
+  | { type: 'COMPLETE'; cardId: string; rarity: string; now: number }
+  | { type: 'WRONG_ANSWER'; instanceId: string; choice: string; now: number }
+  | { type: 'CLEAR_WRONG' }
   | { type: 'MISS' }
   | { type: 'PAUSE' }
   | { type: 'RESUME' }
@@ -97,10 +100,10 @@ const INITIAL: GameState = {
   maxCombo: 0,
   wave: 1,
   kills: 0,
-  typedBuffer: '',
   startedAt: 0,
   destroyed: [],
   activeVersion: 0,
+  lastWrong: null,
 };
 
 function reducer(state: GameState, action: Action): GameState {
@@ -112,10 +115,6 @@ function reducer(state: GameState, action: Action): GameState {
     case 'TICK_FALL':
     case 'TICK_SPAWN':
       return { ...state, activeVersion: state.activeVersion + 1 };
-    case 'TYPE':
-      return { ...state, typedBuffer: state.typedBuffer + action.char };
-    case 'BACKSPACE':
-      return { ...state, typedBuffer: state.typedBuffer.slice(0, -1) };
     case 'COMPLETE': {
       const newCombo = state.combo + 1;
       const baseScore = scoreForKill(action.rarity as never, newCombo);
@@ -127,19 +126,33 @@ function reducer(state: GameState, action: Action): GameState {
         maxCombo: Math.max(state.maxCombo, newCombo),
         kills: state.kills + 1,
         destroyed: [action.cardId, ...state.destroyed].slice(0, 100),
-        typedBuffer: '',
         // advance wave every 8 kills
         wave: Math.floor(state.kills / 8) + 1,
         activeVersion: state.activeVersion + 1,
       };
     }
+    case 'WRONG_ANSWER':
+      return {
+        ...state,
+        combo: 0,
+        lastWrong: { instanceId: action.instanceId, choice: action.choice, at: action.now },
+        activeVersion: state.activeVersion + 1,
+      };
+    case 'CLEAR_WRONG':
+      return { ...state, lastWrong: null };
     case 'MISS': {
       const newLives = state.lives - 1;
+      if (typeof window !== 'undefined') {
+        const w = window as unknown as { __kdMiss?: number[] };
+        w.__kdMiss = w.__kdMiss || [];
+        w.__kdMiss.push(state.lives);
+        // eslint-disable-next-line no-console
+        console.log('[kd] MISS', state.lives, '->', newLives, 'reached at t=', Date.now());
+      }
       return {
         ...state,
         lives: newLives,
         combo: 0,
-        typedBuffer: '',
         phase: newLives <= 0 ? 'GAMEOVER' : state.phase,
         activeVersion: state.activeVersion + 1,
       };
@@ -254,11 +267,14 @@ export default function KanjiDropGame({ onExit }: KanjiDropGameProps) {
         const next = pickNextKanji(ACTIVE_POOL, activeRef.current, state.wave);
         const lane = laneIndexRef.current % LANES;
         laneIndexRef.current++;
+        // Generate the 3 options for this kanji now (deterministic per instance)
+        const options = generateOptions(next, ACTIVE_POOL, Math.floor(timestamp));
         activeRef.current.push({
           card: next,
           y: 0,
           instanceId: `${next.id}-${timestamp}-${Math.random().toString(36).slice(2, 6)}`,
           spawnedAt: timestamp,
+          options,
           // Store lane in instance for rendering
           ...({ lane } as object),
         } as ActiveKanji & { lane: number });
@@ -283,22 +299,38 @@ export default function KanjiDropGame({ onExit }: KanjiDropGameProps) {
     ? (activeRef.current as (ActiveKanji & { lane: number })[])
     : [];
 
-  // ---- Resolve typed buffer → active target ----
-  const activeTarget = useMemo(() => {
-    if (state.phase !== 'PLAYING' || !state.typedBuffer) return null;
-    return findActiveTarget(activeRef.current, state.typedBuffer, {});
-  }, [state.typedBuffer, state.phase, state.activeVersion]);
+  // ---- Resolve active target (bottom-most kanji) ----
+  const activeTarget = useMemo<ActiveKanji | null>(() => {
+    if (state.phase !== 'PLAYING') return null;
+    return pickActiveTarget(activeRef.current);
+  }, [state.phase, state.activeVersion]);
 
-  // ---- Check completion (typed romaji matches card romaji) ----
-  // We check this whenever typed buffer changes OR activeList changes
-  useEffect(() => {
-    if (state.phase !== 'PLAYING' || !activeTarget || !state.typedBuffer) return;
-    if (state.typedBuffer.toLowerCase() === activeTarget.card.romaji.toLowerCase()) {
-      // Destroy it
-      activeRef.current = activeRef.current.filter((a) => a.instanceId !== activeTarget.instanceId);
-      dispatch({ type: 'COMPLETE', cardId: activeTarget.card.id, rarity: activeTarget.card.rarity });
+  // ---- Player picks an option for the active target ----
+  const chooseOption = useCallback((option: ChoiceOption) => {
+    if (state.phase !== 'PLAYING') return;
+    const target = pickActiveTarget(activeRef.current);
+    if (!target) return;
+    const choiceRomaji = option.romaji;
+    if (option.isCorrect) {
+      // Correct: remove from active list, then dispatch COMPLETE for scoring
+      activeRef.current = activeRef.current.filter((a) => a.instanceId !== target.instanceId);
+      dispatch({
+        type: 'COMPLETE',
+        cardId: target.card.id,
+        rarity: target.card.rarity,
+        now: Date.now(),
+      });
+    } else {
+      dispatch({
+        type: 'WRONG_ANSWER',
+        instanceId: target.instanceId,
+        choice: choiceRomaji,
+        now: Date.now(),
+      });
+      // Auto-clear the wrong-flash after a short delay
+      setTimeout(() => dispatch({ type: 'CLEAR_WRONG' }), 400);
     }
-  }, [state.typedBuffer, activeTarget, state.phase]);
+  }, [state.phase]);
 
   // ---- Game over → record run ----
   useEffect(() => {
@@ -323,22 +355,23 @@ export default function KanjiDropGame({ onExit }: KanjiDropGameProps) {
     // Don't intercept if user is typing in a real form field
     const target = e.target as HTMLElement | null;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
-    if (e.key === 'Backspace') {
-      e.preventDefault();
-      dispatch({ type: 'BACKSPACE' });
-      return;
-    }
     if (e.key === ' ' || e.key === 'Spacebar') {
       e.preventDefault();
       if (state.phase === 'PLAYING') dispatch({ type: 'PAUSE' });
       else if (state.phase === 'PAUSED') dispatch({ type: 'RESUME' });
       return;
     }
-    if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
+    // A/B/C or 1/2/3 → pick option for the bottom-most kanji
+    const choiceMap: Record<string, number> = { 'a': 0, 'b': 1, 'c': 2, '1': 0, '2': 1, '3': 2 };
+    const lower = e.key.toLowerCase();
+    if (lower in choiceMap) {
       e.preventDefault();
-      dispatch({ type: 'TYPE', char: e.key.toLowerCase() });
+      const current = pickActiveTarget(activeRef.current);
+      if (!current) return;
+      const opt = current.options[choiceMap[lower]];
+      if (opt) chooseOption(opt);
     }
-  }, [state.phase]);
+  }, [state.phase, chooseOption]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKey);
@@ -452,29 +485,63 @@ export default function KanjiDropGame({ onExit }: KanjiDropGameProps) {
         />
       </div>
 
-      {/* Input area */}
+      {/* Multiple choice input area */}
       <div className="px-4 py-3 border-t" style={{ backgroundColor: colors.cardBg, borderColor: colors.inputBg }}>
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs" style={{ color: colors.darkText }}>Ketik romaji:</span>
-          {activeTarget && (
-            <span className="text-sm font-bold" style={{ color: colors.lightPurple }}>
-              {activeTarget.card.japanese}
-            </span>
-          )}
-        </div>
-        <div
-          className="px-3 py-3 rounded-xl font-mono text-lg"
-          style={{
-            backgroundColor: colors.inputBg,
-            color: activeTarget ? colors.teal : colors.darkText,
-            minHeight: 48,
-          }}
-        >
-          {state.typedBuffer || <span style={{ color: `${colors.darkText}55` }}>Ketik romaji (contoh: kuroi)...</span>}
-          {state.typedBuffer && <span className="animate-pulse">▌</span>}
-        </div>
-        <p className="text-xs mt-2" style={{ color: `${colors.darkText}77` }}>
-          Tekan <kbd className="px-1 rounded" style={{ backgroundColor: colors.inputBg }}>Backspace</kbd> untuk hapus, <kbd className="px-1 rounded" style={{ backgroundColor: colors.inputBg }}>Spasi</kbd> untuk pause
+        {activeTarget ? (
+          <>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs" style={{ color: colors.darkText }}>Pilih romaji untuk</span>
+              <span className="text-sm font-bold" style={{ color: colors.lightPurple }}>
+                {activeTarget.card.japanese}
+              </span>
+              <span className="text-xs" style={{ color: colors.darkText }}>({activeTarget.card.reading})</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {activeTarget.options.map((opt) => {
+                const isWrongFlash =
+                  state.lastWrong !== null &&
+                  state.lastWrong.instanceId === activeTarget.instanceId &&
+                  state.lastWrong.choice === opt.romaji;
+                return (
+                  <motion.button
+                    key={opt.label}
+                    onClick={() => chooseOption(opt)}
+                    animate={isWrongFlash ? { x: [0, -8, 8, -6, 6, -3, 3, 0] } : { x: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="rounded-xl py-3 px-2 flex flex-col items-center justify-center active:scale-95"
+                    style={{
+                      backgroundColor: isWrongFlash ? `${colors.danger}40` : colors.inputBg,
+                      border: `2px solid ${isWrongFlash ? colors.danger : colors.darkText}33`,
+                    }}
+                    data-testid={`kd-option-${opt.label}`}
+                  >
+                    <span
+                      className="text-xs font-bold mb-1"
+                      style={{ color: isWrongFlash ? colors.danger : colors.teal }}
+                    >
+                      {opt.label}
+                    </span>
+                    <span
+                      className="font-mono text-sm font-bold"
+                      style={{ color: colors.lightText }}
+                    >
+                      {opt.romaji}
+                    </span>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <div className="text-center text-sm" style={{ color: `${colors.darkText}77` }}>
+            Kanji akan muncul sebentar lagi...
+          </div>
+        )}
+        <p className="text-xs mt-2 text-center" style={{ color: `${colors.darkText}77` }}>
+          Tekan <kbd className="px-1 rounded" style={{ backgroundColor: colors.inputBg }}>A</kbd>
+          <kbd className="px-1 rounded ml-1" style={{ backgroundColor: colors.inputBg }}>B</kbd>
+          <kbd className="px-1 rounded ml-1" style={{ backgroundColor: colors.inputBg }}>C</kbd>
+          {' '}atau klik tombol, <kbd className="px-1 rounded" style={{ backgroundColor: colors.inputBg }}>Spasi</kbd> untuk pause
         </p>
       </div>
 
@@ -589,7 +656,7 @@ function StartScreen({
         <div className="text-7xl mb-4">⏬</div>
         <h1 className="text-3xl font-bold mb-2" style={{ color: colors.lightText }}>Kanji Drop</h1>
         <p className="text-sm mb-6" style={{ color: colors.darkText }}>
-          Kanji jatuh dari atas. Ketik romaji-nya sebelum sampe bawah.
+          Kanji jatuh dari atas. Pilih romaji yang benar (A/B/C) sebelum nyawa habis.
           Jangan sampai combo putus!
         </p>
 
@@ -606,9 +673,9 @@ function StartScreen({
         >
           <p className="font-bold mb-1" style={{ color: colors.lightPurple }}>Cara main:</p>
           <ul className="space-y-1">
-            <li>• Lihat kanji yang jatuh</li>
-            <li>• Ketik romaji (contoh: <span className="font-mono" style={{ color: colors.teal }}>taberu</span> untuk 食べる)</li>
-            <li>• Tekan <kbd className="px-1 rounded font-mono" style={{ backgroundColor: colors.inputBg }}>Backspace</kbd> untuk hapus</li>
+            <li>• Lihat kanji yang jatuh (paling bawah = paling urgent)</li>
+            <li>• Pilih romaji yang benar dari 3 pilihan <span className="font-mono" style={{ color: colors.teal }}>A/B/C</span></li>
+            <li>• Tekan <kbd className="px-1 rounded font-mono" style={{ backgroundColor: colors.inputBg }}>A</kbd> <kbd className="px-1 rounded font-mono" style={{ backgroundColor: colors.inputBg }}>B</kbd> <kbd className="px-1 rounded font-mono" style={{ backgroundColor: colors.inputBg }}>C</kbd> (atau 1/2/3), atau klik tombol</li>
             <li>• Tekan <kbd className="px-1 rounded font-mono" style={{ backgroundColor: colors.inputBg }}>Spasi</kbd> untuk pause</li>
           </ul>
         </div>

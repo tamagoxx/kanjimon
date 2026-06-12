@@ -39,6 +39,8 @@ export interface ActiveKanji {
   instanceId: string;
   /** spawn timestamp (ms) */
   spawnedAt: number;
+  /** 3 multiple-choice options for this kanji (A/B/C). Generated at spawn. */
+  options: ChoiceOption[];
 }
 
 export interface WaveConfig {
@@ -46,6 +48,12 @@ export interface WaveConfig {
   maxConcurrent: number;
   fallDurationMs: number;
   spawnIntervalMs: number;
+}
+
+export interface ChoiceOption {
+  label: 'A' | 'B' | 'C';
+  romaji: string;
+  isCorrect: boolean;
 }
 
 // ============================================================
@@ -80,6 +88,63 @@ export function findActiveTarget(
 export function isReadingComplete(typedRomaji: string, cardRomaji: string): boolean {
   if (!typedRomaji || !cardRomaji) return false;
   return typedRomaji.toLowerCase() === cardRomaji.toLowerCase();
+}
+
+// ============================================================
+// Multiple Choice (A/B/C) mode
+// ============================================================
+
+/**
+ * Pick the kanji closest to the bottom (largest y).
+ * This is the one the player must answer first (most urgent).
+ */
+export function pickActiveTarget(active: ActiveKanji[]): ActiveKanji | null {
+  if (active.length === 0) return null;
+  return active.reduce((a, b) => (a.y > b.y ? a : b));
+}
+
+/**
+ * Generate 3 multiple-choice options (A/B/C) for a given kanji.
+ * - Exactly one is correct (the kanji's own romaji)
+ * - 2 distractors are picked from the pool, distinct from the correct answer
+ * - Options are shuffled, labels assigned A/B/C in order
+ * - If pool is too small, placeholder distractors are used
+ * - Deterministic when `seed` is provided
+ */
+export function generateOptions(
+  card: JapaneseCard,
+  pool: JapaneseCard[],
+  seed?: number,
+): ChoiceOption[] {
+  const labels: ChoiceOption['label'][] = ['A', 'B', 'C'];
+  const correctRomaji = card.romaji;
+  const correct: ChoiceOption = { label: 'A', romaji: correctRomaji, isCorrect: true };
+
+  const candidates = pool.filter((p) => p.romaji !== correctRomaji && p.romaji);
+  const random = seed !== undefined ? mulberry32(seed) : Math.random;
+
+  const distractors: ChoiceOption[] = [];
+  const seen = new Set<string>([correctRomaji]);
+  // Try to pick 2 unique distractors; fall back to numbered placeholders if pool is too small
+  for (let i = 0; i < 2; i++) {
+    const available = candidates.filter((c) => !seen.has(c.romaji));
+    if (available.length === 0) {
+      distractors.push({ label: 'B', romaji: `???${i + 1}`, isCorrect: false });
+      continue;
+    }
+    const pickIdx = Math.floor(random() * available.length);
+    const picked = available[pickIdx];
+    seen.add(picked.romaji);
+    distractors.push({ label: 'B', romaji: picked.romaji, isCorrect: false });
+  }
+
+  const all = [correct, ...distractors];
+  // Fisher–Yates shuffle (deterministic when random is seeded)
+  for (let i = all.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [all[i], all[j]] = [all[j], all[i]];
+  }
+  return all.map((o, i) => ({ ...o, label: labels[i] }));
 }
 
 // ============================================================

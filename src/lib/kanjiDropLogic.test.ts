@@ -6,6 +6,9 @@ import {
   comboMultiplier,
   getWaveConfig,
   pickNextKanji,
+  pickActiveTarget,
+  generateOptions,
+  type ChoiceOption,
 } from './kanjiDropLogic';
 import type { ActiveKanji } from './kanjiDropLogic';
 import type { JapaneseCard } from '@/types';
@@ -31,11 +34,12 @@ const card = (overrides: Partial<JapaneseCard> = {}): JapaneseCard => ({
   ...overrides,
 });
 
-const active = (c: JapaneseCard, y = 0, instanceId = c.id): ActiveKanji => ({
+const active = (c: JapaneseCard, y = 0, instanceId = c.id, options: ChoiceOption[] = []): ActiveKanji => ({
   card: c,
   y,
   instanceId,
   spawnedAt: 0,
+  options,
 });
 
 describe('findActiveTarget', () => {
@@ -140,6 +144,80 @@ describe('getWaveConfig', () => {
 
   it('caps fall duration at a minimum', () => {
     expect(getWaveConfig(999).fallDurationMs).toBeGreaterThanOrEqual(1500);
+  });
+});
+
+describe('pickActiveTarget', () => {
+  it('returns null when active list is empty', () => {
+    expect(pickActiveTarget([])).toBeNull();
+  });
+
+  it('returns the kanji closest to the bottom (largest y)', () => {
+    const a = active(card({ id: 'a', reading: 'たべる' }), 0.2);
+    const b = active(card({ id: 'b', reading: 'のむ' }), 0.8);
+    const c = active(card({ id: 'c', reading: 'いく' }), 0.5);
+    const target = pickActiveTarget([a, b, c]);
+    expect(target?.card.id).toBe('b');
+  });
+
+  it('returns the only kanji when there is just one', () => {
+    const a = active(card({ id: 'a' }), 0.4);
+    expect(pickActiveTarget([a])?.card.id).toBe('a');
+  });
+});
+
+describe('generateOptions', () => {
+  const pool: JapaneseCard[] = [
+    card({ id: 'correct', romaji: 'taberu', reading: 'たべる' }),
+    card({ id: 'd1', romaji: 'nomu', reading: 'のむ' }),
+    card({ id: 'd2', romaji: 'iku', reading: 'いく' }),
+    card({ id: 'd3', romaji: 'kuru', reading: 'くる' }),
+    card({ id: 'd4', romaji: 'miru', reading: 'みる' }),
+  ];
+
+  it('returns exactly 3 options labeled A, B, C', () => {
+    const opts = generateOptions(pool[0], pool);
+    expect(opts).toHaveLength(3);
+    expect(opts.map((o) => o.label)).toEqual(['A', 'B', 'C']);
+  });
+
+  it('always includes the correct romaji as one of the options', () => {
+    for (let seed = 0; seed < 20; seed++) {
+      const opts = generateOptions(pool[0], pool, seed);
+      const correct = opts.filter((o) => o.isCorrect);
+      expect(correct).toHaveLength(1);
+      expect(correct[0].romaji).toBe('taberu');
+    }
+  });
+
+  it('distractors are different romaji from the correct answer', () => {
+    const opts = generateOptions(pool[0], pool, 42);
+    const distractors = opts.filter((o) => !o.isCorrect);
+    expect(distractors).toHaveLength(2);
+    for (const d of distractors) {
+      expect(d.romaji).not.toBe('taberu');
+    }
+    const romajiSet = new Set(distractors.map((d) => d.romaji));
+    expect(romajiSet.size).toBe(2); // no duplicate distractors
+  });
+
+  it('does not repeat any option romaji', () => {
+    const opts = generateOptions(pool[0], pool, 99);
+    const romajiSet = new Set(opts.map((o) => o.romaji));
+    expect(romajiSet.size).toBe(opts.length);
+  });
+
+  it('is deterministic given the same seed', () => {
+    const a = generateOptions(pool[0], pool, 7);
+    const b = generateOptions(pool[0], pool, 7);
+    expect(a).toEqual(b);
+  });
+
+  it('falls back to placeholder distractors when pool is too small', () => {
+    const tinyPool = [card({ id: 'only', romaji: 'a' })];
+    const opts = generateOptions(tinyPool[0], tinyPool);
+    expect(opts).toHaveLength(3);
+    expect(opts.filter((o) => o.isCorrect)).toHaveLength(1);
   });
 });
 
