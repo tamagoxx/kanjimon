@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { FusedPokemon, ElementEssence } from '@/types';
 import { RARITY_COLORS, RARITY_BORDER_COLORS, EVOLUTION_REQUIREMENTS } from '@/types';
+import { getSacrificeOptions } from '@/lib/evolutionSacrificePool';
 
 const ELEMENT_COLORS: Record<string, string> = {
   FIRE: '#ff6b35', WATER: '#4facfe', GRASS: '#4bddb7',
@@ -334,12 +335,7 @@ export default function FusionPageContent() {
     );
   };
 
-  const sacrificeOptions = ownedPokemon.filter(p =>
-    p.pokemonId < 10000 &&
-    p.rarity === 'ULTRA_RARE' &&
-    p.pokemonId !== evolveTarget?.parentPokemonIds[0] &&
-    p.pokemonId !== evolveTarget?.parentPokemonIds[1]
-  );
+  const sacrificeOptions = getSacrificeOptions(ownedPokemon, fusedPokemon, evolveTarget);
 
   const availableEssences = (Object.keys(elementEssences) as ElementEssence[]).filter(
     e => elementEssences[e] > 0

@@ -328,10 +328,16 @@ export const useCollectionStore = create<CollectionState>()(
           updatedCards = updatedCards.filter(oc => oc.cardId !== cardId);
         }
 
-        // Remove sacrificed Pokemon if provided (for LEGENDARY/MYTHICAL)
+        // Remove sacrificed Pokemon if provided (for LEGENDARY/MYTHICAL).
+        // Sacrifice candidate can be either a wild UR (in ownedPokemon, id < 10000)
+        // OR a fused UR (in fusedPokemon, id >= 10001). We remove from whichever
+        // array contains it. The fuse-of-fusion flow (sacrificing another fused
+        // pokemon to evolve a target) is supported here.
         let updatedPokemon = [...state.ownedPokemon];
+        let updatedFused = [...state.fusedPokemon];
         if (sacrificedPokemonId !== undefined) {
           updatedPokemon = updatedPokemon.filter(p => p.pokemonId !== sacrificedPokemonId);
+          updatedFused = updatedFused.filter(p => p.pokemonId !== sacrificedPokemonId);
         }
 
         // Update the fused Pokemon's tier and stats
@@ -345,7 +351,7 @@ export const useCollectionStore = create<CollectionState>()(
         set(state => ({
           ownedCards: updatedCards,
           ownedPokemon: updatedPokemon,
-          fusedPokemon: state.fusedPokemon.map(fp => {
+          fusedPokemon: updatedFused.map(fp => {
             if (fp.id !== fusedId) return fp;
             return {
               ...fp,
