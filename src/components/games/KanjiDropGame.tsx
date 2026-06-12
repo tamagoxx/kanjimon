@@ -201,8 +201,10 @@ export default function KanjiDropGame({ onExit }: KanjiDropGameProps) {
   // ---- Game loop (runs while PLAYING) ----
   useEffect(() => {
     if (state.phase !== 'PLAYING') return;
+    // Reset frame baseline on entry so a long pause (or tab return) doesn't
+    // produce a huge dt that teleports the kanji past the bottom in one tick.
+    lastFrameRef.current = 0;
     const onVis = () => {
-      // Reset frame baseline to avoid huge dt on tab return
       lastFrameRef.current = 0;
     };
     document.addEventListener('visibilitychange', onVis);
@@ -212,22 +214,8 @@ export default function KanjiDropGame({ onExit }: KanjiDropGameProps) {
   useEffect(() => {
     if (state.phase !== 'PLAYING') return;
 
-    const tickId = Math.random().toString(36).slice(2, 6);
-    if (typeof window !== 'undefined' && (window as unknown as { __kd_debug?: boolean }).__kd_debug) {
-      (window as unknown as { __kd_tickIds?: Set<string> }).__kd_tickIds ??= new Set();
-      ((window as unknown as { __kd_tickIds?: Set<string> }).__kd_tickIds as Set<string>).add(tickId);
-    }
     const tick = (timestamp: number) => {
-      // Debug
-      if (typeof window !== 'undefined' && (window as unknown as { __kd_debug?: boolean }).__kd_debug) {
-        const dbg = ((window as unknown as { __kd_log?: string[] }).__kd_log ??= []);
-        const lives = stateRef.current.lives;
-        const active = activeRef.current.length;
-        const topY = activeRef.current[0]?.y.toFixed(3) ?? '-';
-        dbg.push(`[${tickId}] t=${timestamp.toFixed(0)} lf=${lastFrameRef.current.toFixed(0)} a=${active} y=${topY} lives=${lives} phase=${stateRef.current.phase}`);
-        if (dbg.length > 40) dbg.shift();
-      }
-      // First frame: just record baseline
+      // First frame after (re)entry: just record baseline
       if (lastFrameRef.current === 0) {
         lastFrameRef.current = timestamp;
         lastSpawnRef.current = timestamp;
@@ -342,7 +330,8 @@ export default function KanjiDropGame({ onExit }: KanjiDropGameProps) {
     }
     if (e.key === ' ' || e.key === 'Spacebar') {
       e.preventDefault();
-      dispatch({ type: 'PAUSE' });
+      if (state.phase === 'PLAYING') dispatch({ type: 'PAUSE' });
+      else if (state.phase === 'PAUSED') dispatch({ type: 'RESUME' });
       return;
     }
     if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
