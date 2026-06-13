@@ -5,7 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCollectionStore, PokemonCard } from '@/store/collectionStore';
 import { useAuthStore } from '@/store/authStore';
+import { useBossBattleStore } from '@/store/bossBattleStore';
 import type { ElementEssence, JapaneseCard } from '@/types';
+import { BOSS_TEMPLATES, type BossTemplate } from '@/data/bosses';
+import { scaleStats } from '@/lib/bossScaling';
+import { calculateRewards } from '@/lib/bossRewards';
 import { Swords, Shield, ArrowLeft, Zap, Flame, Droplets, Leaf, Eye, Sparkles, CircleDot } from 'lucide-react';
 import JankenGame from '@/components/battle/JankenGame';
 import { fetchMove, MOVE_TYPE_COLORS, MOVE_CATEGORY_ICONS, getMockMovesForTypes } from '@/data/pokemon-moves';
@@ -276,6 +280,59 @@ const BOSSES: Boss[] = [
 // Boss-only damage types (for phase transition text)
 const BOSS_SPECIAL_DAMAGE_TYPES = ['AOE', 'CHARGE', 'ENRAGE', 'HEAL', 'DEBUFF', 'BURN', 'BERSERK', 'FREEZE'] as const;
 type BossSpecialType = typeof BOSS_SPECIAL_DAMAGE_TYPES[number];
+
+// ============================================================
+// Kanji-themed Bosses (Lv 1-300 open world)
+// ============================================================
+// Auto-generate the standard 3-phase pattern (Guard/Rage/Final) for each
+// kanji boss template. Hand-crafted phases from the original 6 bosses above
+// are preserved; new bosses use this uniform progression.
+function autoPhasesForTemplate(t: BossTemplate): BossPhase[] {
+  return [
+    { name: 'Guard', hpThreshold: 100, attackMultiplier: 1.0, defenseMultiplier: 1.3, specialAbility: 'DEBUFF', specialDesc: '🛡️ Guard stance: ATK -20% untuk 2 giliran' },
+    { name: 'Rage', hpThreshold: 50, attackMultiplier: 1.4, defenseMultiplier: 1.0, specialAbility: 'CHARGE', specialDesc: '⚡ Rage charge: 200% damage giliran berikut' },
+    { name: 'Final', hpThreshold: 20, attackMultiplier: 1.9, defenseMultiplier: 0.7, specialAbility: 'ENRAGE', specialDesc: '🔥 ENRAGE! ATK +90%, DEF -30%' },
+  ];
+}
+
+// Convert a kanji boss template + user-selected level into a Boss instance.
+// HP/ATK/DEF scale exponentially (1.05^level). Defense defaults to HP*0.3 if
+// template doesn't provide it.
+function kanjiBossForLevel(t: BossTemplate, level: number): Boss {
+  const baseDef = t.baseDefense ?? Math.floor(t.baseHP * 0.3);
+  const scaled = scaleStats({ hp: t.baseHP, attack: t.baseAttack, defense: baseDef }, level);
+  return {
+    id: `kanji-${t.id}`,
+    name: t.name,
+    emoji: t.sprite,
+    level,
+    maxHp: scaled.hp,
+    baseAtk: scaled.attack,
+    baseDef: scaled.defense,
+    description: `${t.lore} [${t.japaneseName}]`,
+    rewardStardust: calculateRewards(level).stardust,
+    rewardDiamonds: calculateRewards(level).diamonds,
+    guaranteedJpCard: true,
+    element: t.element,
+    phases: autoPhasesForTemplate(t),
+  };
+}
+
+// 30 kanji bosses × all levels. Each BOSS entry represents a (template, level)
+// pair. At module load we generate Lv 1, 50, 100, 200, 300 entries per template
+// for fast modal listing; mid-levels (e.g. Lv 25) are generated on-demand.
+const KANJI_QUICK_LEVELS = [1, 50, 100, 200, 300] as const;
+const KANJI_BOSSES_PRESEEDED: Boss[] = BOSS_TEMPLATES.flatMap((t) =>
+  KANJI_QUICK_LEVELS.map((lvl) => kanjiBossForLevel(t, lvl)),
+);
+const ALL_BOSSES: Boss[] = [...BOSSES, ...KANJI_BOSSES_PRESEEDED];
+
+// Helper: find a kanji boss by template id and level (generates if not preseeded).
+function findKanjiBoss(templateId: string, level: number): Boss | null {
+  const t = BOSS_TEMPLATES.find((x) => x.id === templateId);
+  if (!t) return null;
+  return kanjiBossForLevel(t, level);
+}
 
 // ============================================================
 // Utilities
@@ -716,17 +773,24 @@ function OpponentSelectModal({ onSelect, onClose, onBossBattle }: { onSelect: an
 function BossSelectModal({ onSelect, onClose, battleWins, defeatedBosses }: { onSelect: (boss: Boss) => void; onClose: () => void; battleWins: number; defeatedBosses: string[] }) {
   const BOSS_UNLOCK_REQUIREMENT = 5; // need 5 wins to access boss battle
   const canFight = battleWins >= BOSS_UNLOCK_REQUIREMENT;
+  const kanjiHighest = useBossBattleStore((s) => s.highestCleared);
+  const [selectedKanjiTemplate, setSelectedKanjiTemplate] = useState<string | null>(null);
+  const [kanjiLevel, setKanjiLevel] = useState<number>(1);
+
+  // 6 original bosses (fixed level) + 30 kanji bosses (any level 1-300)
+  const originalBosses = BOSSES;
+  const kanjiTemplates = BOSS_TEMPLATES;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[55] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={onClose}>
+      className="fixed inset-0 z-[55] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
       <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
-        className="w-full max-w-md mx-4 rounded-3xl overflow-hidden" style={{ background: '#0f1923', borderTop: '3px solid #ff6b35' }}
+        className="w-full max-w-md max-h-[90vh] rounded-3xl overflow-hidden flex flex-col" style={{ background: '#0f1923', borderTop: '3px solid #ff6b35' }}
         onClick={e => e.stopPropagation()}>
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto flex-1">
           <div className="text-center mb-1">
             <h2 className="text-xl font-black text-white">🐉 Boss Battle</h2>
-            <p className="text-xs text-white/40 mt-1">Kalahkan boss dan dapatkan Japanese Card!</p>
+            <p className="text-xs text-white/40 mt-1">Kalahkan boss dan dapatkan Japanese Card! (sampai Lv 300)</p>
             {!canFight && (
               <div className="mt-3 px-4 py-2 rounded-xl" style={{ backgroundColor: '#ff6b3520' }}>
                 <p className="text-sm text-orange-400 font-bold">🔒 Perlu {BOSS_UNLOCK_REQUIREMENT} wins untuk akses Boss Battle</p>
@@ -736,42 +800,83 @@ function BossSelectModal({ onSelect, onClose, battleWins, defeatedBosses }: { on
             {canFight && (
               <p className="text-xs text-green-400 mt-2">✅ Kamu punya akses Boss Battle! ({battleWins} wins)</p>
             )}
+            {kanjiHighest > 0 && canFight && (
+              <p className="text-xs text-amber-400 mt-1">🏆 Highest cleared: Lv {kanjiHighest}</p>
+            )}
           </div>
 
           {canFight ? (
-            <div className="mt-4 space-y-3">
-              {BOSSES.map((boss) => {
-                const isDefeated = defeatedBosses.includes(boss.id);
-                return (
-                  <button key={boss.id} onClick={() => onSelect(boss)}
-                    className="w-full p-4 rounded-2xl flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95"
-                    style={{ backgroundColor: isDefeated ? '#1a1a2e80' : '#1a1a2e', border: isDefeated ? '2px solid #4bddb740' : '2px solid #ff6b3540' }}>
-                    <span className="text-4xl">{boss.emoji}</span>
-                    <div className="flex-1 text-left">
-                      <div className="flex items-center gap-2">
-                        <p className="font-bold text-white">{boss.name}</p>
-                        {isDefeated && <span className="text-xs px-2 py-0.5 rounded-full bg-green-600/30 text-green-400 font-bold">DEFEATED</span>}
-                      </div>
-                      <p className="text-xs text-white/40">{boss.description}</p>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-xs text-orange-400">⚔️ Lv.{boss.level}</span>
-                        <span className="text-xs text-red-400">❤️ {boss.maxHp} HP</span>
-                        <span className="text-xs text-amber-400">✨ {boss.rewardStardust} Stardust</span>
-                      </div>
-                      <div className="mt-1 flex items-center gap-1">
-                        {boss.phases.map((p, i) => (
-                          <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-white/50">{p.name}</span>
-                        ))}
-                      </div>
-                    </div>
-                    {isDefeated ? (
-                      <span className="text-green-400 text-xl">✓</span>
-                    ) : (
-                      <span style={{ color: '#ff6b35' }}>›</span>
-                    )}
-                  </button>
-                );
-              })}
+            <div className="mt-4 space-y-4">
+              {/* === Original 6 bosses (fixed level) === */}
+              <div>
+                <h3 className="text-xs font-bold text-white/60 uppercase tracking-wider mb-2">📜 Original ({originalBosses.length})</h3>
+                <div className="space-y-2">
+                  {originalBosses.map((boss) => {
+                    const isDefeated = defeatedBosses.includes(boss.id);
+                    return (
+                      <button key={boss.id} onClick={() => onSelect(boss)}
+                        className="w-full p-3 rounded-2xl flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-95"
+                        style={{ backgroundColor: isDefeated ? '#1a1a2e80' : '#1a1a2e', border: isDefeated ? '2px solid #4bddb740' : '2px solid #ff6b3540' }}>
+                        <span className="text-3xl">{boss.emoji}</span>
+                        <div className="flex-1 text-left min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-white text-sm truncate">{boss.name}</p>
+                            {isDefeated && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-600/30 text-green-400 font-bold">DEFEATED</span>}
+                          </div>
+                          <p className="text-[10px] text-white/40 truncate">{boss.description}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] text-orange-400">⚔️ Lv.{boss.level}</span>
+                            <span className="text-[10px] text-red-400">❤️ {boss.maxHp}</span>
+                            <span className="text-[10px] text-amber-400">✨ {boss.rewardStardust}</span>
+                          </div>
+                        </div>
+                        <span style={{ color: isDefeated ? '#4bddb7' : '#ff6b35' }}>›</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* === Kanji bosses (Lv 1-300 open world) === */}
+              <div>
+                <h3 className="text-xs font-bold text-white/60 uppercase tracking-wider mb-2">🈶 Kanji Bosses ({kanjiTemplates.length}, Lv 1-300)</h3>
+
+                {selectedKanjiTemplate ? (
+                  <KanjiLevelPicker
+                    template={kanjiTemplates.find((t) => t.id === selectedKanjiTemplate)!}
+                    level={kanjiLevel}
+                    onLevelChange={setKanjiLevel}
+                    onConfirm={() => {
+                      const boss = findKanjiBoss(selectedKanjiTemplate, kanjiLevel);
+                      if (boss) onSelect(boss);
+                    }}
+                    onBack={() => setSelectedKanjiTemplate(null)}
+                  />
+                ) : (
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {kanjiTemplates.map((t) => {
+                      const presetBoss = kanjiBossForLevel(t, 1);
+                      return (
+                        <button key={t.id} onClick={() => setSelectedKanjiTemplate(t.id)}
+                          className="w-full p-3 rounded-2xl flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-95"
+                          style={{ backgroundColor: '#1a1a2e', border: '2px solid #4bddb740' }}>
+                          <span className="text-3xl">{t.sprite}</span>
+                          <div className="flex-1 text-left min-w-0">
+                            <p className="font-bold text-white text-sm truncate">{t.name} <span className="text-white/40 text-xs">[{t.japaneseName}]</span></p>
+                            <p className="text-[10px] text-white/40 truncate">{t.lore}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[10px] text-orange-400">⚔️ Lv 1-300</span>
+                              <span className="text-[10px] text-red-400">❤️ {presetBoss.maxHp}+</span>
+                              <span className="text-[10px] text-amber-400">🔥 {t.element}</span>
+                            </div>
+                          </div>
+                          <span style={{ color: '#4bddb7' }}>›</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="mt-4 grid grid-cols-4 gap-2">
@@ -788,6 +893,113 @@ function BossSelectModal({ onSelect, onClose, battleWins, defeatedBosses }: { on
         <button onClick={onClose} className="w-full py-4 border-t border-white/10 text-white/40 text-sm font-bold">Kembali</button>
       </motion.div>
     </motion.div>
+  );
+}
+
+// ============================================================
+// Kanji Level Picker (Lv 1-300 open world)
+// ============================================================
+function KanjiLevelPicker({
+  template,
+  level,
+  onLevelChange,
+  onConfirm,
+  onBack,
+}: {
+  template: BossTemplate;
+  level: number;
+  onLevelChange: (l: number) => void;
+  onConfirm: () => void;
+  onBack: () => void;
+}) {
+  const preview = kanjiBossForLevel(template, level);
+  const rewards = calculateRewards(level);
+  const QUICK = [1, 10, 25, 50, 100, 200, 300];
+
+  return (
+    <div className="p-4 rounded-2xl" style={{ backgroundColor: '#1a1a2e', border: '2px solid #4bddb740' }}>
+      <div className="flex items-center gap-3 mb-3">
+        <span className="text-4xl">{template.sprite}</span>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-white truncate">{template.name}</p>
+          <p className="text-[10px] text-white/40 truncate">[{template.japaneseName}] {template.element}</p>
+        </div>
+        <span className="text-xs text-orange-400 font-bold">⚔️ Lv {level}</span>
+      </div>
+
+      <p className="text-[10px] text-white/50 mb-3 italic">{template.lore}</p>
+
+      {/* Scaled stats preview */}
+      <div className="grid grid-cols-3 gap-2 mb-3 text-center">
+        <div className="p-2 rounded-lg bg-red-950/30">
+          <p className="text-[9px] text-white/40 uppercase">HP</p>
+          <p className="text-sm font-bold text-red-400">{preview.maxHp.toLocaleString('id-ID')}</p>
+        </div>
+        <div className="p-2 rounded-lg bg-orange-950/30">
+          <p className="text-[9px] text-white/40 uppercase">ATK</p>
+          <p className="text-sm font-bold text-orange-400">{preview.baseAtk.toLocaleString('id-ID')}</p>
+        </div>
+        <div className="p-2 rounded-lg bg-blue-950/30">
+          <p className="text-[9px] text-white/40 uppercase">DEF</p>
+          <p className="text-sm font-bold text-blue-400">{preview.baseDef.toLocaleString('id-ID')}</p>
+        </div>
+      </div>
+
+      {/* Rewards preview */}
+      <div className="grid grid-cols-3 gap-2 mb-3 text-center">
+        <div className="p-2 rounded-lg bg-amber-950/30">
+          <p className="text-[9px] text-white/40 uppercase">✨ Stardust</p>
+          <p className="text-xs font-bold text-amber-300">{rewards.stardust}</p>
+        </div>
+        <div className="p-2 rounded-lg bg-purple-950/30">
+          <p className="text-[9px] text-white/40 uppercase">🧬 Essence</p>
+          <p className="text-xs font-bold text-purple-300">{rewards.essence}</p>
+        </div>
+        <div className="p-2 rounded-lg bg-cyan-950/30">
+          <p className="text-[9px] text-white/40 uppercase">💎 Diamond</p>
+          <p className="text-xs font-bold text-cyan-300">{rewards.diamonds}</p>
+        </div>
+      </div>
+
+      {/* Level slider */}
+      <label className="block text-[10px] text-white/60 mb-1">Level: <span className="font-bold text-white">{level}</span></label>
+      <input
+        type="range"
+        min={1}
+        max={300}
+        value={level}
+        onChange={(e) => onLevelChange(parseInt(e.target.value, 10))}
+        className="w-full accent-orange-500"
+      />
+
+      {/* Quick jump */}
+      <div className="flex flex-wrap gap-1 mt-2 mb-3 justify-center">
+        {QUICK.map((q) => (
+          <button key={q} onClick={() => onLevelChange(q)}
+            className="px-2 py-1 rounded-md text-[10px] font-bold transition-all"
+            style={{
+              backgroundColor: level === q ? '#ff6b35' : '#1a1a2e',
+              color: level === q ? '#0a1519' : '#ffffff80',
+              border: '1px solid #ff6b3540',
+            }}>
+            {q}
+          </button>
+        ))}
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-2 mt-2">
+        <button onClick={onBack}
+          className="flex-1 py-2 rounded-xl text-white/60 text-sm font-bold border border-white/10">
+          ← Kembali
+        </button>
+        <button onClick={onConfirm}
+          className="flex-1 py-2 rounded-xl text-white text-sm font-black"
+          style={{ backgroundColor: '#ff6b35' }}>
+          ⚔️ Mulai!
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -1579,6 +1791,9 @@ function BattlePageContent() {
   const modeParam = searchParams.get('mode');
   const battleMode: 'card' | 'janken' | null = modeParam === 'janken' ? 'janken' : modeParam === 'card' ? 'card' : null;
 
+  // Boss battle result tracking — kanji bosses only
+  // (deferred: useEffect added after state declarations)
+
   // Core state
   const [phase, setPhase] = useState<Phase>('select-deck');
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
@@ -1634,6 +1849,20 @@ function BattlePageContent() {
   const [showStudy, setShowStudy] = useState(false); // ...
   const [studyQ, setStudyQ] = useState<{ q: string; opts: string[]; ans: string } | null>(null);
   const [result, setResult] = useState<{ win: boolean; xp: number; diamonds: number; stardust?: number } | null>(null);
+
+  // Boss battle result tracking — kanji bosses only
+  const recordKanjiVictory = useBossBattleStore((s) => s.recordVictory);
+  const recordKanjiDefeat = useBossBattleStore((s) => s.recordDefeat);
+  useEffect(() => {
+    if (phase !== 'boss-result' || !result || !boss) return;
+    if (!boss.id.startsWith('kanji-')) return; // only kanji bosses
+    if (result.win) {
+      recordKanjiVictory(boss.level);
+    } else {
+      recordKanjiDefeat(boss.level);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, result, boss?.id]);
   const [autoMode, setAutoMode] = useState(false);
   const [autoMove, setAutoMove] = useState(true); // auto-select best card after attack
   const [processing, setProcessing] = useState(false);

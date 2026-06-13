@@ -434,7 +434,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="mb-4 grid grid-cols-2 md:grid-cols-3 gap-3"
+          className="mb-4 grid grid-cols-2 gap-3"
         >
           <GameModeCard
             icon="⚔️"
@@ -450,14 +450,6 @@ export default function HomePage() {
             color={colors.teal}
             isNew
             onClick={() => router.push('/kanji-drop')}
-          />
-          <GameModeCard
-            icon="🐉"
-            title="Boss Battle"
-            subtitle="Sampai Lv 300!"
-            color={colors.gold}
-            isNew
-            onClick={() => router.push('/boss-battle')}
           />
         </motion.div>
 
