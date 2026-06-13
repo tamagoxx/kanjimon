@@ -4,7 +4,6 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useCollectionStore, PokemonCard } from '@/store/collectionStore';
-import { CARDS_BY_ID } from '@/data/cards';
 import { Check, X, ChevronDown, Plus, Trash2, GripVertical } from 'lucide-react';
 
 const colors = {
@@ -317,21 +316,15 @@ export default function DeckBuilderPage() {
   const [sortBy, setSortBy] = useState<'rarity' | 'element' | 'hp'>('rarity');
   const [showDeckList, setShowDeckList] = useState(false);
 
-  // Get Japanese cards from data
-  const allJapaneseCards = Object.values(CARDS_BY_ID);
-
-  // Build collection list — only include owned Japanese cards + owned Pokemon
+  // Build collection list — read stats from STORED ownedCards (consistent with /collection + /battle)
+  // Starter cards (jp_starter_*) exist only in ownedCards, not in CARDS_BY_ID
   const collectionCards: DeckCard[] = useMemo(() => {
-    // Build set of owned Japanese card IDs
-    const ownedCardIds = new Set(ownedCards.map(oc => oc.cardId));
-
     const cards: DeckCard[] = [];
 
-    // Add only OWNED Japanese cards (starter cards for new users)
+    // Add all OWNED Japanese cards (including jp_starter_*)
     if (activeTab === 'all' || activeTab === 'japanese') {
-      allJapaneseCards.forEach(card => {
-        // Only include if user owns this card (jp_starter_* for new users)
-        if (!ownedCardIds.has(card.id)) return;
+      ownedCards.forEach(oc => {
+        const card = oc.card;
         cards.push({
           id: `jp-${card.id}`,
           type: 'japanese',
@@ -387,7 +380,7 @@ export default function DeckBuilderPage() {
     }
 
     return cards;
-  }, [activeTab, sortBy, allJapaneseCards, ownedCards, ownedPokemon, fusedPokemon]);
+  }, [activeTab, sortBy, ownedCards, ownedPokemon, fusedPokemon]);
 
   const addToDeck = (card: DeckCard) => {
     if (deckCards.length >= 30) return;
