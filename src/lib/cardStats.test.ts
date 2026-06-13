@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { hashIdToFloat, getCardStats } from './cardStats';
+import { hashIdToFloat, getCardStats, getEffectiveDefense } from './cardStats';
 import type { Rarity } from '@/types';
 
 describe('hashIdToFloat', () => {
@@ -101,5 +101,54 @@ describe('getCardStats', () => {
     const s = getCardStats('test-id', 'COMMON' as Rarity);
     expect(s.hp).toBeGreaterThan(0);
     expect(s.attackPower).toBeGreaterThan(0);
+  });
+});
+
+describe('getEffectiveDefense', () => {
+  test('returns getCardStats defensePower for a jp card (id+rarity present)', () => {
+    const card = { id: 'v-001', rarity: 'COMMON' as Rarity };
+    const expected = getCardStats('v-001', 'COMMON').defensePower;
+    expect(getEffectiveDefense(card)).toBe(expected);
+  });
+
+  test('ignores stored defenseRating — old cards with 1-3 get the new scaled value', () => {
+    // Old stored cards (pre-a90cfab) have defenseRating 1-3. Migration should
+    // return the new rarity-scaled value, not the stale 1-3.
+    const oldCard = { id: 'v-001', rarity: 'COMMON' as Rarity, defenseRating: 2 };
+    const newCard = { id: 'v-001', rarity: 'COMMON' as Rarity, defenseRating: 8 };
+    expect(getEffectiveDefense(oldCard)).toBe(getEffectiveDefense(newCard));
+    expect(getEffectiveDefense(oldCard)).toBeGreaterThanOrEqual(5);
+    expect(getEffectiveDefense(oldCard)).toBeLessThanOrEqual(12);
+  });
+
+  test('LEGENDARY card returns 50-70 range regardless of stored value', () => {
+    const oldLegendary = { id: 'v-050', rarity: 'LEGENDARY' as Rarity, defenseRating: 3 };
+    expect(getEffectiveDefense(oldLegendary)).toBeGreaterThanOrEqual(50);
+    expect(getEffectiveDefense(oldLegendary)).toBeLessThanOrEqual(70);
+  });
+
+  test('OMNIPOTENT card returns 390-470 range regardless of stored value', () => {
+    const oldOmnipotent = { id: 'v-099', rarity: 'OMNIPOTENT' as Rarity, defenseRating: 1 };
+    expect(getEffectiveDefense(oldOmnipotent)).toBeGreaterThanOrEqual(390);
+    expect(getEffectiveDefense(oldOmnipotent)).toBeLessThanOrEqual(470);
+  });
+
+  test('falls back to stored defenseRating when id is missing', () => {
+    const orphan = { defenseRating: 7 };
+    expect(getEffectiveDefense(orphan)).toBe(7);
+  });
+
+  test('falls back to stored defenseRating when rarity is missing', () => {
+    const orphan = { id: 'v-001', defenseRating: 12 };
+    expect(getEffectiveDefense(orphan)).toBe(12);
+  });
+
+  test('returns 0 when neither id+rarity nor defenseRating is present', () => {
+    expect(getEffectiveDefense({})).toBe(0);
+  });
+
+  test('is deterministic — same input returns same value', () => {
+    const card = { id: 'v-001', rarity: 'COMMON' as Rarity, defenseRating: 2 };
+    expect(getEffectiveDefense(card)).toBe(getEffectiveDefense(card));
   });
 });

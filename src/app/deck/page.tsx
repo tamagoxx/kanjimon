@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useCollectionStore, PokemonCard } from '@/store/collectionStore';
+import { getEffectiveDefense } from '@/lib/cardStats';
 import { Check, X, ChevronDown, Plus, Trash2, GripVertical } from 'lucide-react';
 
 const colors = {
@@ -332,7 +333,7 @@ export default function DeckBuilderPage() {
           element: card.element,
           rarity: card.rarity,
           attack: card.attackPower,
-          defense: card.defenseRating,
+          defense: getEffectiveDefense(card),
           hp: card.hp,
           symbol: card.japanese,
         });

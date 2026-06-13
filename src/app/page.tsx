@@ -7,6 +7,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useCollectionStore } from '@/store/collectionStore';
 import { useAuthStore } from '@/store/authStore';
 import { useLearningProgressStore } from '@/store/learningProgressStore';
+import { getEffectiveDefense } from '@/lib/cardStats';
 
 const QUEST_ICONS: Record<string, string> = {
   BATTLE: '⚔️',
@@ -185,7 +186,9 @@ function FeaturedCard({ card, index }: { card: any; index: number }) {
   const isPokemon = card._type === 'pokemon' || card._type === 'fused';
   const cardColor = elementColors[card.element] || colors.darkText;
   const attackVal = card.attackPower ?? card.attack ?? card.baseAttack ?? 0;
-  const defenseVal = card.defenseRating ?? card.defense ?? card.baseDefense ?? 0;
+  const defenseVal = 'defenseRating' in card
+    ? getEffectiveDefense(card)
+    : (card.defense ?? card.baseDefense ?? 0);
 
   return (
     <motion.div
@@ -327,7 +330,7 @@ function useFeaturedCards() {
       id: oc.cardId,
       type: 'jp',
       attack: oc.card.attackPower ?? 0,
-      defense: oc.card.defenseRating ?? 0,
+      defense: getEffectiveDefense(oc.card),
       data: oc.card,
     });
   });

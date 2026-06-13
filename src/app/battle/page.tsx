@@ -12,6 +12,7 @@ import { scaleStats } from '@/lib/bossScaling';
 import { calculateRewards } from '@/lib/bossRewards';
 import { calculatePlayerMaxHp } from '@/lib/battleHPUtils';
 import { calculateDamage } from '@/lib/battleDamage';
+import { getEffectiveDefense } from '@/lib/cardStats';
 import { Swords, Shield, ArrowLeft, Zap, Flame, Droplets, Leaf, Eye, Sparkles, CircleDot } from 'lucide-react';
 import JankenGame from '@/components/battle/JankenGame';
 import { fetchMove, MOVE_TYPE_COLORS, MOVE_CATEGORY_ICONS, getMockMovesForTypes } from '@/data/pokemon-moves';
@@ -1949,7 +1950,7 @@ function BattlePageContent() {
               element: owned.card.element,
               hp: owned.card.hp,
               attack: owned.card.attackPower,
-              defense: owned.card.defenseRating,
+              defense: getEffectiveDefense(owned.card),
             }, true));
           }
         }
@@ -1977,7 +1978,7 @@ function BattlePageContent() {
               element: owned.card.element,
               hp: owned.card.hp,
               attack: owned.card.attackPower,
-              defense: owned.card.defenseRating,
+              defense: getEffectiveDefense(owned.card),
             }, true));
           }
         }

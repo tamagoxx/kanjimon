@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useCollectionStore, PokemonCard } from '@/store/collectionStore';
 import { useEvolutionStore } from '@/store/evolutionStore';
 import { CARDS_BY_ID, ALL_CARDS } from '@/data/cards';
+import { getEffectiveDefense } from '@/lib/cardStats';
 import { Heart, Swords, Shield, Zap, Star, X, Loader2, Crown, Package } from 'lucide-react';
 import { EvolutionModal } from '@/components/evolution/EvolutionModal';
 
@@ -142,7 +143,7 @@ function JapaneseCardItem({ card, index }: { card: any; index: number }) {
             <div className="w-px h-2.5 bg-white/10" />
             <div className="flex items-center gap-0.5">
               <Shield className="w-2.5 h-2.5 text-blue-400" />
-              <span className="text-[9px] text-white/50">{card.defenseRating}</span>
+              <span className="text-[9px] text-white/50">{getEffectiveDefense(card)}</span>
             </div>
           </div>
         </div>

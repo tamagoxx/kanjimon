@@ -71,3 +71,26 @@ export function getCardStats(
   const defensePower = r.defense[0] + Math.floor(defHash * defRange);
   return { hp, attackPower, defensePower };
 }
+
+/**
+ * Get the effective defense for a card. Source of truth is the deterministic
+ * getCardStats hash — ignores any stored `defenseRating` on the card.
+ *
+ * Migration: pre-a90cfab stored cards had `defenseRating: 1-3` (flat by type).
+ * Post-a90cfab stored cards have `defenseRating: 5-470` (rarity-scaled). This
+ * helper normalizes both cases to the new rarity-scaled value, so old stored
+ * cards display and battle correctly without localStorage migration.
+ *
+ * Falls back to stored `defenseRating` only when id/rarity are missing
+ * (e.g., legacy fixtures or non-jp card shapes).
+ */
+export function getEffectiveDefense(card: {
+  id?: string;
+  rarity?: Rarity;
+  defenseRating?: number;
+}): number {
+  if (card.id && card.rarity) {
+    return getCardStats(card.id, card.rarity).defensePower;
+  }
+  return card.defenseRating ?? 0;
+}
