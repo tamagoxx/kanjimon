@@ -18,6 +18,9 @@ export const FUSION_SACRIFICE_VALUES: Record<Rarity, { cosmicDust: number; celes
   DIVINE: { cosmicDust: 5, celestialShard: 2 },           // 1 DIV = 5 Cosmic Dust + 2 Celestial Shard
   ULTIMATE: { cosmicDust: 6, celestialShard: 3 },        // 1 ULT = 6 Cosmic Dust + 3 Celestial Shard
   ETERNAL: { cosmicDust: 8, celestialShard: 4 },          // 1 ETERN = 8 Cosmic Dust + 4 Celestial Shard
+  NIHIL: { cosmicDust: 12, celestialShard: 6 },            // 1 NIHIL = 12 Cosmic Dust + 6 Celestial Shard (void)
+  PRIMORDIAL: { cosmicDust: 18, celestialShard: 9 },       // 1 PRIMORDIAL = 18 + 9 (before time)
+  OMNIPOTENT: { cosmicDust: 25, celestialShard: 12 },      // 1 OMNIPOTENT = 25 + 12 (absolute power, max)
 };
 
 // ============================================================
@@ -87,6 +90,9 @@ export const useEvolutionStore = create<EvolutionState>()(
         DIVINE_ESSENCE: 0,
         ULTIMATE_CORE: 0,
         ETERNAL_FRAGMENT: 0,
+        VOID_SHARD: 0,
+        PRIMORDIAL_CRYSTAL: 0,
+        OMNIPOTENT_RUNE: 0,
       },
 
       evolvedCards: {},
@@ -136,13 +142,13 @@ canEvolveCard: (cardId: string, sacrificeContribution?: { cosmicDust: number; ce
         if (fusedPokemon) {
           const rarity = fusedPokemon.rarity;
 
-          // Check if already at max tier
-          if (rarity === 'ETERNAL') {
+          // Check if already at max tier (OMNIPOTENT is final)
+          if (rarity === 'OMNIPOTENT') {
             return { canEvolve: false, nextTier: null, reason: 'Already at max tier' };
           }
 
           // Check if it's MYTHICAL or above
-          const evolvableTiers: Rarity[] = ['MYTHICAL', 'TRANSCENDENT', 'CELESTIAL', 'DIVINE', 'ULTIMATE'];
+          const evolvableTiers: Rarity[] = ['MYTHICAL', 'TRANSCENDENT', 'CELESTIAL', 'DIVINE', 'ULTIMATE', 'ETERNAL', 'NIHIL', 'PRIMORDIAL'];
           if (!evolvableTiers.includes(rarity)) {
             return { canEvolve: false, nextTier: null, reason: 'Only MYTHICAL+ cards can evolve' };
           }
@@ -154,6 +160,9 @@ canEvolveCard: (cardId: string, sacrificeContribution?: { cosmicDust: number; ce
           else if (rarity === 'CELESTIAL') nextTier = 'DIVINE';
           else if (rarity === 'DIVINE') nextTier = 'ULTIMATE';
           else if (rarity === 'ULTIMATE') nextTier = 'ETERNAL';
+          else if (rarity === 'ETERNAL') nextTier = 'NIHIL';
+          else if (rarity === 'NIHIL') nextTier = 'PRIMORDIAL';
+          else if (rarity === 'PRIMORDIAL') nextTier = 'OMNIPOTENT';
 
           if (!nextTier) {
             return { canEvolve: false, nextTier: null, reason: 'Already at max tier' };
@@ -194,13 +203,13 @@ canEvolveCard: (cardId: string, sacrificeContribution?: { cosmicDust: number; ce
         if (ownedPokemon) {
           const rarity = ownedPokemon.rarity;
 
-          // Check if already at max tier
-          if (rarity === 'ETERNAL') {
+          // Check if already at max tier (OMNIPOTENT is final)
+          if (rarity === 'OMNIPOTENT') {
             return { canEvolve: false, nextTier: null, reason: 'Already at max tier' };
           }
 
           // Check if it's MYTHICAL or above
-          const evolvableTiers: Rarity[] = ['MYTHICAL', 'TRANSCENDENT', 'CELESTIAL', 'DIVINE', 'ULTIMATE'];
+          const evolvableTiers: Rarity[] = ['MYTHICAL', 'TRANSCENDENT', 'CELESTIAL', 'DIVINE', 'ULTIMATE', 'ETERNAL', 'NIHIL', 'PRIMORDIAL'];
           if (!evolvableTiers.includes(rarity)) {
             return { canEvolve: false, nextTier: null, reason: 'Only MYTHICAL+ cards can evolve' };
           }
@@ -212,6 +221,9 @@ canEvolveCard: (cardId: string, sacrificeContribution?: { cosmicDust: number; ce
           else if (rarity === 'CELESTIAL') nextTier = 'DIVINE';
           else if (rarity === 'DIVINE') nextTier = 'ULTIMATE';
           else if (rarity === 'ULTIMATE') nextTier = 'ETERNAL';
+          else if (rarity === 'ETERNAL') nextTier = 'NIHIL';
+          else if (rarity === 'NIHIL') nextTier = 'PRIMORDIAL';
+          else if (rarity === 'PRIMORDIAL') nextTier = 'OMNIPOTENT';
 
           if (!nextTier) {
             return { canEvolve: false, nextTier: null, reason: 'Already at max tier' };
@@ -251,6 +263,9 @@ canEvolveCard: (cardId: string, sacrificeContribution?: { cosmicDust: number; ce
         else if (currentRarity === 'CELESTIAL') nextTier = 'DIVINE';
         else if (currentRarity === 'DIVINE') nextTier = 'ULTIMATE';
         else if (currentRarity === 'ULTIMATE') nextTier = 'ETERNAL';
+        else if (currentRarity === 'ETERNAL') nextTier = 'NIHIL';
+        else if (currentRarity === 'NIHIL') nextTier = 'PRIMORDIAL';
+        else if (currentRarity === 'PRIMORDIAL') nextTier = 'OMNIPOTENT';
 
         if (!nextTier) return null;
         return EVO_REQUIREMENTS[nextTier];

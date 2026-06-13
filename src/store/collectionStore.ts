@@ -19,7 +19,7 @@ export interface PokemonCard {
   weight: number;
   ability: string;
   hiddenAbility?: string;
-  rarity: 'COMMON' | 'UNCOMMON' | 'RARE' | 'ULTRA_RARE' | 'LIMITED_EDITION' | 'LEGENDARY' | 'MYTHICAL' | 'TRANSCENDENT' | 'CELESTIAL' | 'DIVINE' | 'ULTIMATE' | 'ETERNAL';
+  rarity: 'COMMON' | 'UNCOMMON' | 'RARE' | 'ULTRA_RARE' | 'LIMITED_EDITION' | 'LEGENDARY' | 'MYTHICAL' | 'TRANSCENDENT' | 'CELESTIAL' | 'DIVINE' | 'ULTIMATE' | 'ETERNAL' | 'NIHIL' | 'PRIMORDIAL' | 'OMNIPOTENT';
   element: string;
   flavorText: string;
   color: string;

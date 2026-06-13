@@ -31,6 +31,9 @@ const TIER_COLORS: Record<EvoTier, { primary: string; secondary: string; glow: s
   DIVINE: { primary: '#ff00ff', secondary: '#cc00cc', glow: 'rgba(255, 0, 255, 0.3)' },
   ULTIMATE: { primary: '#ff4500', secondary: '#cc3300', glow: 'rgba(255, 69, 0, 0.3)' },
   ETERNAL: { primary: '#ffffff', secondary: '#cccccc', glow: 'rgba(255, 255, 255, 0.4)' },
+  NIHIL: { primary: '#6a0dad', secondary: '#4b0082', glow: 'rgba(106, 13, 173, 0.4)' },          // void violet
+  PRIMORDIAL: { primary: '#0074d9', secondary: '#001f3f', glow: 'rgba(0, 116, 217, 0.4)' },      // deep cosmic blue
+  OMNIPOTENT: { primary: '#ffd700', secondary: '#ff8c00', glow: 'rgba(255, 215, 0, 0.5)' },      // supercharged gold
 };
 
 const TIER_ICONS: Record<EvoTier, string> = {
@@ -39,6 +42,9 @@ const TIER_ICONS: Record<EvoTier, string> = {
   DIVINE: '🌟',
   ULTIMATE: '🔮',
   ETERNAL: '💫',
+  NIHIL: '🕳️',          // void black hole
+  PRIMORDIAL: '🌌',     // cosmic before-time
+  OMNIPOTENT: '👁️',      // all-seeing eye
 };
 
 const MATERIAL_ICONS: Record<EvolutionMaterial, string> = {
@@ -47,6 +53,9 @@ const MATERIAL_ICONS: Record<EvolutionMaterial, string> = {
   DIVINE_ESSENCE: '🌟',
   ULTIMATE_CORE: '🔮',
   ETERNAL_FRAGMENT: '💫',
+  VOID_SHARD: '🕳️',          // void fragment
+  PRIMORDIAL_CRYSTAL: '🌌',   // before-time crystal
+  OMNIPOTENT_RUNE: '👁️',       // absolute power rune
 };
 
 export function EvolutionModal({ isOpen, onClose, card }: EvolutionModalProps) {

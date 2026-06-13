@@ -4,7 +4,7 @@
 
 // --- Card Types ---
 export type CardType = 'VERB' | 'NOUN' | 'ADJECTIVE' | 'PARTICLE';
-export type Rarity = 'COMMON' | 'UNCOMMON' | 'RARE' | 'ULTRA_RARE' | 'LIMITED_EDITION' | 'LEGENDARY' | 'MYTHICAL' | 'TRANSCENDENT' | 'CELESTIAL' | 'DIVINE' | 'ULTIMATE' | 'ETERNAL';
+export type Rarity = 'COMMON' | 'UNCOMMON' | 'RARE' | 'ULTRA_RARE' | 'LIMITED_EDITION' | 'LEGENDARY' | 'MYTHICAL' | 'TRANSCENDENT' | 'CELESTIAL' | 'DIVINE' | 'ULTIMATE' | 'ETERNAL' | 'NIHIL' | 'PRIMORDIAL' | 'OMNIPOTENT';
 export type Element = 'FIRE' | 'WATER' | 'GRASS' | 'ELECTRIC' | 'PSYCHIC' | 'NORMAL';
 export type ElementEssence = 'FIRE_ESSENCE' | 'WATER_ESSENCE' | 'GRASS_ESSENCE' | 'ELECTRIC_ESSENCE' | 'PSYCHIC_ESSENCE' | 'NORMAL_ESSENCE';
 
@@ -401,6 +401,21 @@ export const FUSION_RECIPES: Record<Rarity, FusionRecipe> = {
     cost: 0,
     statBonus: { hp: 0, attack: 0, defense: 0 },
   },
+  NIHIL: {
+    resultRarity: 'NIHIL',
+    cost: 0,
+    statBonus: { hp: 0, attack: 0, defense: 0 },
+  },
+  PRIMORDIAL: {
+    resultRarity: 'PRIMORDIAL',
+    cost: 0,
+    statBonus: { hp: 0, attack: 0, defense: 0 },
+  },
+  OMNIPOTENT: {
+    resultRarity: 'OMNIPOTENT',
+    cost: 0,
+    statBonus: { hp: 0, attack: 0, defense: 0 },
+  },
 };
 
 // --- Pokemon Fusion ---
@@ -498,6 +513,21 @@ export const POKEMON_FUSION_RECIPES: Record<Rarity, PokemonFusionRecipe> = {
     cost: 0,
     statBonus: { hp: 0, attack: 0, defense: 0, speed: 0 },
   },
+  NIHIL: {
+    resultRarity: 'NIHIL',
+    cost: 0,
+    statBonus: { hp: 0, attack: 0, defense: 0, speed: 0 },
+  },
+  PRIMORDIAL: {
+    resultRarity: 'PRIMORDIAL',
+    cost: 0,
+    statBonus: { hp: 0, attack: 0, defense: 0, speed: 0 },
+  },
+  OMNIPOTENT: {
+    resultRarity: 'OMNIPOTENT',
+    cost: 0,
+    statBonus: { hp: 0, attack: 0, defense: 0, speed: 0 },
+  },
 };
 
 // Evolution tier requirements
@@ -538,7 +568,7 @@ export const EVOLUTION_REQUIREMENTS: Record<EvolutionTier, EvolutionRequirement>
   },
 };
 
-export const RARITY_ORDER: Rarity[] = ['COMMON', 'UNCOMMON', 'RARE', 'ULTRA_RARE', 'LIMITED_EDITION', 'LEGENDARY', 'MYTHICAL', 'TRANSCENDENT', 'CELESTIAL', 'DIVINE', 'ULTIMATE', 'ETERNAL'];
+export const RARITY_ORDER: Rarity[] = ['COMMON', 'UNCOMMON', 'RARE', 'ULTRA_RARE', 'LIMITED_EDITION', 'LEGENDARY', 'MYTHICAL', 'TRANSCENDENT', 'CELESTIAL', 'DIVINE', 'ULTIMATE', 'ETERNAL', 'NIHIL', 'PRIMORDIAL', 'OMNIPOTENT'];
 
 export const RARITY_COLORS: Record<Rarity, string> = {
   COMMON: '#c8c4d7',
@@ -553,6 +583,9 @@ export const RARITY_COLORS: Record<Rarity, string> = {
   DIVINE: '#ff00ff',
   ULTIMATE: '#ff4500',
   ETERNAL: '#ffffff',
+  NIHIL: '#2d1b4e',        // void black with violet undertone
+  PRIMORDIAL: '#001f3f',   // deep cosmic navy
+  OMNIPOTENT: '#ffaa00',   // supercharged gold (distinct from ULTIMATE orange)
 };
 
 export const RARITY_BORDER_COLORS: Record<Rarity, string> = {
@@ -568,6 +601,9 @@ export const RARITY_BORDER_COLORS: Record<Rarity, string> = {
   DIVINE: '#cc00cc',
   ULTIMATE: '#cc3300',
   ETERNAL: '#cccccc',
+  NIHIL: '#6a0dad',        // indigo glow
+  PRIMORDIAL: '#00ced1',   // dark turquoise glow
+  OMNIPOTENT: '#ffd700',   // gold border
 };
 
 // ============================================================
@@ -580,7 +616,10 @@ export type EvolutionMaterial =
   | 'CELESTIAL_SHARD'   // Mid-tier evolution material
   | 'DIVINE_ESSENCE'   // High-tier evolution material
   | 'ULTIMATE_CORE'    // Top-tier evolution material
-  | 'ETERNAL_FRAGMENT'; // Max-tier evolution material
+  | 'ETERNAL_FRAGMENT' // Max-tier evolution material
+  | 'VOID_SHARD'           // Beyond-eternity: ETERNAL → NIHIL
+  | 'PRIMORDIAL_CRYSTAL'   // NIHIL → PRIMORDIAL
+  | 'OMNIPOTENT_RUNE';     // PRIMORDIAL → OMNIPOTENT (final tier)
 
 export const EVOLUTION_MATERIALS: Record<EvolutionMaterial, {
   name: string;
@@ -618,13 +657,31 @@ export const EVOLUTION_MATERIALS: Record<EvolutionMaterial, {
     icon: '💫',
     tierRequired: 'ULTIMATE',
   },
+  VOID_SHARD: {
+    name: 'Void Shard',
+    description: 'A fragment of the void between realities. Used to evolve ETERNAL cards.',
+    icon: '🕳️',
+    tierRequired: 'ETERNAL',
+  },
+  PRIMORDIAL_CRYSTAL: {
+    name: 'Primordial Crystal',
+    description: 'Crystal formed before time itself. Used to evolve NIHIL cards.',
+    icon: '🌌',
+    tierRequired: 'NIHIL',
+  },
+  OMNIPOTENT_RUNE: {
+    name: 'Omnipotent Rune',
+    description: 'A rune of absolute power. Used to evolve PRIMORDIAL cards. The final evolution material.',
+    icon: '👁️',
+    tierRequired: 'PRIMORDIAL',
+  },
 };
 
 // Evolution tiers above MYTHICAL
-export type EvoTier = 'TRANSCENDENT' | 'CELESTIAL' | 'DIVINE' | 'ULTIMATE' | 'ETERNAL';
+export type EvoTier = 'TRANSCENDENT' | 'CELESTIAL' | 'DIVINE' | 'ULTIMATE' | 'ETERNAL' | 'NIHIL' | 'PRIMORDIAL' | 'OMNIPOTENT';
 
 // Full evolution tier chain
-export const EVO_TIER_ORDER: EvoTier[] = ['TRANSCENDENT', 'CELESTIAL', 'DIVINE', 'ULTIMATE', 'ETERNAL'];
+export const EVO_TIER_ORDER: EvoTier[] = ['TRANSCENDENT', 'CELESTIAL', 'DIVINE', 'ULTIMATE', 'ETERNAL', 'NIHIL', 'PRIMORDIAL', 'OMNIPOTENT'];
 
 // Stat boost percentage per evolution tier above base MYTHICAL
 export const STAT_BOOST_PER_TIER: Record<EvoTier, number> = {
@@ -633,6 +690,9 @@ export const STAT_BOOST_PER_TIER: Record<EvoTier, number> = {
   DIVINE: 0.50,         // +50%
   ULTIMATE: 0.75,       // +75%
   ETERNAL: 1.00,        // +100%
+  NIHIL: 1.50,          // +150% (beyond eternity)
+  PRIMORDIAL: 2.00,     // +200% (before time)
+  OMNIPOTENT: 2.50,     // +250% (absolute power, max tier)
 };
 
 // Evolution requirements for each tier
@@ -674,6 +734,24 @@ export const EVO_REQUIREMENTS: Record<EvoTier, EvoRequirement> = {
     fusionCount: 8,
     description: 'Requires ULTIMATE card + materials',
   },
+  NIHIL: {
+    gold: 500000,
+    materials: { ETERNAL_FRAGMENT: 5, VOID_SHARD: 3 },
+    fusionCount: 10,
+    description: 'Requires ETERNAL card + Void Shards. Pierce the veil of eternity.',
+  },
+  PRIMORDIAL: {
+    gold: 1000000,
+    materials: { VOID_SHARD: 5, PRIMORDIAL_CRYSTAL: 3 },
+    fusionCount: 12,
+    description: 'Requires NIHIL card + Primordial Crystal. Touch the time before time.',
+  },
+  OMNIPOTENT: {
+    gold: 2000000,
+    materials: { PRIMORDIAL_CRYSTAL: 5, OMNIPOTENT_RUNE: 3 },
+    fusionCount: 15,
+    description: 'Requires PRIMORDIAL card + Omnipotent Rune. The final evolution. Absolute power.',
+  },
 };
 
 // Check if a card can be evolved to a specific tier
@@ -681,12 +759,12 @@ export function canEvolveToTier(
   currentRarity: Rarity,
   fusionCount: number = 0
 ): { canEvolve: boolean; nextTier: EvoTier | null } {
-  const tierOrder: Rarity[] = ['COMMON', 'UNCOMMON', 'RARE', 'ULTRA_RARE', 'LIMITED_EDITION', 'LEGENDARY', 'MYTHICAL', 'TRANSCENDENT', 'CELESTIAL', 'DIVINE', 'ULTIMATE', 'ETERNAL'];
+  const tierOrder: Rarity[] = ['COMMON', 'UNCOMMON', 'RARE', 'ULTRA_RARE', 'LIMITED_EDITION', 'LEGENDARY', 'MYTHICAL', 'TRANSCENDENT', 'CELESTIAL', 'DIVINE', 'ULTIMATE', 'ETERNAL', 'NIHIL', 'PRIMORDIAL', 'OMNIPOTENT'];
 
   const currentIndex = tierOrder.indexOf(currentRarity);
 
-  // Can only evolve from MYTHICAL and above (except ETERNAL which is max)
-  if (currentRarity === 'ETERNAL') {
+  // Can only evolve from MYTHICAL and above (except OMNIPOTENT which is max)
+  if (currentRarity === 'OMNIPOTENT') {
     return { canEvolve: false, nextTier: null };
   }
 
@@ -699,6 +777,9 @@ export function canEvolveToTier(
   if (currentRarity === 'CELESTIAL') return { canEvolve: true, nextTier: 'DIVINE' };
   if (currentRarity === 'DIVINE') return { canEvolve: true, nextTier: 'ULTIMATE' };
   if (currentRarity === 'ULTIMATE') return { canEvolve: true, nextTier: 'ETERNAL' };
+  if (currentRarity === 'ETERNAL') return { canEvolve: true, nextTier: 'NIHIL' };
+  if (currentRarity === 'NIHIL') return { canEvolve: true, nextTier: 'PRIMORDIAL' };
+  if (currentRarity === 'PRIMORDIAL') return { canEvolve: true, nextTier: 'OMNIPOTENT' };
 
   return { canEvolve: false, nextTier: null };
 }
@@ -710,6 +791,9 @@ export function getEvoStatMultiplier(currentRarity: Rarity): number {
   if (currentRarity === 'DIVINE') return 1 + STAT_BOOST_PER_TIER.DIVINE;
   if (currentRarity === 'ULTIMATE') return 1 + STAT_BOOST_PER_TIER.ULTIMATE;
   if (currentRarity === 'ETERNAL') return 1 + STAT_BOOST_PER_TIER.ETERNAL;
+  if (currentRarity === 'NIHIL') return 1 + STAT_BOOST_PER_TIER.NIHIL;
+  if (currentRarity === 'PRIMORDIAL') return 1 + STAT_BOOST_PER_TIER.PRIMORDIAL;
+  if (currentRarity === 'OMNIPOTENT') return 1 + STAT_BOOST_PER_TIER.OMNIPOTENT;
   return 1;
 }
 

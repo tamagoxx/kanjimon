@@ -58,6 +58,9 @@ const RARITY_COLOR: Record<string, string> = {
   DIVINE: '#f72585',
   ULTIMATE: '#ffd60a',
   ETERNAL: '#ffffff',
+  NIHIL: '#2d1b4e',          // void black with violet glow
+  PRIMORDIAL: '#001f3f',     // deep navy cosmic
+  OMNIPOTENT: '#ffaa00',     // gold with supercharged orange ring
 };
 
 type Phase = 'IDLE' | 'PLAYING' | 'PAUSED' | 'GAMEOVER';

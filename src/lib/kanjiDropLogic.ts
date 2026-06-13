@@ -18,6 +18,9 @@ const RARITY_BASE_SCORE: Record<Rarity, number> = {
   DIVINE: 6500,
   ULTIMATE: 8000,
   ETERNAL: 10000,
+  NIHIL: 13000,         // void - faster
+  PRIMORDIAL: 17000,    // cosmic - faster still
+  OMNIPOTENT: 22000,    // absolute power
 };
 
 const WAVE_BASE_FALL_MS = 4500;

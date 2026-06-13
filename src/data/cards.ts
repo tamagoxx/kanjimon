@@ -17,6 +17,9 @@ const RARITY_STATS: Record<Rarity, { hp: [number, number]; attack: [number, numb
   DIVINE: { hp: [500, 600], attack: [270, 330] },
   ULTIMATE: { hp: [600, 720], attack: [330, 400] },
   ETERNAL: { hp: [720, 900], attack: [400, 500] },
+  NIHIL: { hp: [900, 1100], attack: [500, 620] },          // void - +50% over ETERNAL
+  PRIMORDIAL: { hp: [1100, 1300], attack: [620, 760] },     // cosmic - +50%
+  OMNIPOTENT: { hp: [1300, 1500], attack: [760, 900] },     // max tier - +50%
 };
 
 const DEFENSE_BY_TYPE: Record<CardType, number> = {
