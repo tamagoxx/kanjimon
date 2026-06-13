@@ -120,7 +120,12 @@ interface CollectionState {
   // Fused Pokemon actions
   addFusedPokemon: (fused: FusedPokemon) => void;
   getFusedPokemonById: (id: string) => FusedPokemon | undefined;
-  evolveFusedPokemon: (fusedId: string, newTier: 'LIMITED_EDITION' | 'LEGENDARY' | 'MYTHICAL', sacrificedCardIds: string[], sacrificedPokemonId?: number) => boolean;
+  evolveFusedPokemon: (
+    fusedId: string,
+    newTier: 'NONE' | 'LIMITED_EDITION' | 'LEGENDARY' | 'MYTHICAL' | 'TRANSCENDENT' | 'CELESTIAL' | 'DIVINE' | 'ULTIMATE' | 'ETERNAL' | 'NIHIL' | 'PRIMORDIAL' | 'OMNIPOTENT',
+    sacrificedCardIds: string[],
+    sacrificedPokemonId?: number
+  ) => boolean;
   getFusedByTier: (tier: string) => FusedPokemon[];
 
   // Deck actions
@@ -340,11 +345,21 @@ export const useCollectionStore = create<CollectionState>()(
           updatedFused = updatedFused.filter(p => p.pokemonId !== sacrificedPokemonId);
         }
 
-        // Update the fused Pokemon's tier and stats
+        // Update the fused Pokemon's tier and stats.
+        // statBonus scales +50% per tier past MYTHICAL (40 base).
         const statBonus: Record<string, { hp: number; attack: number; defense: number; speed: number }> = {
-          LIMITED_EDITION: { hp: 15, attack: 10, defense: 2, speed: 5 },
-          LEGENDARY: { hp: 25, attack: 18, defense: 4, speed: 10 },
-          MYTHICAL: { hp: 40, attack: 30, defense: 8, speed: 15 },
+          NONE:             { hp: 10, attack: 5,  defense: 1, speed: 2 },
+          LIMITED_EDITION:  { hp: 15, attack: 10, defense: 2, speed: 5 },
+          LEGENDARY:        { hp: 25, attack: 18, defense: 4, speed: 10 },
+          MYTHICAL:         { hp: 40, attack: 30, defense: 8, speed: 15 },
+          TRANSCENDENT:     { hp: 60,  attack: 45,  defense: 12, speed: 22 },
+          CELESTIAL:        { hp: 90,  attack: 68,  defense: 18, speed: 33 },
+          DIVINE:           { hp: 135, attack: 102, defense: 27, speed: 50 },
+          ULTIMATE:         { hp: 200, attack: 153, defense: 40, speed: 75 },
+          ETERNAL:          { hp: 300, attack: 230, defense: 60, speed: 112 },
+          NIHIL:            { hp: 450, attack: 345, defense: 90, speed: 168 },
+          PRIMORDIAL:       { hp: 675, attack: 517, defense: 135, speed: 252 },
+          OMNIPOTENT:       { hp: 1000, attack: 775, defense: 200, speed: 378 },
         };
         const bonus = statBonus[newTier] || { hp: 15, attack: 10, defense: 2, speed: 5 };
 

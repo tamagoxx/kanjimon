@@ -29,16 +29,17 @@ const ESSENCE_LABELS: Record<ElementEssence, string> = {
   ELECTRIC_ESSENCE: 'Electric', PSYCHIC_ESSENCE: 'Psychic', NORMAL_ESSENCE: 'Normal',
 };
 
-const NEXT_TIER: Record<string, string> = {
-  NONE: 'LIMITED_EDITION',
-  LIMITED_EDITION: 'LEGENDARY',
-  LEGENDARY: 'MYTHICAL',
-  MYTHICAL: 'MYTHICAL',
-};
-
-const TIER_LABELS: Record<string, string> = {
-  NONE: 'Standard', LIMITED_EDITION: 'Limited', LEGENDARY: 'Legendary', MYTHICAL: 'Mythical',
-};
+// Evolution tier chain. See `@/lib/evolutionChain` for source of truth.
+// BUG-FIX: MYTHICAL was self-looped ('MYTHICAL' → 'MYTHICAL'), preventing
+// the fusion page from advancing the user-reported Mythical fused card.
+// Chain extended to all 12 tiers; max tier (OMNIPOTENT) self-loops.
+import {
+  NEXT_TIER,
+  TIER_LABELS,
+  TIER_ICONS,
+  TIER_COLORS_HEX,
+  type EvolutionTier,
+} from '@/lib/evolutionChain';
 
 // Map battle rarity → evolution tier for fusion result display
 const RARITY_TO_TIER: Record<string, string> = {
@@ -46,14 +47,6 @@ const RARITY_TO_TIER: Record<string, string> = {
   UNCOMMON: 'LEGENDARY',
   RARE: 'LEGENDARY',
   ULTRA_RARE: 'MYTHICAL',
-};
-
-const TIER_ICONS: Record<string, string> = {
-  NONE: '⚡', LIMITED_EDITION: '🌟', LEGENDARY: '🏆', MYTHICAL: '💎',
-};
-
-const TIER_COLORS_HEX: Record<string, string> = {
-  NONE: '#f0bf63', LIMITED_EDITION: '#ff8c00', LEGENDARY: '#c0392b', MYTHICAL: '#e91e8c',
 };
 
 // Fused Pokemon card with glow + animation
@@ -312,7 +305,7 @@ export default function FusionPageContent() {
     const { evolveFusedPokemon } = useCollectionStore.getState();
     const success = evolveFusedPokemon(
       evolveTarget.id,
-      nextTier as 'LIMITED_EDITION' | 'LEGENDARY' | 'MYTHICAL',
+      nextTier as FusedPokemon['evolutionTier'],
       selectedCards,
       selectedSacrificePokemon || undefined
     );
@@ -491,7 +484,7 @@ export default function FusionPageContent() {
                         <span className="text-xs text-white/60">Hasil:</span>
                         <span className="px-3 py-1 rounded-full text-sm font-black"
                           style={{ backgroundColor: RARITY_COLORS[fusionCheck.resultRarity as keyof typeof RARITY_COLORS], color: '#000' }}>
-                          {TIER_ICONS[RARITY_TO_TIER[fusionCheck.resultRarity ?? 'COMMON'] || 'NONE']} {fusionCheck.resultRarity}
+                          {TIER_ICONS[(RARITY_TO_TIER[fusionCheck.resultRarity ?? 'COMMON'] || 'NONE') as EvolutionTier]} {fusionCheck.resultRarity}
                         </span>
                       </div>
                       <div className="flex items-center justify-center gap-3 text-xs">
@@ -544,7 +537,7 @@ export default function FusionPageContent() {
                     className="absolute top-4 right-4 px-2 py-1 rounded-full text-xs font-black"
                     style={{ backgroundColor: RARITY_COLORS[fuseSuccess.rarity as keyof typeof RARITY_COLORS], color: '#000' }}
                   >
-                    {TIER_ICONS[RARITY_TO_TIER[fuseSuccess.rarity ?? 'COMMON'] || 'NONE']} {fuseSuccess.evolutionTier}
+                    {TIER_ICONS[(RARITY_TO_TIER[fuseSuccess.rarity ?? 'COMMON'] || 'NONE') as EvolutionTier]} {fuseSuccess.evolutionTier}
                   </div>
                 </div>
                 <p className="text-lg font-bold text-white mb-1">🎉 Fusion Berhasil!</p>

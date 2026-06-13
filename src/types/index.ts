@@ -436,8 +436,11 @@ export interface FusedPokemon {
   element: string;
   image: string;
   rarity: Rarity;
-  // Evolution tier (only for UR+ fusions)
-  evolutionTier: 'NONE' | 'LIMITED_EDITION' | 'LEGENDARY' | 'MYTHICAL';
+  // Evolution tier chain: NONE → LIMITED_EDITION → LEGENDARY → MYTHICAL →
+  //   TRANSCENDENT → CELESTIAL → DIVINE → ULTIMATE → ETERNAL →
+  //   NIHIL → PRIMORDIAL → OMNIPOTENT
+  // (the old 4-tier chain stops at MYTHICAL; the new 5 tiers extend past ETERNAL)
+  evolutionTier: 'NONE' | 'LIMITED_EDITION' | 'LEGENDARY' | 'MYTHICAL' | 'TRANSCENDENT' | 'CELESTIAL' | 'DIVINE' | 'ULTIMATE' | 'ETERNAL' | 'NIHIL' | 'PRIMORDIAL' | 'OMNIPOTENT';
   elementEssence?: string; // the elemental essence bound to this fused Pokemon
 }
 
