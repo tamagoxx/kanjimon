@@ -272,10 +272,13 @@ export default function FusionPageContent() {
     if (requirements.additionalPokemon) {
       if (!selectedSacrificePokemon) return { possible: false, reason: 'Pilih 1 Pokemon untuk dikorbankan' };
     }
-    if (nextTier === 'MYTHICAL') {
-      if (!selectedEssence) return { possible: false, reason: 'Pilih Elemental Essence untuk MYTHICAL' };
+    // BUG-FIX: was hardcoded to MYTHICAL. Now reads from requirements.essenceCount
+    // so TRANSCENDENT/.../OMNIPOTENT also gate the essence selector.
+    const essenceRequired = requirements.essenceCount ?? 0;
+    if (essenceRequired > 0) {
+      if (!selectedEssence) return { possible: false, reason: `Pilih Elemental Essence untuk ${TIER_LABELS[nextTier as EvolutionTier] || nextTier}` };
       const essAmount = elementEssences[selectedEssence];
-      if (essAmount < 1) return { possible: false, reason: `Butuh 1 ${ESSENCE_LABELS[selectedEssence]} Essence` };
+      if (essAmount < essenceRequired) return { possible: false, reason: `Butuh ${essenceRequired} ${ESSENCE_LABELS[selectedEssence]} Essence` };
     }
     return { possible: true, reason: '' };
   };
@@ -293,10 +296,12 @@ export default function FusionPageContent() {
       return;
     }
 
-    // Spend element essence for MYTHICAL
-    if (nextTier === 'MYTHICAL' && selectedEssence) {
+    // Spend element essence for tiers that require it (MYTHICAL+).
+    // BUG-FIX: was hardcoded to MYTHICAL; now reads requirements.essenceCount.
+    const essenceRequired = requirements.essenceCount ?? 0;
+    if (essenceRequired > 0 && selectedEssence) {
       const { spendElementEssence } = useCollectionStore.getState();
-      spendElementEssence(selectedEssence, 1);
+      spendElementEssence(selectedEssence, essenceRequired);
     }
 
     await new Promise(r => setTimeout(r, 2000));
@@ -841,19 +846,20 @@ export default function FusionPageContent() {
                     </div>
                   )}
 
-                  {/* Elemental Essence - MYTHICAL only */}
-                  {nextTier === 'MYTHICAL' && (
+                  {/* Elemental Essence - shown when requirements.essenceCount > 0 (MYTHICAL+) */}
+                  {/* BUG-FIX: was hardcoded to nextTier === 'MYTHICAL'; now reads from requirements. */}
+                  {requirements.essenceCount && requirements.essenceCount > 0 && (
                     <div className="p-3 rounded-xl" style={{ backgroundColor: '#0a1519' }}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <span className="text-xl">🌟</span>
                           <div>
                             <p className="text-sm font-bold text-white">Elemental Essence</p>
-                            <p className="text-[10px] text-pink-400/60">Wajib untuk MYTHICAL</p>
+                            <p className="text-[10px] text-pink-400/60">Wajib untuk {TIER_LABELS[nextTier as EvolutionTier] || nextTier}</p>
                           </div>
                         </div>
-                        <span className={`text-sm font-bold ${selectedEssence && elementEssences[selectedEssence] >= 1 ? 'text-green-400' : 'text-red-400'}`}>
-                          {selectedEssence ? `1 ${ESSENCE_LABELS[selectedEssence]}` : '0 / 1'}
+                        <span className={`text-sm font-bold ${selectedEssence && elementEssences[selectedEssence] >= (requirements.essenceCount ?? 0) ? 'text-green-400' : 'text-red-400'}`}>
+                          {selectedEssence ? `${elementEssences[selectedEssence]} / ${requirements.essenceCount}` : `0 / ${requirements.essenceCount}`}
                         </span>
                       </div>
                       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
@@ -861,7 +867,7 @@ export default function FusionPageContent() {
                           <button
                             key={ess}
                             onClick={() => setSelectedEssence(selectedEssence === ess ? null : ess)}
-                            disabled={elementEssences[ess] < 1}
+                            disabled={elementEssences[ess] < (requirements.essenceCount ?? 0)}
                             className={`p-2 rounded-xl flex items-center gap-2 transition-all ${selectedEssence === ess ? 'ring-2 ring-pink-400' : ''} ${elementEssences[ess] < 1 ? 'opacity-30' : ''}`}
                             style={{ backgroundColor: '#1a1a2e', border: `1px solid ${elementEssences[ess] > 0 ? ELEMENT_COLORS[ess.split('_')[0]] + '40' : '#ffffff10'}` }}
                           >

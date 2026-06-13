@@ -534,13 +534,20 @@ export const POKEMON_FUSION_RECIPES: Record<Rarity, PokemonFusionRecipe> = {
 };
 
 // Evolution tier requirements
-export type EvolutionTier = 'NONE' | 'LIMITED_EDITION' | 'LEGENDARY' | 'MYTHICAL';
+// 12 values covers the full chain NONE → ... → OMNIPOTENT.
+// BUG-FIX: was 4 values; MYTHICAL selected for evolution showed blank
+// Step 1 panel because EVOLUTION_REQUIREMENTS only had NONE/LIM/LEG/MYTHICAL.
+// See `src/types/evolutionRequirements.test.ts` regression test.
+export type EvolutionTier = 'NONE' | 'LIMITED_EDITION' | 'LEGENDARY' | 'MYTHICAL'
+  | 'TRANSCENDENT' | 'CELESTIAL' | 'DIVINE' | 'ULTIMATE' | 'ETERNAL'
+  | 'NIHIL' | 'PRIMORDIAL' | 'OMNIPOTENT';
 
 export interface EvolutionRequirement {
   stardust: number;
   japaneseCardCount: number;
-  elementEssence?: string;
-  additionalPokemon?: boolean; // need 1 extra UR
+  elementEssence?: string;     // legacy: element name (unused, see essenceCount)
+  essenceCount?: number;        // number of Elemental Essences required (0 if not needed)
+  additionalPokemon?: boolean;  // need extra UR/LE as sacrifice
   resultTier: EvolutionTier;
   statBonus: { hp: number; attack: number; defense: number; speed: number };
 }
@@ -565,9 +572,77 @@ export const EVOLUTION_REQUIREMENTS: Record<EvolutionTier, EvolutionRequirement>
     stardust: 500,
     japaneseCardCount: 3,
     elementEssence: undefined, // must match one of the parent's elements
+    essenceCount: 1,
     additionalPokemon: true,  // needs 1 LE + 1 UR as sacrifice
     resultTier: 'MYTHICAL',
     statBonus: { hp: 40, attack: 30, defense: 8, speed: 15 },
+  },
+  // === BUG-FIX: added 8 missing tiers past MYTHICAL ===
+  // Cost curve: stardust 2x, cards +1, essence +1 every 2 tiers.
+  // Stat bonus: +50% per tier past MYTHICAL.
+  TRANSCENDENT: {
+    stardust: 1000,
+    japaneseCardCount: 4,
+    essenceCount: 1,
+    additionalPokemon: true,  // 2 UR sacrifices
+    resultTier: 'TRANSCENDENT',
+    statBonus: { hp: 60, attack: 45, defense: 12, speed: 22 },
+  },
+  CELESTIAL: {
+    stardust: 2000,
+    japaneseCardCount: 5,
+    essenceCount: 1,
+    additionalPokemon: true,  // 1 LE + 1 UR
+    resultTier: 'CELESTIAL',
+    statBonus: { hp: 90, attack: 68, defense: 18, speed: 33 },
+  },
+  DIVINE: {
+    stardust: 5000,
+    japaneseCardCount: 6,
+    essenceCount: 1,
+    additionalPokemon: true,  // 2 LE + 2 UR
+    resultTier: 'DIVINE',
+    statBonus: { hp: 135, attack: 102, defense: 27, speed: 50 },
+  },
+  ULTIMATE: {
+    stardust: 10000,
+    japaneseCardCount: 7,
+    essenceCount: 2,
+    additionalPokemon: true,  // 2 LE + 2 UR
+    resultTier: 'ULTIMATE',
+    statBonus: { hp: 200, attack: 153, defense: 40, speed: 75 },
+  },
+  ETERNAL: {
+    stardust: 25000,
+    japaneseCardCount: 8,
+    essenceCount: 2,
+    additionalPokemon: true,  // 3 LE + 2 UR
+    resultTier: 'ETERNAL',
+    statBonus: { hp: 300, attack: 230, defense: 60, speed: 112 },
+  },
+  NIHIL: {
+    stardust: 50000,
+    japaneseCardCount: 9,
+    essenceCount: 3,
+    additionalPokemon: true,  // 3 LE + 3 UR
+    resultTier: 'NIHIL',
+    statBonus: { hp: 450, attack: 345, defense: 90, speed: 168 },
+  },
+  PRIMORDIAL: {
+    stardust: 100000,
+    japaneseCardCount: 10,
+    essenceCount: 3,
+    additionalPokemon: true,  // 4 LE + 3 UR
+    resultTier: 'PRIMORDIAL',
+    statBonus: { hp: 675, attack: 517, defense: 135, speed: 252 },
+  },
+  OMNIPOTENT: {
+    stardust: 250000,
+    japaneseCardCount: 12,
+    essenceCount: 4,
+    additionalPokemon: true,  // 5 LE + 4 UR
+    resultTier: 'OMNIPOTENT',
+    statBonus: { hp: 1000, attack: 775, defense: 200, speed: 378 },
   },
 };
 
