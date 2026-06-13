@@ -11,6 +11,7 @@ import { BOSS_TEMPLATES, type BossTemplate } from '@/data/bosses';
 import { scaleStats } from '@/lib/bossScaling';
 import { calculateRewards } from '@/lib/bossRewards';
 import { calculatePlayerMaxHp } from '@/lib/battleHPUtils';
+import { calculateDamage } from '@/lib/battleDamage';
 import { Swords, Shield, ArrowLeft, Zap, Flame, Droplets, Leaf, Eye, Sparkles, CircleDot } from 'lucide-react';
 import JankenGame from '@/components/battle/JankenGame';
 import { fetchMove, MOVE_TYPE_COLORS, MOVE_CATEGORY_ICONS, getMockMovesForTypes } from '@/data/pokemon-moves';
@@ -2356,7 +2357,8 @@ function BattlePageContent() {
     // Execute the special ability for this phase
     if (special === 'AOE') {
       const aoeDamage = currentPhaseData.name === 'Avalanche' ? 40 : currentPhaseData.name === 'Collapse' ? 60 : 25;
-      const actualDmg = Math.floor(aoeDamage * s.bossAtkMultiplier);
+      // AoE now respects player defense (was: bypassed — BossSelectModal bug)
+      const actualDmg = calculateDamage(aoeDamage, s.playerActive?.defense || 0, { atkMultiplier: s.bossAtkMultiplier });
       setDmgVal(actualDmg);
       setShowDmg(true);
       setAttackingCard('opponent');
