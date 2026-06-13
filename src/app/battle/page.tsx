@@ -1007,7 +1007,7 @@ function KanjiLevelPicker({
   );
 }
 
-function BossResultModal({ boss, win, xp, diamonds, stardust, onClose }: { boss: Boss; win: boolean; xp: number; diamonds: number; stardust: number; onClose: () => void }) {
+function BossResultModal({ boss, win, xp, diamonds, stardust, onRestart, onPlayAgain, onBack, onClose }: { boss: Boss; win: boolean; xp: number; diamonds: number; stardust: number; onRestart: () => void; onPlayAgain: () => void; onBack: () => void; onClose: () => void }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-sm">
@@ -1044,10 +1044,36 @@ function BossResultModal({ boss, win, xp, diamonds, stardust, onClose }: { boss:
           <p className="text-white/60 mb-4">Coba lagi! Study boss patterns and build a stronger deck.</p>
         )}
 
-        <button onClick={onClose}
-          className="mt-4 px-8 py-3 rounded-2xl bg-[#ff6b35] text-white font-bold active:scale-95 hover:bg-[#ff5722] transition-colors">
-          {win ? 'Claim Rewards!' : 'Try Again'}
+        {/* Boss post-battle actions: 3 buttons (no "Next Chapter" — boss has no story progression) */}
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          <button
+            onClick={onRestart}
+            title="Ulangi boss yang sama dengan HP fresh"
+            className="px-3 py-3 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-1.5 bg-white/10 text-white hover:bg-white/20">
+            <span className="text-lg" aria-hidden="true">🔄</span>
+            <span>Restart</span>
+          </button>
+          <button
+            onClick={onPlayAgain}
+            title="Pilih boss lain secara acak"
+            className="px-3 py-3 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-1.5 bg-white/10 text-white hover:bg-white/20">
+            <span className="text-lg" aria-hidden="true">🎲</span>
+            <span>Main Lagi</span>
+          </button>
+          <button
+            onClick={onBack}
+            title="Kembali ke pilihan boss"
+            className="col-span-2 px-3 py-3 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-1.5 bg-[#6c5ce7] text-white hover:bg-[#5a4dd4]">
+            <span className="text-lg" aria-hidden="true">🏠</span>
+            <span>Kembali ke Boss Select</span>
+          </button>
+        </div>
+        <button
+          onClick={onClose}
+          className="mt-3 px-6 py-2 rounded-2xl bg-white/5 text-white/60 text-xs font-bold active:scale-95 hover:bg-white/10 transition-colors">
+          {win ? 'Claim & Close' : 'Close'}
         </button>
+        <p className="text-white/30 text-[10px] mt-3">Pilih aksi untuk lanjut</p>
       </motion.div>
     </motion.div>
   );
@@ -2955,6 +2981,30 @@ setTimeout(() => {
     setOpponent(null);
   };
 
+  // ============================================================
+  // Boss post-battle handlers (BossResultModal 4 buttons)
+  // ============================================================
+
+  // Boss Restart: re-fight SAME boss with fresh HP/energy/turn.
+  const handleBossRestart = () => {
+    if (!boss) return;
+    startBossBattle(boss);
+  };
+
+  // Boss Play Again: pick a random BOSS (excluding current) and start.
+  const handleBossPlayAgain = () => {
+    if (!boss) return;
+    const next = getRandomOpponent(boss, ALL_BOSSES);
+    if (next) startBossBattle(next);
+  };
+
+  // Boss Kembali: return to boss selection screen.
+  const handleBossBack = () => {
+    setResult(null);
+    resetBossState();
+    setPhase('boss-select');
+  };
+
   const resetBossState = () => {
     setBoss(null);
     setBossHp(0);
@@ -3123,6 +3173,7 @@ setTimeout(() => {
         {phase === 'boss-select' && <BossSelectModal onSelect={(selectedBoss) => { startBossBattle(selectedBoss); }} onClose={() => setPhase('select-opponent')} battleWins={battleWins} defeatedBosses={defeatedBosses} />}
       </AnimatePresence>
       <AnimatePresence>{result && phase === 'result' && <ResultModal win={result.win} xpGained={result.xp} diamondsGained={result.diamonds} stardustGained={result.stardust} currentOpponentId={opponent?.id} onRestart={handleRestart} onPlayAgain={handlePlayAgain} onNextChapter={handleNextChapter} onBack={handlePostBattleBack} onClose={() => { setResult(null); setPhase('select-deck'); setSelectedDeckId(null); }} />}</AnimatePresence>
+      <AnimatePresence>{result && phase === 'boss-result' && boss && <BossResultModal boss={boss} win={result.win} xp={result.xp} diamonds={result.diamonds} stardust={result.stardust ?? 0} onRestart={handleBossRestart} onPlayAgain={handleBossPlayAgain} onBack={handleBossBack} onClose={handleBossBack} />}</AnimatePresence>
       <AnimatePresence>{showStudy && playerActive && <HealModal card={playerActive} onHeal={() => answerHeal('heal')} onSkip={() => answerHeal('skip')} />}</AnimatePresence>
 
       {phase === 'intro' && opponent && (

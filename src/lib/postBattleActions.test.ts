@@ -57,6 +57,29 @@ describe('getRandomOpponent', () => {
   });
 });
 
+describe('getRandomOpponent (boss-shaped)', () => {
+  // Boss interface only requires id (and optionally name) per OpponentRef —
+  // getRandomOpponent should work for any {id, ...} shape.
+  const bosses = [
+    { id: 'boss_onyx', name: 'Onyx Boss', level: 1 },
+    { id: 'boss_blaze', name: 'Blaze Boss', level: 5 },
+    { id: 'boss_arctic', name: 'Arctic Boss', level: 10 },
+  ];
+
+  it('returns a boss that is not the current one', () => {
+    for (let i = 0; i < 50; i++) {
+      const result = getRandomOpponent(bosses[0], bosses);
+      expect(result).not.toBeNull();
+      expect(result?.id).not.toBe('boss_onyx');
+    }
+  });
+
+  it('returns null when there is only one boss available', () => {
+    const single = [{ id: 'boss_lone', name: 'Lone Boss', level: 1 }];
+    expect(getRandomOpponent(single[0], single)).toBeNull();
+  });
+});
+
 describe('POST_BATTLE_ACTIONS', () => {
   it('exposes 4 actions in correct order', () => {
     expect(POST_BATTLE_ACTIONS.map((a) => a.id)).toEqual([
