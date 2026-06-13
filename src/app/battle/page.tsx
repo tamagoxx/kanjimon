@@ -2880,6 +2880,7 @@ setTimeout(() => {
         incrementStat('wins');
         addBattleWin();
         setResult({ win: true, xp, diamonds, stardust: stardustReward });
+        setPhase('result');
         trackQuestEvent('BATTLE');
         return;
       }
