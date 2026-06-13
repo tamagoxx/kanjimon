@@ -224,9 +224,11 @@ export default function FusionPageContent() {
   // Only REST API Pokemon for fusion
   const fuseablePokemon = ownedPokemon.filter(p => p.pokemonId < 10000);
 
-  // Fused Pokemon eligible for evolution (tier < MYTHICAL)
+  // Fused Pokemon eligible for evolution (exclude pre-MYTHICAL fusions that can't evolve yet)
+  // Note: MYTHICAL FusedPokemon CAN evolve further (to TRANSCENDENT via evolveCard chain),
+  // so MYTHICAL must NOT be excluded here. Only filter out low-rarity fusions.
   const evolvableFused = fusedPokemon.filter(fp =>
-    fp.evolutionTier !== 'MYTHICAL' && fp.rarity !== 'COMMON' && fp.rarity !== 'UNCOMMON'
+    fp.rarity !== 'COMMON' && fp.rarity !== 'UNCOMMON'
   );
 
   // ===== FUSION =====
