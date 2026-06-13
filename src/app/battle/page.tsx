@@ -2545,9 +2545,13 @@ setTimeout(() => {
 
         // Award a random Japanese card
         const BONUS_CARDS: JapaneseCard[] = [
+          // NOTE: defenseRating here is dead code — getEffectiveDefense() in
+          // src/lib/cardStats.ts ignores stored values and recomputes from
+          // FNV-1a hash of (id+rarity). Values kept in RARE range (20-30)
+          // for type compliance; actual defense in battle = FNV-1a result.
           { id: 'boss_card_fire', japanese: '炎', reading: 'ほのお', romaji: 'honoo', meaning: 'api', meaningId: 'api', type: 'NOUN', jlptLevel: 'N5', hp: 120, attackPower: 45, defenseRating: 25, specialAbility: 'Blaze', rarity: 'RARE', element: 'FIRE', cardArtUrl: '', exampleSentence: '炎は熱い', exampleTranslation: 'Api itu panas', tags: ['fire', 'element'] },
           { id: 'boss_card_water', japanese: '水', reading: 'みず', romaji: 'mizu', meaning: 'air', meaningId: 'air', type: 'NOUN', jlptLevel: 'N5', hp: 110, attackPower: 40, defenseRating: 30, specialAbility: 'Aqua', rarity: 'RARE', element: 'WATER', cardArtUrl: '', exampleSentence: '水を飲む', exampleTranslation: 'Minum air', tags: ['water', 'element'] },
-          { id: 'boss_card_grass', japanese: '木', reading: 'き', romaji: 'ki', meaning: 'pohon', meaningId: 'pohon', type: 'NOUN', jlptLevel: 'N5', hp: 115, attackPower: 38, defenseRating: 35, specialAbility: 'Overgrow', rarity: 'RARE', element: 'GRASS', cardArtUrl: '', exampleSentence: '木が大きい', exampleTranslation: 'Pohonnya besar', tags: ['grass', 'element'] },
+          { id: 'boss_card_grass', japanese: '木', reading: 'き', romaji: 'ki', meaning: 'pohon', meaningId: 'pohon', type: 'NOUN', jlptLevel: 'N5', hp: 115, attackPower: 38, defenseRating: 28, specialAbility: 'Overgrow', rarity: 'RARE', element: 'GRASS', cardArtUrl: '', exampleSentence: '木が大きい', exampleTranslation: 'Pohonnya besar', tags: ['grass', 'element'] },
           { id: 'boss_card_electric', japanese: '電', reading: 'でん', romaji: 'den', meaning: 'listrik', meaningId: 'listrik', type: 'NOUN', jlptLevel: 'N5', hp: 105, attackPower: 50, defenseRating: 20, specialAbility: 'Voltaic', rarity: 'RARE', element: 'ELECTRIC', cardArtUrl: '', exampleSentence: '電気がない', exampleTranslation: 'Tidak ada listrik', tags: ['electric', 'element'] },
           { id: 'boss_card_psychic', japanese: '心', reading: 'こころ', romaji: 'kokoro', meaning: 'hati', meaningId: 'hati', type: 'NOUN', jlptLevel: 'N5', hp: 120, attackPower: 42, defenseRating: 28, specialAbility: 'Psychic', rarity: 'RARE', element: 'PSYCHIC', cardArtUrl: '', exampleSentence: '心を込めて', exampleTranslation: 'Dengan sepenuh hati', tags: ['psychic', 'soul'] },
         ];

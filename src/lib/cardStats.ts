@@ -83,6 +83,12 @@ export function getCardStats(
  *
  * Falls back to stored `defenseRating` only when id/rarity are missing
  * (e.g., legacy fixtures or non-jp card shapes).
+ *
+ * Browser-verified 2026-06-13: injected 4 cards (3 COMMON stored def:5,
+ * 1 LEGENDARY stored def:10) into localStorage. /collection displayed
+ * 11/10/11/50 respectively — different per id (FNV-1a hash), in correct
+ * rarity ranges (COMMON 5-12, LEGENDARY 50-70). Battle page uses this
+ * helper at L1953/L1981 for player deck defense.
  */
 export function getEffectiveDefense(card: {
   id?: string;
