@@ -2299,8 +2299,8 @@ function BattlePageContent() {
     if (s.bossCharging) {
       setBossCharging(false);
       // Charged attack = 200% damage
-      const chargedDamage = Math.floor((s.boss?.baseAtk || 0) * 2 * s.bossAtkMultiplier);
-      const actualDmg = Math.max(5, chargedDamage - (s.playerActive?.defense || 0));
+      // Charged attack = 200% damage (uses shared calculateDamage for consistency)
+      const actualDmg = calculateDamage(s.boss?.baseAtk || 0, s.playerActive?.defense || 0, { atkMultiplier: 2 * s.bossAtkMultiplier });
       setDmgVal(actualDmg);
       setShowDmg(true);
       setAttackingCard('opponent');
@@ -2325,8 +2325,8 @@ function BattlePageContent() {
     // Berserk: extra attack for next 3 turns
     if (special === 'BERSERK' && s.bossBerserkCount < 3) {
       // Do extra attack
-      const baseDamage = Math.floor((s.boss?.baseAtk || 0) * 1.5 * s.bossAtkMultiplier);
-      const actualDmg = Math.max(5, baseDamage - (s.playerActive?.defense || 0));
+      // Berserk extra attack = 150% damage (uses shared calculateDamage)
+      const actualDmg = calculateDamage(s.boss?.baseAtk || 0, s.playerActive?.defense || 0, { atkMultiplier: 1.5 * s.bossAtkMultiplier });
       setDmgVal(actualDmg);
       setShowDmg(true);
       setAttackingCard('opponent');
@@ -2418,8 +2418,8 @@ function BattlePageContent() {
     }
 
     // Default: normal attack
-    const normalDamage = Math.floor((s.boss?.baseAtk || 50) * s.bossAtkMultiplier);
-    const actualDmg = Math.max(5, normalDamage - (s.playerActive?.defense || 0));
+    // Default: normal attack (uses shared calculateDamage)
+    const actualDmg = calculateDamage(s.boss?.baseAtk || 50, s.playerActive?.defense || 0, { atkMultiplier: s.bossAtkMultiplier });
     setDmgVal(actualDmg);
     setShowDmg(true);
     setAttackingCard('opponent');
@@ -2496,9 +2496,8 @@ setTimeout(() => {
 
     addLog(`⚔️ ${s.playerActive.name} attacks! -${damage} to ${s.boss?.name}!`);
 
-    // Apply boss defense multiplier
-    const defReduction = Math.floor((s.boss?.baseDef || 0) * s.bossDefMultiplier);
-    damage = Math.max(5, damage - defReduction);
+    // Apply boss defense multiplier (uses shared calculateDamage)
+    damage = calculateDamage(damage, s.boss?.baseDef || 0, { defMultiplier: s.bossDefMultiplier });
 
     // Berserk bonus from player
     const berserkBonus = s.bossBerserkCount > 0 ? Math.floor(damage * 0.5) : 0;
@@ -2659,8 +2658,8 @@ setTimeout(() => {
     else if (eff < 1) damage = Math.floor(damage * eff);
 
     if (s.playerActive) {
-      const defReduction = s.playerActive.status === 'defending' ? Math.floor(s.playerActive.defense * 1.5) : s.playerActive.defense;
-      damage = Math.max(5, damage - defReduction);
+      // Defending status gives 1.5x defense bonus (uses shared calculateDamage)
+      damage = calculateDamage(damage, s.playerActive.defense, { defMultiplier: s.playerActive.status === 'defending' ? 1.5 : 1.0 });
     }
 
     setDmgVal(damage);
