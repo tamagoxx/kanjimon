@@ -35,28 +35,45 @@ describe('hashIdToFloat', () => {
 });
 
 describe('getCardStats', () => {
-  test('COMMON returns hp in [60,90] and attack in [10,25]', () => {
+  test('COMMON returns hp in [60,90], attack in [10,25], defense in [5,12]', () => {
     const s = getCardStats('v-001', 'COMMON');
     expect(s.hp).toBeGreaterThanOrEqual(60);
     expect(s.hp).toBeLessThanOrEqual(90);
     expect(s.attackPower).toBeGreaterThanOrEqual(10);
     expect(s.attackPower).toBeLessThanOrEqual(25);
+    expect(s.defensePower).toBeGreaterThanOrEqual(5);
+    expect(s.defensePower).toBeLessThanOrEqual(12);
   });
 
-  test('LEGENDARY returns hp in [230,270] and attack in [100,130]', () => {
+  test('LEGENDARY returns hp in [230,270], attack in [100,130], defense in [50,70]', () => {
     const s = getCardStats('v-050', 'LEGENDARY');
     expect(s.hp).toBeGreaterThanOrEqual(230);
     expect(s.hp).toBeLessThanOrEqual(270);
     expect(s.attackPower).toBeGreaterThanOrEqual(100);
     expect(s.attackPower).toBeLessThanOrEqual(130);
+    expect(s.defensePower).toBeGreaterThanOrEqual(50);
+    expect(s.defensePower).toBeLessThanOrEqual(70);
   });
 
-  test('OMNIPOTENT returns hp in [1300,1500] and attack in [760,900]', () => {
+  test('OMNIPOTENT returns hp in [1300,1500], attack in [760,900], defense in [390,470]', () => {
     const s = getCardStats('v-099', 'OMNIPOTENT');
     expect(s.hp).toBeGreaterThanOrEqual(1300);
     expect(s.hp).toBeLessThanOrEqual(1500);
     expect(s.attackPower).toBeGreaterThanOrEqual(760);
     expect(s.attackPower).toBeLessThanOrEqual(900);
+    expect(s.defensePower).toBeGreaterThanOrEqual(390);
+    expect(s.defensePower).toBeLessThanOrEqual(470);
+  });
+
+  test('defense scales monotonically with rarity (COMMON < LEGENDARY < OMNIPOTENT)', () => {
+    // For any id, higher rarity should give higher max defense
+    for (const id of ['v-001', 'v-050', 'v-099']) {
+      const common = getCardStats(id, 'COMMON');
+      const legendary = getCardStats(id, 'LEGENDARY');
+      const omnipotent = getCardStats(id, 'OMNIPOTENT');
+      expect(legendary.defensePower).toBeGreaterThan(common.defensePower);
+      expect(omnipotent.defensePower).toBeGreaterThan(legendary.defensePower);
+    }
   });
 
   test('is deterministic — same id+rarity returns same stats', () => {

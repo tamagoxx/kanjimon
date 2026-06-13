@@ -24,13 +24,6 @@ const RARITY_STATS: Record<Rarity, { hp: [number, number]; attack: [number, numb
   OMNIPOTENT: { hp: [1300, 1500], attack: [760, 900] },     // max tier - +50%
 };
 
-const DEFENSE_BY_TYPE: Record<CardType, number> = {
-  VERB: 2,
-  NOUN: 3,
-  ADJECTIVE: 2,
-  PARTICLE: 1,
-};
-
 function makeCard(params: {
   id: string;
   japanese: string;
@@ -60,7 +53,7 @@ function makeCard(params: {
     jlptLevel: 'N5',
     hp,
     attackPower,
-    defenseRating: DEFENSE_BY_TYPE[params.type],
+    defenseRating: stats.defensePower,
     rarity: params.rarity,
     element: params.element,
     cardArtUrl: '',
@@ -396,7 +389,7 @@ function buildCard(raw: Omit<JapaneseCard, 'hp' | 'attackPower' | 'defenseRating
     ...raw,
     hp,
     attackPower,
-    defenseRating: DEFENSE_BY_TYPE[raw.type],
+    defenseRating: stats.defensePower,
   };
 }
 
