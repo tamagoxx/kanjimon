@@ -1,9 +1,11 @@
 import type { JapaneseCard, Element, Rarity, CardType } from '@/types';
+import { getCardStats } from '@/lib/cardStats';
 
 // Helper to generate card ID
 const genId = (prefix: string, idx: number) => `${prefix}-${idx.toString().padStart(3, '0')}`;
 
 // HP/Attack ranges by complexity (rarity)
+// Single source of truth: src/lib/cardStats.ts (deterministic via FNV-1a hash)
 const RARITY_STATS: Record<Rarity, { hp: [number, number]; attack: [number, number] }> = {
   COMMON: { hp: [60, 90], attack: [10, 25] },
   UNCOMMON: { hp: [90, 130], attack: [25, 40] },
@@ -43,10 +45,9 @@ function makeCard(params: {
   exampleTranslation: string;
   tags: string[];
 }): JapaneseCard {
-  const hpRange = RARITY_STATS[params.rarity].hp;
-  const atkRange = RARITY_STATS[params.rarity].attack;
-  const hp = hpRange[0] + Math.floor(Math.random() * (hpRange[1] - hpRange[0]));
-  const attackPower = atkRange[0] + Math.floor(Math.random() * (atkRange[1] - atkRange[0]));
+  const stats = getCardStats(params.id, params.rarity);
+  const hp = stats.hp;
+  const attackPower = stats.attackPower;
 
   return {
     id: params.id,
@@ -387,10 +388,9 @@ const NORMAL: Omit<JapaneseCard, 'hp' | 'attackPower' | 'defenseRating'>[] = [
 // ASSEMBLE ALL CARDS
 // ============================================================
 function buildCard(raw: Omit<JapaneseCard, 'hp' | 'attackPower' | 'defenseRating'>): JapaneseCard {
-  const hpRange = RARITY_STATS[raw.rarity].hp;
-  const atkRange = RARITY_STATS[raw.rarity].attack;
-  const hp = hpRange[0] + Math.floor(Math.random() * (hpRange[1] - hpRange[0]));
-  const attackPower = atkRange[0] + Math.floor(Math.random() * (atkRange[1] - atkRange[0]));
+  const stats = getCardStats(raw.id, raw.rarity);
+  const hp = stats.hp;
+  const attackPower = stats.attackPower;
 
   return {
     ...raw,

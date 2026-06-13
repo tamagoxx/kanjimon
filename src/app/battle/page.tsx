@@ -10,6 +10,7 @@ import type { ElementEssence, JapaneseCard } from '@/types';
 import { BOSS_TEMPLATES, type BossTemplate } from '@/data/bosses';
 import { scaleStats } from '@/lib/bossScaling';
 import { calculateRewards } from '@/lib/bossRewards';
+import { calculatePlayerMaxHp } from '@/lib/battleHPUtils';
 import { Swords, Shield, ArrowLeft, Zap, Flame, Droplets, Leaf, Eye, Sparkles, CircleDot } from 'lucide-react';
 import JankenGame from '@/components/battle/JankenGame';
 import { fetchMove, MOVE_TYPE_COLORS, MOVE_CATEGORY_ICONS, getMockMovesForTypes } from '@/data/pokemon-moves';
@@ -2047,7 +2048,21 @@ function BattlePageContent() {
     setOppHp(opp.hp);
     setOppMaxHp(opp.hp);
     const level = user?.level || 1;
-    const baseHp = 100 + (level - 1) * 10;
+    // Bug fix: HP now scales with deck strength instead of hardcoded 100.
+    // Extracts HP values from jp- prefixed cards in the player's active deck.
+    const activeDeck = useCollectionStore.getState().getActiveDeck();
+    const ownedCards = useCollectionStore.getState().ownedCards;
+    const deckHps: { hp: number }[] = [];
+    if (activeDeck) {
+      for (const cardId of activeDeck.cardIds) {
+        if (cardId.startsWith('jp-')) {
+          const id = cardId.replace('jp-', '');
+          const owned = ownedCards.find((oc) => oc.cardId === id);
+          if (owned) deckHps.push({ hp: owned.card.hp });
+        }
+      }
+    }
+    const baseHp = calculatePlayerMaxHp(deckHps, level);
     setPlayerHp(baseHp);
     setPlayerMaxHp(baseHp);
     setPlayerEnergy(3);
@@ -2089,7 +2104,20 @@ function BattlePageContent() {
     setBossCharging(false);
     setBossBerserkCount(0);
     const level = user?.level || 1;
-    const baseHp = 100 + (level - 1) * 10;
+    // Bug fix: same deck-based HP formula as startBattle (was hardcoded 100).
+    const activeDeck = useCollectionStore.getState().getActiveDeck();
+    const ownedCards = useCollectionStore.getState().ownedCards;
+    const deckHps: { hp: number }[] = [];
+    if (activeDeck) {
+      for (const cardId of activeDeck.cardIds) {
+        if (cardId.startsWith('jp-')) {
+          const id = cardId.replace('jp-', '');
+          const owned = ownedCards.find((oc) => oc.cardId === id);
+          if (owned) deckHps.push({ hp: owned.card.hp });
+        }
+      }
+    }
+    const baseHp = calculatePlayerMaxHp(deckHps, level);
     setPlayerHp(baseHp);
     setPlayerMaxHp(baseHp);
     setPlayerEnergy(3);
