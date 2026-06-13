@@ -13,6 +13,7 @@ import { calculateRewards } from '@/lib/bossRewards';
 import { calculatePlayerMaxHp } from '@/lib/battleHPUtils';
 import { calculateDamage } from '@/lib/battleDamage';
 import { getEffectiveDefense } from '@/lib/cardStats';
+import { getNextOpponent, getRandomOpponent, canGoNextChapter, POST_BATTLE_ACTIONS } from '@/lib/postBattleActions';
 import { Swords, Shield, ArrowLeft, Zap, Flame, Droplets, Leaf, Eye, Sparkles, CircleDot } from 'lucide-react';
 import JankenGame from '@/components/battle/JankenGame';
 import { fetchMove, MOVE_TYPE_COLORS, MOVE_CATEGORY_ICONS, getMockMovesForTypes } from '@/data/pokemon-moves';
@@ -1052,20 +1053,31 @@ function BossResultModal({ boss, win, xp, diamonds, stardust, onClose }: { boss:
   );
 }
 
-function ResultModal({ win, xpGained, diamondsGained, stardustGained, onClose }: { win: boolean; xpGained: number; diamondsGained?: number; stardustGained?: number; onClose: () => void }) {
+function ResultModal({ win, xpGained, diamondsGained, stardustGained, currentOpponentId, onRestart, onPlayAgain, onNextChapter, onBack, onClose }: { win: boolean; xpGained: number; diamondsGained?: number; stardustGained?: number; currentOpponentId?: string; onRestart?: () => void; onPlayAgain?: () => void; onNextChapter?: () => void; onBack?: () => void; onClose: () => void }) {
   const ELEMENT_ICONS: Record<string, string> = {
     FIRE_ESSENCE: '🔥', WATER_ESSENCE: '💧', GRASS_ESSENCE: '🌿',
     ELECTRIC_ESSENCE: '⚡', PSYCHIC_ESSENCE: '🔮', NORMAL_ESSENCE: '⚪',
   };
+  // 4 post-battle action buttons. Each is disabled if its handler is missing.
+  // "Next Chapter" is also disabled when there is no next opponent (last in list).
+  const hasNextChapter = onNextChapter && currentOpponentId
+    ? canGoNextChapter(OPPONENTS.find((o) => o.id === currentOpponentId) ?? { id: currentOpponentId, name: '', level: 0 }, OPPONENTS)
+    : !!onNextChapter;
+  const actions: { key: string; emoji: string; label: string; onClick?: () => void; disabled?: boolean; tone: 'primary' | 'secondary' }[] = [
+    { key: 'restart', emoji: '🔄', label: 'Restart', onClick: onRestart, tone: 'secondary' as const },
+    { key: 'play-again', emoji: '🎲', label: 'Main Lagi', onClick: onPlayAgain, tone: 'secondary' as const },
+    { key: 'next-chapter', emoji: '⏭️', label: 'Next Chapter', onClick: onNextChapter, disabled: !hasNextChapter, tone: 'secondary' as const },
+    { key: 'back', emoji: '🏠', label: 'Kembali', onClick: onBack, tone: 'secondary' as const },
+  ];
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }} className="text-center p-8 max-w-sm w-full">
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+      <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }} className="text-center p-6 max-w-sm w-full">
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1.5 }} transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
           className="text-7xl mb-4">{win ? '🏆' : '💀'}</motion.div>
         <h2 className="text-3xl font-black text-white mb-2">{win ? 'VICTORY!' : 'DEFEAT'}</h2>
         {win ? (
-          <div className="space-y-2 mb-4">
+          <div className="space-y-1 mb-4">
             <p className="text-white/60">+{xpGained} XP earned!</p>
             {diamondsGained && diamondsGained > 0 && (
               <p className="text-cyan-400 font-bold">+{diamondsGained} 💎</p>
@@ -1075,7 +1087,29 @@ function ResultModal({ win, xpGained, diamondsGained, stardustGained, onClose }:
             )}
           </div>
         ) : <p className="text-white/60 mb-4">Coba lagi!</p>}
-        <button onClick={onClose} className="mt-4 px-8 py-3 rounded-2xl bg-[#6c5ce7] text-white font-bold active:scale-95">Lanjutkan</button>
+
+        {/* 4 post-battle actions: 2x2 grid on mobile, single column for clarity */}
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          {actions.map((a) => (
+            <button
+              key={a.key}
+              onClick={a.onClick}
+              disabled={a.disabled}
+              title={POST_BATTLE_ACTIONS.find((x) => x.id === a.key)?.description}
+              className={`px-3 py-3 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-1.5 ${
+                a.disabled
+                  ? 'bg-white/5 text-white/30 cursor-not-allowed'
+                  : a.tone === 'primary'
+                    ? 'bg-[#6c5ce7] text-white hover:bg-[#5a4dd4]'
+                    : 'bg-white/10 text-white hover:bg-white/20'
+              }`}
+            >
+              <span className="text-lg" aria-hidden="true">{a.emoji}</span>
+              <span>{a.label}</span>
+            </button>
+          ))}
+        </div>
+        <p className="text-white/30 text-[10px] mt-3">Pilih aksi untuk lanjut</p>
       </motion.div>
     </motion.div>
   );
@@ -2886,6 +2920,40 @@ setTimeout(() => {
     }
   };
 
+  // ============================================================
+  // Post-battle action handlers (ResultModal 4 buttons)
+  // ============================================================
+
+  // Restart: re-fight SAME opponent with fresh HP/energy/turn.
+  // Useful for "try again" right after defeat.
+  const handleRestart = () => {
+    if (!opponent) return;
+    startBattle(opponent);
+  };
+
+  // Play Again: pick a random OPPONENT (excluding current) and start.
+  const handlePlayAgain = () => {
+    if (!opponent) return;
+    const next = getRandomOpponent(opponent, OPPONENTS);
+    if (next) startBattle(next);
+  };
+
+  // Next Chapter: progress to the next opponent in story order.
+  // No-op when current is the last opponent (Dragon).
+  const handleNextChapter = () => {
+    if (!opponent) return;
+    const next = getNextOpponent(opponent, OPPONENTS);
+    if (next) startBattle(next);
+  };
+
+  // Kembali: return to deck selection from result screen.
+  const handlePostBattleBack = () => {
+    setResult(null);
+    setPhase('select-deck');
+    setSelectedDeckId(null);
+    setOpponent(null);
+  };
+
   const resetBossState = () => {
     setBoss(null);
     setBossHp(0);
@@ -3053,7 +3121,7 @@ setTimeout(() => {
         {phase === 'select-opponent' && <OpponentSelectModal onSelect={startBattle} onClose={() => setPhase('select-deck')} onBossBattle={() => setPhase('boss-select')} />}
         {phase === 'boss-select' && <BossSelectModal onSelect={(selectedBoss) => { startBossBattle(selectedBoss); }} onClose={() => setPhase('select-opponent')} battleWins={battleWins} defeatedBosses={defeatedBosses} />}
       </AnimatePresence>
-      <AnimatePresence>{result && <ResultModal win={result.win} xpGained={result.xp} diamondsGained={result.diamonds} stardustGained={result.stardust} onClose={() => { setResult(null); setPhase('select-deck'); setSelectedDeckId(null); }} />}</AnimatePresence>
+      <AnimatePresence>{result && phase === 'result' && <ResultModal win={result.win} xpGained={result.xp} diamondsGained={result.diamonds} stardustGained={result.stardust} currentOpponentId={opponent?.id} onRestart={handleRestart} onPlayAgain={handlePlayAgain} onNextChapter={handleNextChapter} onBack={handlePostBattleBack} onClose={() => { setResult(null); setPhase('select-deck'); setSelectedDeckId(null); }} />}</AnimatePresence>
       <AnimatePresence>{showStudy && playerActive && <HealModal card={playerActive} onHeal={() => answerHeal('heal')} onSkip={() => answerHeal('skip')} />}</AnimatePresence>
 
       {phase === 'intro' && opponent && (
