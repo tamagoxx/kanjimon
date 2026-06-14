@@ -4,6 +4,9 @@
 -- Run this in the Supabase SQL editor (or via supabase CLI) BEFORE
 -- enabling cloud leaderboard in the app.
 --
+-- Updated 2026-06-14: game_mode constraint now includes 'kanji-stack' and
+-- 'memory-match' to match the TypeScript GameMode union.
+--
 -- Schema:
 --   - One row per finished run.
 --   - (user_id, played_at) is the natural key for fetching "my runs".
@@ -19,7 +22,7 @@ create table if not exists public.leaderboard_scores (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references auth.users(id) on delete cascade,
   username    text not null,
-  game_mode   text not null check (game_mode in ('kanji-drop', 'battle')),
+  game_mode   text not null check (game_mode in ('kanji-drop', 'battle', 'kanji-stack', 'memory-match')),
   score       integer not null check (score >= 0),
   wave        integer not null default 0 check (wave >= 0),
   kills       integer not null default 0 check (kills >= 0),
