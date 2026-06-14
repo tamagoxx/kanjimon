@@ -9,9 +9,13 @@ import {
   type ElementEssence,
   type EssencePullResult,
   calculateEssencePullCost,
-  simulateEssencePulls,
   aggregateEssenceResults,
 } from '@/lib/essenceGacha';
+import {
+  PITY_4_THRESHOLD,
+  PITY_5_THRESHOLD,
+  pullWithPity,
+} from '@/lib/essenceGachaPity';
 
 // ============================================================
 // Element-themed visuals
@@ -54,6 +58,8 @@ export function EssenceGachaPanel() {
   const spendDiamonds = useCollectionStore((s) => s.spendDiamonds);
   const addElementEssence = useCollectionStore((s) => s.addElementEssence);
   const elementEssences = useCollectionStore((s) => s.elementEssences);
+  const essencePity = useCollectionStore((s) => s.essencePity);
+  const setEssencePity = useCollectionStore((s) => s.setEssencePity);
 
   const [pullCount, setPullCount] = useState<PullOption>(1);
   const [pulling, setPulling] = useState(false);
@@ -77,11 +83,13 @@ export function EssenceGachaPanel() {
     // Simulate brief pull animation
     await new Promise((r) => setTimeout(r, 700));
 
-    const newResults = simulateEssencePulls(pullCount);
+    // Use pity-aware pull (guaranteed rare 4+ every 50, jackpot 5 every 100)
+    const { results: newResults, newPity } = pullWithPity(pullCount, essencePity);
     const aggregated = aggregateEssenceResults(newResults);
     for (const e of ESSENCE_TYPES) {
       if (aggregated[e] > 0) addElementEssence(e, aggregated[e]);
     }
+    setEssencePity(newPity);
 
     setResults(newResults);
     setPulling(false);
@@ -175,6 +183,22 @@ export function EssenceGachaPanel() {
           <p className="mt-3 text-center text-[10px] text-white/40">
             🎁 Setiap pull: 1-5 essence random (1-3 sering, 4-5 jackpot langka)
           </p>
+
+          {/* Pity progress bars */}
+          <div className="mt-3 space-y-1.5" data-testid="pity-progress">
+            <PityBar
+              label="🟣 Rare (4+)"
+              current={essencePity.pullsSinceRare4}
+              threshold={PITY_4_THRESHOLD}
+              activeColor="#a855f7"
+            />
+            <PityBar
+              label="🟡 Jackpot (5)"
+              current={essencePity.pullsSinceJackpot5}
+              threshold={PITY_5_THRESHOLD}
+              activeColor="#ffd93d"
+            />
+          </div>
         </div>
       </motion.div>
 
@@ -189,6 +213,53 @@ export function EssenceGachaPanel() {
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+// ============================================================
+// Pity progress bar
+// ============================================================
+function PityBar({
+  label,
+  current,
+  threshold,
+  activeColor,
+}: {
+  label: string;
+  current: number;
+  threshold: number;
+  activeColor: string;
+}) {
+  const pct = Math.min(100, (current / threshold) * 100);
+  const remaining = Math.max(0, threshold - current);
+  const guaranteed = current >= threshold - 1; // 1-indexed: pull #threshold is guaranteed
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-0.5">
+        <span className="text-[10px] text-white/60 font-bold">{label}</span>
+        <span
+          className="text-[10px] font-bold"
+          style={{ color: guaranteed ? activeColor : '#ffffff60' }}
+        >
+          {guaranteed
+            ? `✓ Dijamin pull berikutnya!`
+            : `${current}/${threshold} (${remaining} lagi)`}
+        </span>
+      </div>
+      <div
+        className="h-1.5 rounded-full overflow-hidden"
+        style={{ backgroundColor: '#0a1519' }}
+      >
+        <div
+          className="h-full transition-all duration-300"
+          style={{
+            width: `${pct}%`,
+            backgroundColor: guaranteed ? activeColor : `${activeColor}80`,
+          }}
+        />
+      </div>
+    </div>
   );
 }
 

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { OwnedCard, Deck, DailyQuest, JapaneseCard, FusedPokemon, ElementEssence, PokemonMove } from '@/types';
 import { getSellPrice } from '@/lib/cardSellPrice';
+import { FRESH_PITY, type PityState } from '@/lib/essenceGachaPity';
 import { useAuthStore } from './authStore';
 
 // Pokemon card type (from PokeAPI)
@@ -87,6 +88,7 @@ interface CollectionState {
   energy: number;
   stardust: number;
   elementEssences: Record<ElementEssence, number>;
+  essencePity: PityState;
   totalDiamondsEarned: number;
   streakDays: number;
   lastLoginDate: string | null;
@@ -157,6 +159,7 @@ interface CollectionState {
   addStardust: (amount: number) => void;
   spendStardust: (amount: number) => boolean;
   addElementEssence: (essence: ElementEssence, amount: number) => void;
+  setEssencePity: (pity: PityState) => void;
   spendElementEssence: (essence: ElementEssence, amount: number) => boolean;
   sellCard: (cardId: string) => boolean;
   sellPokemon: (pokemonId: number) => boolean;
@@ -198,6 +201,7 @@ export const useCollectionStore = create<CollectionState>()(
         PSYCHIC_ESSENCE: 0,
         NORMAL_ESSENCE: 0,
       },
+      essencePity: { ...FRESH_PITY },
       dollars: 0,
       totalDiamondsEarned: 0,
       streakDays: 0,
@@ -612,6 +616,10 @@ export const useCollectionStore = create<CollectionState>()(
             [essence]: state.elementEssences[essence] + amount,
           },
         }));
+      },
+
+      setEssencePity: (pity) => {
+        set({ essencePity: pity });
       },
 
       spendElementEssence: (essence, amount) => {
