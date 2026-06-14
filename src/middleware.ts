@@ -3,7 +3,7 @@
 // ============================================================
 //
 // Runs on every request (except static/image files). Forwards
-// the request through `updateSession` which:
+// the request through `createClient` which:
 //   - reads auth cookies from the request
 //   - calls supabase.auth.getUser() (refreshes if expiring)
 //   - writes refreshed cookies back to the response
@@ -13,10 +13,10 @@
 // ============================================================
 
 import { type NextRequest } from 'next/server';
-import { updateSession } from '@utils/supabase/middleware';
+import { createClient } from '@utils/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request);
+  return await createClient(request);
 }
 
 export const config = {
