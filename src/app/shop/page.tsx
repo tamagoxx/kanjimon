@@ -858,6 +858,29 @@ export default function ShopPage() {
               onBuy={() => handleBuy('💎', 1000, () => addStardust(800))}
               highlight
             />
+            <ShopItem
+              name="+10.000 Stardust"
+              price={10000}
+              currency="💎"
+              emoji="✨"
+              description="Hemat 6.000💎"
+              color="#a855f7"
+              tag="WHALE"
+              tagColor="bg-purple-500/20 text-purple-300"
+              onBuy={() => handleBuy('💎', 10000, () => addStardust(10000))}
+            />
+            <ShopItem
+              name="+100.000 Stardust"
+              price={100000}
+              currency="💎"
+              emoji="✨"
+              description="Hemat 60.000💎"
+              color="#ec4899"
+              tag="MEGA WHALE"
+              tagColor="bg-pink-500/20 text-pink-300"
+              onBuy={() => handleBuy('💎', 100000, () => addStardust(100000))}
+              highlight
+            />
           </div>
         </section>
 
