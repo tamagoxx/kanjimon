@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useCollectionStore, PokemonCard } from '@/store/collectionStore';
 import { Loader2, Lock, ChevronDown, ChevronUp, Sparkles, X, Shield, Swords, Heart, Zap, Minus, Plus } from 'lucide-react';
+import { EssenceGachaPanel } from './EssenceGachaPanel';
 
 // ============================================================
 // Types
@@ -699,6 +700,9 @@ export default function GachaPage() {
             );
           })}
         </div>
+
+        {/* Essence Gacha — Diamond currency, rolls material essences */}
+        <EssenceGachaPanel />
 
         {/* Info */}
         <div className="text-center text-xs text-white/30 py-4">
