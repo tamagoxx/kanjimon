@@ -461,6 +461,14 @@ export default function HomePage() {
             isNew
             onClick={() => router.push('/memory-match')}
           />
+          <GameModeCard
+            icon="🧱"
+            title="Kanji Stack"
+            subtitle="Susun kanji jatuh!"
+            color={colors.brand}
+            isNew
+            onClick={() => router.push('/kanji-stack')}
+          />
         </motion.div>
 
         {/* Continue Learning Card */}
