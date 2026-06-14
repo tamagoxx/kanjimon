@@ -17,6 +17,7 @@ import {
   type UnifiedRun,
 } from '@/lib/recentActivityAggregator';
 import { getEffectiveDefense } from '@/lib/cardStats';
+import { TopScoresWidget } from '@/components/TopScoresWidget';
 
 const QUEST_ICONS: Record<string, string> = {
   BATTLE: '⚔️',
@@ -568,6 +569,9 @@ export default function HomePage() {
             onClick={() => router.push('/kanji-stack')}
           />
         </motion.div>
+
+        {/* Top Global Leaderboard — cloud top 5 */}
+        <TopScoresWidget />
 
         {/* Continue Learning Card */}
         <motion.div
