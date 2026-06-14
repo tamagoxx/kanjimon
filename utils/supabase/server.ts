@@ -1,8 +1,8 @@
 // ============================================================
-// supabase/server.ts — Server-side Supabase client (RSC + Route Handlers)
+// utils/supabase/server.ts — Server-side Supabase client (RSC + Route Handlers)
 // ============================================================
 //
-// Use this in:
+// Canonical Supabase SSR convention. Use this in:
 //   - Server Components
 //   - Route Handlers (app/api/...)
 //   - Server Actions
@@ -13,8 +13,8 @@
 
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { readEnv } from '../env';
-import type { Database } from './types';
+import { readEnv } from '../../src/lib/env';
+import type { Database } from '../../src/lib/supabase/types';
 
 export async function createServerSupabaseClient() {
   const env = readEnv();

@@ -26,7 +26,7 @@
 //     the live flash animation.
 // ============================================================
 
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient } from '@utils/supabase/server';
 import { fetchTopScoresFromServer, getCurrentUserFromServer } from '@/lib/leaderboardData.server';
 import { readEnv } from '@/lib/env';
 import { LeaderboardClient } from '@/components/leaderboard/LeaderboardClient';

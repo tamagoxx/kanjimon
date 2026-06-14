@@ -7,7 +7,7 @@
 // but takes a Supabase client as a parameter (since `getSupabase()`
 // in `./supabase.ts` builds a browser client via createBrowserClient).
 // The RSC page calls `createServerSupabaseClient()` from
-// `@/lib/supabase/server` to get a cookie-aware client, then passes
+// `@utils/supabase/server` to get a cookie-aware client, then passes
 // it here.
 //
 // All errors are swallowed and return `[]` so the page can fall
