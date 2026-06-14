@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useCollectionStore } from '@/store/collectionStore';
 import { useAuthStore } from '@/store/authStore';
-import { getSellPrice } from '@/lib/cardSellPrice';
+import { getSellPrice, SELLABLE_RARITIES } from '@/lib/cardSellPrice';
 import { Flame, Coins, Zap, ArrowLeft, X, Info, Star, Shield, Sword, Heart } from 'lucide-react';
 
 const colors = {
@@ -519,34 +519,18 @@ export default function SellPage() {
             <span className="text-sm font-bold text-white">Tentang Burn</span>
           </div>
           <div className="space-y-1.5 text-xs text-white/50">
-            <div className="flex items-center justify-between">
-              <span>🔵 COMMON</span>
-              <div className="flex items-center gap-3">
-                <span style={{ color: '#4ade80' }}>💵 5</span>
-                <span className="text-yellow-400">⚡ +2</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>⚪ UNCOMMON</span>
-              <div className="flex items-center gap-3">
-                <span style={{ color: '#4ade80' }}>💵 15</span>
-                <span className="text-yellow-400">⚡ +4</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>🟡 RARE</span>
-              <div className="flex items-center gap-3">
-                <span style={{ color: '#4ade80' }}>💵 50</span>
-                <span className="text-yellow-400">⚡ +8</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>🟠 ULTRA RARE</span>
-              <div className="flex items-center gap-3">
-                <span style={{ color: '#4ade80' }}>💵 200</span>
-                <span className="text-yellow-400">⚡ +20</span>
-              </div>
-            </div>
+            {SELLABLE_RARITIES.map(r => {
+              const price = getSellPrice(r);
+              return (
+                <div key={r} className="flex items-center justify-between">
+                  <span>{r}</span>
+                  <div className="flex items-center gap-3">
+                    <span style={{ color: '#4ade80' }}>💵 {price.dollars.toLocaleString('id-ID')}</span>
+                    <span className="text-yellow-400">⚡ +{price.energy}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
           <p className="text-[10px] text-white/20 pt-2 text-center">
             Burn kartu = hapus dari koleksi + dapat dollars + energi
