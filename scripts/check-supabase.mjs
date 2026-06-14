@@ -11,7 +11,7 @@
 // =====================================================================
 
 import { readFileSync, existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -110,11 +110,36 @@ for (const c of checks) {
 }
 console.log('');
 
-if (ok) {
-  console.log('\x1b[32mSupabase configured. Run `npm run dev` and visit /leaderboard.\x1b[0m');
+// ---- file presence checks ----
+const requiredFiles = [
+  { path: 'src/middleware.ts', label: 'Next.js middleware entry' },
+  { path: 'src/lib/supabase/middleware.ts', label: 'session refresh helper' },
+  { path: 'src/lib/supabase/client.ts', label: 'browser client' },
+  { path: 'src/lib/supabase/server.ts', label: 'server client' },
+  { path: 'supabase/migrations/0001_leaderboard_scores.sql', label: 'leaderboard migration' },
+];
+
+console.log('\x1b[1mIntegration files:\x1b[0m');
+let allFilesOk = true;
+for (const f of requiredFiles) {
+  const exists = existsSync(join(root, f.path));
+  if (!exists) allFilesOk = false;
+  console.log(`  ${exists ? '\x1b[32m✓\x1b[0m' : '\x1b[31m✗\x1b[0m'} ${f.path}  (${f.label})`);
+}
+console.log('');
+
+if (ok && allFilesOk) {
+  console.log('\x1b[32mSupabase configured + all files present. Run `npm run dev` and visit /leaderboard.\x1b[0m');
   process.exit(0);
+} else if (ok && !allFilesOk) {
+  console.log('\x1b[33mEnv is set, but some integration files are missing. See above.\x1b[0m');
+  process.exit(1);
+} else if (!ok && allFilesOk) {
+  console.log('\x1b[33mFiles are all in place, but Supabase is NOT configured. App will run in local-only mode.\x1b[0m');
+  console.log('\x1b[33mSee .env.local.example for setup instructions.\x1b[0m');
+  process.exit(1);
 } else {
-  console.log('\x1b[33mSupabase NOT configured. App will run in local-only mode.\x1b[0m');
+  console.log('\x1b[33mSupabase NOT configured AND some files are missing. See above.\x1b[0m');
   console.log('\x1b[33mSee .env.local.example for setup instructions.\x1b[0m');
   process.exit(1);
 }

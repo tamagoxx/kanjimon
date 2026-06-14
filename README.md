@@ -97,12 +97,35 @@ src/
   lib/              # Pure logic + Supabase client (NO React imports)
     kanjiDropLogic, cardStats, evolutionChain,
     essenceGacha, essenceGachaPity,
-    leaderboardLogic, leaderboardData, supabase, ...
+    leaderboardLogic, leaderboardData,
+    env,                    # Env validation (TDD)
+    supabase.ts,            # Browser singleton
+    supabase/
+      client.ts,            # createBrowserClient()
+      server.ts,            # createServerClient() (RSC + Route Handlers)
+      middleware.ts,        # updateSession() — called by Next.js middleware
+      types.ts,             # Database types
+  middleware.ts             # Next.js middleware entry — keeps sessions fresh
 supabase/
   migrations/       # SQL migrations to run in Supabase dashboard
 scripts/
-  check-supabase.mjs # Validate env + live-ping Supabase
+  check-supabase.mjs # Validate env + integration files + live-ping Supabase
 ```
+
+### Middleware + session refresh
+
+`src/middleware.ts` runs on every non-static request and calls
+`updateSession(request)` from `src/lib/supabase/middleware.ts`. That helper:
+1. Reads the Supabase auth cookies from the incoming request
+2. Calls `supabase.auth.getUser()` (this auto-refreshes expired JWTs)
+3. Writes the rotated cookies back into the response
+
+For this to work, the browser client must be cookie-based (not localStorage).
+`src/lib/supabase.ts` uses `createBrowserClient` from `@supabase/ssr` so
+cookies stay in sync between client and middleware.
+
+When `NEXT_PUBLIC_SUPABASE_URL` is missing, `updateSession` is a no-op
+(`NextResponse.next()`) and the app runs in local-only mode.
 
 ### Key design rule
 `src/lib/` is **pure** (no React, no Supabase, no fetch). Pure decision logic
@@ -122,7 +145,7 @@ imports from the pure logic + adds the cloud/local fallback.
 | `npm test`                    | Run vitest in watch mode                  |
 | `npx vitest run`              | Run vitest once                           |
 | `npx tsc --noEmit`            | Type-check                                |
-| `node scripts/check-supabase.mjs`        | Validate Supabase env         |
+| `node scripts/check-supabase.mjs`        | Validate env + integration files          |
 | `node scripts/check-supabase.mjs --live` | Validate + live-ping Supabase |
 
 ---
