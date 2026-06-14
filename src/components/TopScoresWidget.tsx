@@ -17,12 +17,18 @@
 // i.e. SELECT from cloud → optional-chain → .map() in JSX.
 // ============================================================
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import type { LeaderboardScoreRow } from '@/lib/supabase/types';
-import { mapTopScores, gameModeLabel, gameModeIcon } from '@/lib/leaderboardTopScores';
+import {
+  mapTopScores,
+  mergeNewRowIntoTopN,
+  gameModeLabel,
+  gameModeIcon,
+  type TopScoreEntry,
+} from '@/lib/leaderboardTopScores';
 import { formatRelativeTime } from '@/lib/recentActivityAggregator';
 
 const colors = {
@@ -43,7 +49,11 @@ type Status = 'loading' | 'ready' | 'empty' | 'error';
 
 export function TopScoresWidget() {
   const [status, setStatus] = useState<Status>('loading');
-  const [rows, setRows] = useState<LeaderboardScoreRow[]>([]);
+  // Store the MAPPED entries (not raw rows) so realtime INSERT events
+  // can splice a new entry in via `mergeNewRowIntoTopN` without a
+  // re-fetch round-trip. The fetch effect below populates this with
+  // the initial top-5.
+  const [entries, setEntries] = useState<TopScoreEntry[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // `now` ticks every minute so the "X menit lalu" labels stay fresh
   // without re-fetching from Supabase.
@@ -54,43 +64,80 @@ export function TopScoresWidget() {
     return () => clearInterval(tick);
   }, []);
 
+  // Initial fetch — pulls top 5 from Supabase on mount.
+  const loadTopScores = useCallback(async () => {
+    try {
+      const supabase = getBrowserSupabase();
+      const { data, error } = await supabase
+        .from('leaderboard_scores')
+        .select('id, user_id, username, game_mode, score, wave, kills, max_combo, played_at, created_at, duration_sec')
+        .order('score', { ascending: false })
+        .order('played_at', { ascending: false })
+        .limit(5);
+      if (error) {
+        // Most common: table not yet migrated, or anon read denied.
+        // Either way, fail silent — the rest of the home page still works.
+        setErrorMsg(error.message);
+        setStatus('empty');
+        return;
+      }
+      if (!data || data.length === 0) {
+        setStatus('empty');
+        return;
+      }
+      setEntries(mapTopScores(data));
+      setStatus('ready');
+    } catch (e) {
+      setErrorMsg((e as Error).message);
+      setStatus('error');
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const supabase = getBrowserSupabase();
-        const { data, error } = await supabase
-          .from('leaderboard_scores')
-          .select('id, user_id, username, game_mode, score, wave, kills, max_combo, played_at, created_at, duration_sec')
-          .order('score', { ascending: false })
-          .order('played_at', { ascending: false })
-          .limit(5);
-        if (cancelled) return;
-        if (error) {
-          // Most common: table not yet migrated, or anon read denied.
-          // Either way, fail silent — the rest of the home page still works.
-          setErrorMsg(error.message);
-          setStatus('empty');
-          return;
-        }
-        if (!data || data.length === 0) {
-          setStatus('empty');
-          return;
-        }
-        setRows(data);
-        setStatus('ready');
-      } catch (e) {
-        if (cancelled) return;
-        setErrorMsg((e as Error).message);
-        setStatus('error');
-      }
+      // Guard against state updates after unmount.
+      if (cancelled) return;
+      await loadTopScores();
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadTopScores]);
 
-  const entries = mapTopScores(rows);
+  // Realtime subscription — when ANY client inserts a new row into
+  // `leaderboard_scores`, optimistically splice it into our list.
+  // No network round-trip; if the row doesn't crack the top 5, the
+  // merge helper returns the same list (no re-render).
+  useEffect(() => {
+    if (status !== 'ready') return; // no list to merge into yet
+    const supabase = getBrowserSupabase();
+    const channel = supabase
+      .channel('top-scores-inserts')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'leaderboard_scores' },
+        (payload) => {
+          const newRow = payload.new as LeaderboardScoreRow;
+          // Build a minimal TopScoreEntry — rank+medal are re-assigned
+          // by mergeNewRowIntoTopN based on actual position.
+          const incoming: TopScoreEntry = {
+            id: newRow.id,
+            rank: 0,
+            username: newRow.username,
+            score: newRow.score,
+            gameMode: newRow.game_mode,
+            medal: null,
+            playedAt: newRow.played_at,
+          };
+          setEntries((prev) => mergeNewRowIntoTopN(prev, incoming, 5));
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [status]);
 
   return (
     <motion.div

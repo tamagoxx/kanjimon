@@ -25,6 +25,37 @@ export interface TopScoreEntry {
 const MEDALS: Array<'🥇' | '🥈' | '🥉' | null> = ['🥇', '🥈', '🥉', null, null];
 
 /**
+ * Merge a new row (from a realtime INSERT event) into the existing
+ * top-N list. Returns a re-sorted, re-ranked, capped list.
+ *
+ * Rules:
+ * - Sort by `score` DESC (stable: ties keep existing order, new row
+ *   goes AFTER existing entries with the same score).
+ * - Cap at `maxN` (default 5). If the new row doesn't crack the cap,
+ *   the list is returned unchanged.
+ * - Re-assigns `rank` 1..N and `medal` (🥇🥈🥉) on every entry.
+ */
+export function mergeNewRowIntoTopN(
+  entries: TopScoreEntry[],
+  newRow: TopScoreEntry,
+  maxN: number = 5,
+): TopScoreEntry[] {
+  // If list is full and new row is not better than the lowest, no-op.
+  if (entries.length >= maxN && newRow.score <= entries[entries.length - 1].score) {
+    return entries;
+  }
+  // Stable sort: combine, then sort by score DESC. Array.prototype.sort
+  // is stable in modern JS (ES2019+), so ties preserve insertion order
+  // — existing first, new row last among equals.
+  const combined = [...entries, newRow];
+  const sorted = combined
+    .slice()
+    .sort((a, b) => b.score - a.score)
+    .slice(0, maxN);
+  return sorted.map((e, i) => ({ ...e, rank: i + 1, medal: MEDALS[i] ?? null }));
+}
+
+/**
  * Map raw leaderboard rows (assumed pre-sorted by the caller —
  * Supabase `.order('score', { ascending: false })`) into UI
  * entries with rank + medal. Caps medals at top 3; everyone
