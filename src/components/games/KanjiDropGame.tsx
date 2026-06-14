@@ -16,6 +16,8 @@ import {
   type ChoiceOption,
 } from '@/lib/kanjiDropLogic';
 import { useKanjiDropStore } from '@/store/kanjiDropStore';
+import { useAuthStore } from '@/store/authStore';
+import { submitScore } from '@/lib/leaderboardData';
 
 // ============================================================
 // Kanji Drop — Game Component
@@ -191,6 +193,7 @@ export default function KanjiDropGame({ onExit }: KanjiDropGameProps) {
   const recordRun = useKanjiDropStore((s) => s.recordRun);
   const highScore = useKanjiDropStore((s) => s.highScore);
   const showReading = useKanjiDropStore((s) => s.showReading);
+  const user = useAuthStore((s) => s.user);
 
   // Refs for per-frame data (not React state)
   const activeRef = useRef<ActiveKanji[]>([]);
@@ -335,11 +338,12 @@ export default function KanjiDropGame({ onExit }: KanjiDropGameProps) {
     }
   }, [state.phase]);
 
-  // ---- Game over → record run ----
+  // ---- Game over → record run + submit to leaderboard ----
   useEffect(() => {
     if (state.phase === 'GAMEOVER' && !runRecordedRef.current) {
       runRecordedRef.current = true;
       const durationSec = Math.max(0, Math.round((Date.now() - state.startedAt) / 1000));
+      const playedAt = new Date().toISOString();
       recordRun({
         score: state.score,
         wave: state.wave,
@@ -347,10 +351,24 @@ export default function KanjiDropGame({ onExit }: KanjiDropGameProps) {
         maxCombo: state.maxCombo,
         durationSec,
         destroyed: state.destroyed,
-        playedAt: new Date().toISOString(),
+        playedAt,
       });
+      // Fire-and-forget: submit to cloud leaderboard if user is signed in.
+      // Skip if not configured or not signed in — local recordRun already covers it.
+      if (user?.id) {
+        void submitScore({
+          userId: user.id,
+          username: user.username,
+          gameMode: 'kanji-drop',
+          score: state.score,
+          wave: state.wave,
+          kills: state.kills,
+          maxCombo: state.maxCombo,
+          playedAt,
+        });
+      }
     }
-  }, [state.phase, state.score, state.wave, state.kills, state.maxCombo, state.startedAt, state.destroyed, recordRun]);
+  }, [state.phase, state.score, state.wave, state.kills, state.maxCombo, state.startedAt, state.destroyed, recordRun, user]);
 
   // ---- Input handling (document-level so it works without focus) ----
   const handleKey = useCallback((e: KeyboardEvent) => {

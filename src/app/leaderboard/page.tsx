@@ -1,342 +1,313 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuthStore } from '@/store/authStore';
+import {
+  fetchTopScores,
+  subscribeToNewScores,
+  getLocalEntries,
+  mergeWithLocal,
+  type FetchOptions,
+} from '@/lib/leaderboardData';
+import {
+  sortByScore,
+  filterByTimeWindow,
+  getUserRank,
+  type GameMode,
+  type TimeWindow,
+  type LeaderboardEntry,
+} from '@/lib/leaderboardLogic';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
-interface LeaderboardEntry {
-  rank: number;
-  username: string;
-  avatar: string;
-  level: number;
-  xp: number;
-  battleWins: number;
-  winRate: number;
-}
+const colors = {
+  background: '#0a1519',
+  cardBg: '#1a1a2e',
+  inputBg: '#212c30',
+  darkText: '#c8c4d7',
+  lightText: '#d8e4ea',
+  brand: '#6c5ce7',
+  teal: '#4bddb7',
+  gold: '#f0bf63',
+  coral: '#ffb4ab',
+  lightPurple: '#c6bfff',
+  darkGray: '#2b363b',
+};
 
-// Demo leaderboard data
-const DEMO_LEADERBOARD: LeaderboardEntry[] = [
-  { rank: 1, username: 'JapaneseSensei', avatar: '🎌', level: 25, xp: 15420, battleWins: 342, winRate: 78 },
-  { rank: 2, username: 'NinjaMaster99', avatar: '🥷', level: 23, xp: 13280, battleWins: 298, winRate: 75 },
-  { rank: 3, username: 'KanjiKing', avatar: '👑', level: 22, xp: 12150, battleWins: 275, winRate: 72 },
-  { rank: 4, username: 'TokyoWarrior', avatar: '⚔️', level: 21, xp: 11400, battleWins: 258, winRate: 71 },
-  { rank: 5, username: 'SakuraPlayer', avatar: '🌸', level: 20, xp: 10890, battleWins: 240, winRate: 70 },
-  { rank: 6, username: 'OsakaGamer', avatar: '🏯', level: 19, xp: 9870, battleWins: 220, winRate: 68 },
-  { rank: 7, username: 'AnimeFan2024', avatar: '🎭', level: 18, xp: 8950, battleWins: 195, winRate: 65 },
-  { rank: 8, username: 'HiraganaHero', avatar: '📚', level: 17, xp: 8230, battleWins: 178, winRate: 63 },
-  { rank: 9, username: 'KatakanaKing', avatar: '✍️', level: 16, xp: 7650, battleWins: 162, winRate: 61 },
-  { rank: 10, username: 'JLPTWarrior', avatar: '🏆', level: 15, xp: 6980, battleWins: 145, winRate: 58 },
-  { rank: 11, username: 'YukiSnow', avatar: '❄️', level: 14, xp: 6340, battleWins: 130, winRate: 56 },
-  { rank: 12, username: 'SamuraiSpirit', avatar: '🛡️', level: 13, xp: 5780, battleWins: 118, winRate: 54 },
-  { rank: 13, username: 'RamenLover', avatar: '🍜', level: 12, xp: 5120, battleWins: 102, winRate: 51 },
-  { rank: 14, username: 'OnigiriHunter', avatar: '🌙', level: 11, xp: 4650, battleWins: 89, winRate: 48 },
-  { rank: 15, username: 'WasabiBoss', avatar: '🔥', level: 10, xp: 4100, battleWins: 78, winRate: 45 },
+const MODES: { id: GameMode; label: string; icon: string; color: string }[] = [
+  { id: 'kanji-drop', label: 'Kanji Drop', icon: '⏬', color: colors.teal },
+  { id: 'battle', label: 'Battle', icon: '⚔️', color: colors.coral },
 ];
 
-const TIME_FILTERS = ['Daily', 'Weekly', 'Monthly', 'All Time'];
-const STAT_FILTERS = ['XP', 'Battle Wins', 'Win Rate', 'Level'];
+const WINDOWS: { id: TimeWindow; label: string }[] = [
+  { id: 'TODAY', label: 'Hari Ini' },
+  { id: 'THIS_WEEK', label: 'Minggu Ini' },
+  { id: 'ALL_TIME', label: 'Semua' },
+];
+
+function formatScore(n: number): string {
+  return n.toLocaleString('id-ID');
+}
+
+function formatRelative(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diffMs / 60_000);
+  if (min < 1) return 'baru saja';
+  if (min < 60) return `${min}m lalu`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}j lalu`;
+  const d = Math.floor(h / 24);
+  return `${d}h lalu`;
+}
 
 export default function LeaderboardPage() {
-  const [timeFilter, setTimeFilter] = useState('All Time');
-  const [statFilter, setStatFilter] = useState('XP');
-  const [searchQuery, setSearchQuery] = useState('');
+  const user = useAuthStore((s) => s.user);
+  const [mode, setMode] = useState<GameMode>('kanji-drop');
+  const [window, setWindow] = useState<TimeWindow>('ALL_TIME');
+  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [liveFlash, setLiveFlash] = useState<string | null>(null);
 
-  const filteredLeaderboard = useMemo(() => {
-    let result = [...DEMO_LEADERBOARD];
+  // Stable fetch function
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    const opts: FetchOptions = { mode, window };
+    const cloud = await fetchTopScores(opts);
+    const local = getLocalEntries(mode, user?.username || 'Tamago');
+    const merged = sortByScore(
+      mergeWithLocal(cloud, local),
+      100,
+    );
+    setEntries(merged);
+    setIsLoading(false);
+  }, [mode, window, user?.username]);
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(e => e.username.toLowerCase().includes(q));
-    }
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-    // Sort by selected stat
-    switch (statFilter) {
-      case 'Battle Wins':
-        return result.sort((a, b) => b.battleWins - a.battleWins);
-      case 'Win Rate':
-        return result.sort((a, b) => b.winRate - a.winRate);
-      case 'Level':
-        return result.sort((a, b) => b.level - a.level);
-      default:
-        return result.sort((a, b) => b.xp - a.xp);
-    }
-  }, [timeFilter, statFilter, searchQuery]);
+  // Realtime subscription — only re-subscribes when mode changes.
+  useEffect(() => {
+    const unsubscribe = subscribeToNewScores(mode, (entry) => {
+      // Optimistic merge: prepend, sort, flash badge
+      setEntries((prev) => sortByScore([entry, ...prev], 100));
+      setLiveFlash(entry.username);
+      window.setTimeout(() => setLiveFlash(null), 2500);
+    });
+    return unsubscribe;
+  }, [mode]);
 
-  // Re-rank after sorting
-  const rankedLeaderboard = filteredLeaderboard.map((entry, i) => ({
-    ...entry,
-    rank: i + 1,
-  }));
+  const filtered = useMemo(
+    () => filterByTimeWindow(entries, window),
+    [entries, window],
+  );
 
-  const getRankColor = (rank: number) => {
-    switch (rank) {
-      case 1: return '#FDCB6E'; // Gold
-      case 2: return '#B2BEC3'; // Silver
-      case 3: return '#E17055'; // Bronze
-      default: return '#636E72';
-    }
-  };
-
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1: return '🥇';
-      case 2: return '🥈';
-      case 3: return '🥉';
-      default: return `#${rank}`;
-    }
-  };
+  const userRank = useMemo(
+    () => (user ? getUserRank(filtered, user.id) : null),
+    [filtered, user],
+  );
 
   return (
-    <div className="min-h-screen bg-[#0F0F1A]">
+    <div className="min-h-screen pb-24" style={{ backgroundColor: colors.background }}>
       {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-[#0F0F1A]/80 border-b border-[#2D2D44]">
-        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-[#6C5CE7] to-[#A29BFE] bg-clip-text text-transparent">
-              KanjiMon
-            </Link>
-            <span className="text-[#636E72]">/ Leaderboard</span>
-          </div>
-          <Link href="/" className="text-sm text-[#B2BEC3] hover:text-white">
-            ← Home
-          </Link>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-4 py-6">
-        {/* Page Title */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 text-center"
+      <div
+        className="sticky top-0 z-30 px-4 h-16 flex items-center gap-3"
+        style={{ backgroundColor: colors.background }}
+      >
+        <Link
+          href="/"
+          className="w-10 h-10 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: colors.inputBg }}
         >
-          <h1 className="text-2xl font-bold text-white mb-2">🏆 Leaderboard</h1>
-          <p className="text-[#636E72]">Rival pemain terbaik dari seluruh dunia!</p>
-        </motion.div>
-
-        {/* Filters */}
-        <div className="mb-6 space-y-4">
-          {/* Search */}
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search player..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2.5 bg-[#1A1A2E] border border-[#2D2D44] rounded-xl text-white placeholder-[#636E72] focus:outline-none focus:border-[#6C5CE7]"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#636E72] hover:text-white"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
-          {/* Filter Tabs */}
-          <div className="flex flex-wrap gap-4">
-            {/* Time Filter */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-[#636E72]">Period:</span>
-              <div className="flex gap-1">
-                {TIME_FILTERS.map(filter => (
-                  <button
-                    key={filter}
-                    onClick={() => setTimeFilter(filter)}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                      timeFilter === filter
-                        ? 'bg-[#6C5CE7] text-white'
-                        : 'bg-[#1A1A2E] text-[#B2BEC3] border border-[#2D2D44] hover:border-[#6C5CE7]'
-                    }`}
-                  >
-                    {filter}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Stat Filter */}
-            <div className="flex items-center gap-2 ml-auto">
-              <span className="text-xs text-[#636E72]">Sort by:</span>
-              <div className="flex gap-1">
-                {STAT_FILTERS.map(filter => (
-                  <button
-                    key={filter}
-                    onClick={() => setStatFilter(filter)}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                      statFilter === filter
-                        ? 'bg-[#00B894] text-white'
-                        : 'bg-[#1A1A2E] text-[#B2BEC3] border border-[#2D2D44] hover:border-[#6C5CE7]'
-                    }`}
-                  >
-                    {filter}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+          <span className="text-[#c6bfff] text-lg">←</span>
+        </Link>
+        <div className="flex-1">
+          <h1 className="text-lg font-bold text-[#d8e4ea]">🏆 Leaderboard</h1>
+          <p className="text-xs text-[#c8c4d7]">
+            {isSupabaseConfigured ? 'Live global ranking' : 'Mode lokal (Supabase belum dikonfigurasi)'}
+          </p>
         </div>
+      </div>
 
-        {/* Top 3 Podium */}
-        {searchQuery === '' && (
-          <div className="mb-8">
-            <div className="flex items-end justify-center gap-4">
-              {/* 2nd Place */}
-              {rankedLeaderboard[1] && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="flex-1 max-w-[180px] text-center"
-                >
-                  <div className="text-4xl mb-2">{rankedLeaderboard[1].avatar}</div>
-                  <div className="w-full h-28 bg-gradient-to-t from-[#B2BEC3]/30 to-transparent rounded-t-xl pt-4 pb-2">
-                    <div className="bg-[#1A1A2E] rounded-xl p-3 border border-[#B2BEC3]/40">
-                      <div className="text-2xl mb-1">🥈</div>
-                      <div className="text-sm font-bold text-white truncate">{rankedLeaderboard[1].username}</div>
-                      <div className="text-xs text-[#B2BEC3]">Lv.{rankedLeaderboard[1].level}</div>
-                      <div className="text-xs text-yellow-400 mt-1">{rankedLeaderboard[1].xp.toLocaleString()} XP</div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
+      <main className="max-w-md mx-auto px-4 pt-2">
+        {/* Live flash banner */}
+        <AnimatePresence>
+          {liveFlash && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="mb-3 p-2 rounded-lg text-center text-sm font-medium"
+              style={{ backgroundColor: `${colors.teal}20`, color: colors.teal }}
+            >
+              ⚡ Skor baru dari {liveFlash}!
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-              {/* 1st Place */}
-              {rankedLeaderboard[0] && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex-1 max-w-[200px] text-center"
-                >
-                  <div className="text-5xl mb-2 animate-pulse">{rankedLeaderboard[0].avatar}</div>
-                  <div className="w-full h-36 bg-gradient-to-t from-[#FDCB6E]/30 to-transparent rounded-t-xl pt-4 pb-2">
-                    <div className="bg-[#1A1A2E] rounded-xl p-4 border border-[#FDCB6E]/60 shadow-lg shadow-[#FDCB6E]/20">
-                      <div className="text-3xl mb-1">🥇</div>
-                      <div className="text-sm font-bold text-white truncate">{rankedLeaderboard[0].username}</div>
-                      <div className="text-xs text-[#B2BEC3]">Lv.{rankedLeaderboard[0].level}</div>
-                      <div className="text-sm text-yellow-400 mt-1 font-bold">{rankedLeaderboard[0].xp.toLocaleString()} XP</div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* 3rd Place */}
-              {rankedLeaderboard[2] && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="flex-1 max-w-[180px] text-center"
-                >
-                  <div className="text-4xl mb-2">{rankedLeaderboard[2].avatar}</div>
-                  <div className="w-full h-20 bg-gradient-to-t from-[#E17055]/30 to-transparent rounded-t-xl pt-4 pb-2">
-                    <div className="bg-[#1A1A2E] rounded-xl p-3 border border-[#E17055]/40">
-                      <div className="text-2xl mb-1">🥉</div>
-                      <div className="text-sm font-bold text-white truncate">{rankedLeaderboard[2].username}</div>
-                      <div className="text-xs text-[#B2BEC3]">Lv.{rankedLeaderboard[2].level}</div>
-                      <div className="text-xs text-yellow-400 mt-1">{rankedLeaderboard[2].xp.toLocaleString()} XP</div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
+        {/* User's own rank — sticky if logged in */}
+        {user && userRank && (
+          <div
+            className="mb-3 p-3 rounded-xl flex items-center justify-between"
+            style={{ backgroundColor: `${colors.gold}15`, border: `1px solid ${colors.gold}40` }}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center font-bold"
+                style={{ backgroundColor: colors.gold, color: '#0a1519' }}
+              >
+                #{userRank}
+              </div>
+              <div>
+                <div className="text-sm font-medium text-[#d8e4ea]">Peringkatmu</div>
+                <div className="text-xs text-[#c8c4d7]">{user.username}</div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm font-bold text-[#f0bf63]">skormu di bawah</div>
             </div>
           </div>
         )}
 
-        {/* Full Leaderboard List */}
-        <div className="space-y-2">
-          {rankedLeaderboard.map((entry, i) => {
-            const rankColor = getRankColor(entry.rank);
+        {/* Mode tabs */}
+        <div className="mb-3 grid grid-cols-2 gap-2 p-1 rounded-xl" style={{ backgroundColor: colors.inputBg }}>
+          {MODES.map((m) => (
+            <button
+              key={m.id}
+              onClick={() => setMode(m.id)}
+              className="py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+              style={{
+                backgroundColor: mode === m.id ? m.color : 'transparent',
+                color: mode === m.id ? '#0a1519' : colors.darkText,
+              }}
+            >
+              <span>{m.icon}</span>
+              <span>{m.label}</span>
+            </button>
+          ))}
+        </div>
 
-            return (
-              <motion.div
-                key={entry.username}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.05 * i }}
-                className={`flex items-center gap-4 p-3 rounded-xl transition-all ${
-                  entry.rank <= 3
-                    ? 'bg-[#1A1A2E]/50 border border-[#2D2D44]'
-                    : 'bg-[#1A1A2E] border border-transparent hover:border-[#2D2D44]'
-                }`}
-              >
-                {/* Rank */}
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center font-bold"
+        {/* Window selector */}
+        <div className="mb-4 flex gap-2">
+          {WINDOWS.map((w) => (
+            <button
+              key={w.id}
+              onClick={() => setWindow(w.id)}
+              className="flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-colors"
+              style={{
+                backgroundColor: window === w.id ? colors.brand : colors.cardBg,
+                color: window === w.id ? '#fff' : colors.darkText,
+              }}
+            >
+              {w.label}
+            </button>
+          ))}
+        </div>
+
+        {/* List */}
+        {isLoading ? (
+          <div className="text-center py-12 text-[#c8c4d7]">Memuat...</div>
+        ) : filtered.length === 0 ? (
+          <div
+            className="text-center py-12 px-4 rounded-2xl"
+            style={{ backgroundColor: colors.cardBg }}
+          >
+            <div className="text-5xl mb-2">🎮</div>
+            <div className="text-sm font-medium text-[#d8e4ea] mb-1">
+              Belum ada skor
+            </div>
+            <div className="text-xs text-[#c8c4d7] mb-4">
+              {mode === 'kanji-drop'
+                ? 'Mainkan Kanji Drop untuk masuk leaderboard!'
+                : 'Menangkan battle untuk masuk leaderboard!'}
+            </div>
+            <Link
+              href={mode === 'kanji-drop' ? '/kanji-drop' : '/battle'}
+              className="inline-block py-2 px-4 rounded-lg text-sm font-bold"
+              style={{ backgroundColor: colors.teal, color: '#0a1519' }}
+            >
+              Main Sekarang →
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filtered.map((entry, idx) => {
+              const isMe = user && entry.userId === user.id;
+              const isTop3 = idx < 3;
+              const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null;
+              return (
+                <motion.div
+                  key={entry.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.02 }}
+                  className="p-3 rounded-xl flex items-center gap-3"
                   style={{
-                    backgroundColor: `${rankColor}20`,
-                    color: rankColor,
+                    backgroundColor: isMe ? `${colors.brand}25` : colors.cardBg,
+                    border: isMe ? `1px solid ${colors.brand}60` : '1px solid transparent',
                   }}
                 >
-                  {entry.rank <= 3 ? getRankIcon(entry.rank) : `#${entry.rank}`}
-                </div>
-
-                {/* Avatar */}
-                <div className="w-10 h-10 rounded-full bg-[#2D2D44] flex items-center justify-center text-xl">
-                  {entry.avatar}
-                </div>
-
-                {/* Info */}
-                <div className="flex-1">
-                  <div className="font-bold text-white">{entry.username}</div>
-                  <div className="text-xs text-[#636E72]">Level {entry.level}</div>
-                </div>
-
-                {/* Stats */}
-                <div className="flex items-center gap-6 text-sm">
-                  <div className="text-center">
-                    <div className="text-yellow-400 font-bold">{entry.xp.toLocaleString()}</div>
-                    <div className="text-[10px] text-[#636E72]">XP</div>
+                  {/* Rank */}
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0"
+                    style={{
+                      backgroundColor: isTop3 ? colors.gold : colors.inputBg,
+                      color: isTop3 ? '#0a1519' : colors.darkText,
+                    }}
+                  >
+                    {medal || `#${idx + 1}`}
                   </div>
-                  <div className="text-center">
-                    <div className="text-white font-bold">{entry.battleWins}</div>
-                    <div className="text-[10px] text-[#636E72]">Wins</div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-[#d8e4ea] truncate">
+                      {entry.username}
+                      {isMe && <span className="ml-2 text-xs text-[#c6bfff]">(kamu)</span>}
+                    </div>
+                    <div className="text-xs text-[#c8c4d7] flex items-center gap-2">
+                      <span>Wave {entry.wave}</span>
+                      <span>•</span>
+                      <span>{entry.kills} kills</span>
+                      {entry.maxCombo > 0 && (
+                        <>
+                          <span>•</span>
+                          <span>🔥 {entry.maxCombo}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-[#00B894] font-bold">{entry.winRate}%</div>
-                    <div className="text-[10px] text-[#636E72]">Win Rate</div>
+                  {/* Score */}
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-base font-bold text-[#f0bf63]">
+                      {formatScore(entry.score)}
+                    </div>
+                    <div className="text-[10px] text-[#c8c4d7]">
+                      {formatRelative(entry.playedAt)}
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {/* Your Rank (demo) */}
-        <div className="mt-6 p-4 bg-gradient-to-r from-[#6C5CE7]/20 to-[#A29BFE]/20 rounded-xl border border-[#6C5CE7]/40">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#6C5CE7] flex items-center justify-center font-bold text-white">
-                #
-              </div>
-              <div>
-                <div className="font-bold text-white">Your Position</div>
-                <div className="text-xs text-[#636E72]">GuestPlayer</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-6 text-sm">
-              <div className="text-center">
-                <div className="text-yellow-400 font-bold">0</div>
-                <div className="text-[10px] text-[#636E72]">XP</div>
-              </div>
-              <div className="text-center">
-                <div className="text-white font-bold">0</div>
-                <div className="text-[10px] text-[#636E72]">Wins</div>
-              </div>
-              <div className="text-center">
-                <div className="text-[#636E72] font-bold">--</div>
-                <div className="text-[10px] text-[#636E72]">Win Rate</div>
-              </div>
-            </div>
+                </motion.div>
+              );
+            })}
           </div>
-        </div>
+        )}
 
-        {/* Info */}
-        <p className="text-center text-xs text-[#636E72] mt-6">
-          Rankings update every hour • Win battles to climb the ladder!
-        </p>
+        {!isSupabaseConfigured && (
+          <div
+            className="mt-4 p-3 rounded-xl text-xs"
+            style={{ backgroundColor: `${colors.coral}15`, color: colors.coral }}
+          >
+            ℹ️ Mode lokal. Untuk live global leaderboard, set{' '}
+            <code className="px-1 rounded" style={{ backgroundColor: colors.inputBg }}>
+              NEXT_PUBLIC_SUPABASE_URL
+            </code>{' '}
+            dan{' '}
+            <code className="px-1 rounded" style={{ backgroundColor: colors.inputBg }}>
+              NEXT_PUBLIC_SUPABASE_ANON_KEY
+            </code>{' '}
+            di .env.local lalu jalankan SQL di{' '}
+            <code style={{ backgroundColor: colors.inputBg }}>supabase/migrations/0001_leaderboard_scores.sql</code>.
+          </div>
+        )}
       </main>
     </div>
   );
