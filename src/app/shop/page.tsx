@@ -816,47 +816,47 @@ export default function ShopPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <ShopItem
-              name="+1 Stardust"
-              price={50}
+              name="+50 Stardust"
+              price={80}
               currency="💎"
               emoji="✨"
               description="Untuk Evolution"
               color="#f0bf63"
-              onBuy={() => handleBuy('💎', 50, () => addStardust(1))}
+              onBuy={() => handleBuy('💎', 80, () => addStardust(50))}
             />
             <ShopItem
-              name="+5 Stardust"
-              price={220}
+              name="+200 Stardust"
+              price={280}
               currency="💎"
               emoji="✨"
-              description="Hemat 30💎"
+              description="Hemat 40💎"
               color="#ffd700"
               tag="HEMAT"
               tagColor="bg-yellow-500/20 text-yellow-400"
-              onBuy={() => handleBuy('💎', 220, () => addStardust(5))}
+              onBuy={() => handleBuy('💎', 280, () => addStardust(200))}
               highlight
             />
             <ShopItem
-              name="+10 Stardust"
-              price={400}
+              name="+500 Stardust"
+              price={700}
               currency="💎"
               emoji="✨"
               description="Hemat 100💎"
               color="#ff8c00"
               tag="MEGA"
               tagColor="bg-orange-500/20 text-orange-400"
-              onBuy={() => handleBuy('💎', 400, () => addStardust(10))}
+              onBuy={() => handleBuy('💎', 700, () => addStardust(500))}
             />
             <ShopItem
-              name="+25 Stardust"
-              price={900}
+              name="+800 Stardust"
+              price={1000}
               currency="💎"
               emoji="✨"
-              description="Hemat 350💎"
+              description="Hemat 280💎"
               color="#c0c0c0"
               tag="BEST"
               tagColor="bg-gray-500/20 text-gray-300"
-              onBuy={() => handleBuy('💎', 900, () => addStardust(25))}
+              onBuy={() => handleBuy('💎', 1000, () => addStardust(800))}
               highlight
             />
           </div>
