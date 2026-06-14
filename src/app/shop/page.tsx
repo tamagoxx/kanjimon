@@ -631,6 +631,7 @@ export default function ShopPage() {
           <div className="space-y-2">
             <DiamondBundle amount={100} bonus={0} price={10} popular />
             <DiamondBundle amount={200} bonus={0} price={20} original={30} />
+            <DiamondBundle amount={10000} bonus={0} price={1000} original={1200} />
           </div>
         </section>
 
