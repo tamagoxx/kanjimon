@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useCollectionStore } from '@/store/collectionStore';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 const colors = {
   background: '#0a1519',
@@ -19,7 +20,7 @@ const colors = {
   darkGray: '#2b363b',
 };
 
-type TabType = 'login' | 'register';
+type TabType = 'login' | 'register' | 'cloud';
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<TabType>('login');
@@ -27,29 +28,63 @@ export default function AuthPage() {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const { initNewUser } = useAuthStore();
+  const { initNewUser, signUp, signIn } = useAuthStore();
   const { initNewUserCards } = useCollectionStore();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setIsLoading(true);
 
-    // Simulate auth delay
-    setTimeout(() => {
-      if (activeTab === 'login') {
-        initNewUser({ username: email.split('@')[0], email }, initNewUserCards);
-      } else {
-        initNewUser({ username: username || email.split('@')[0], email }, initNewUserCards);
+    try {
+      if (activeTab === 'cloud') {
+        // Cloud auth via Supabase
+        if (!isSupabaseConfigured) {
+          setError('Supabase belum dikonfigurasi. Set NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_ANON_KEY di .env.local');
+          setIsLoading(false);
+          return;
+        }
+        // Try signIn first; if fails and username provided, signUp
+        const result = await signIn(email, password);
+        if (result.error) {
+          // Account doesn't exist — try signUp if username provided
+          if (username.trim()) {
+            const signupResult = await signUp(email, password, username.trim());
+            if (signupResult.error) {
+              setError(signupResult.error);
+              setIsLoading(false);
+              return;
+            }
+          } else {
+            setError(result.error + ' — atau daftar dengan mengisi nama');
+            setIsLoading(false);
+            return;
+          }
+        }
+        router.push('/');
+        return;
       }
+
+      // Local auth (login/register tabs)
+      setTimeout(() => {
+        if (activeTab === 'login') {
+          initNewUser({ username: email.split('@')[0], email }, initNewUserCards);
+        } else {
+          initNewUser({ username: username || email.split('@')[0], email }, initNewUserCards);
+        }
+        setIsLoading(false);
+        router.push('/');
+      }, 1500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
       setIsLoading(false);
-      router.push('/');
-    }, 1500);
+    }
   };
 
   const handleGuest = () => {
-    // Create a guest user with random name + 5 starter Japanese cards
     const guestName = `Guest_${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
     initNewUser({ username: guestName, email: 'guest@kanjimon.app' }, initNewUserCards);
     router.push('/');
@@ -114,6 +149,18 @@ export default function AuthPage() {
           >
             Daftar
           </button>
+          <button
+            onClick={() => setActiveTab('cloud')}
+            className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all ${
+              activeTab === 'cloud'
+                ? 'text-white shadow-lg'
+                : 'text-[#c8c4d7]'
+            }`}
+            style={activeTab === 'cloud' ? { backgroundColor: colors.teal, color: colors.background } : {}}
+            title={isSupabaseConfigured ? 'Login cloud (Supabase)' : 'Supabase belum dikonfigurasi'}
+          >
+            ☁️ Cloud
+          </button>
         </motion.div>
 
         {/* Form Container */}
@@ -125,10 +172,12 @@ export default function AuthPage() {
           style={{ backgroundColor: colors.cardBg }}
         >
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Username (Register only) */}
-            {activeTab === 'register' && (
+            {/* Username (Register/Cloud only) */}
+            {(activeTab === 'register' || activeTab === 'cloud') && (
               <div className="space-y-2">
-                <label className="text-sm font-medium text-[#c8c4d7]">Nama</label>
+                <label className="text-sm font-medium text-[#c8c4d7]">
+                  {activeTab === 'cloud' ? 'Nama (untuk daftar baru)' : 'Nama'}
+                </label>
                 <div
                   className="flex items-center gap-3 px-4 rounded-xl h-12"
                   style={{ backgroundColor: colors.inputBg }}
@@ -143,7 +192,7 @@ export default function AuthPage() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="flex-1 bg-transparent outline-none text-[#d8e4ea] placeholder-[#c8c4d7]/50"
-                    required={activeTab === 'register'}
+                    required={activeTab === 'cloud' && !email}
                   />
                 </div>
               </div>
@@ -198,7 +247,7 @@ export default function AuthPage() {
               type="submit"
               disabled={isLoading}
               className="w-full py-4 rounded-xl font-bold text-white text-base transition-opacity flex items-center justify-center gap-2"
-              style={{ backgroundColor: colors.brand }}
+              style={{ backgroundColor: activeTab === 'cloud' ? colors.teal : colors.brand }}
             >
               {isLoading ? (
                 <>
@@ -208,8 +257,27 @@ export default function AuthPage() {
                   </svg>
                   Memuat...
                 </>
-              ) : activeTab === 'login' ? 'Masuk' : 'Daftar'}
+              ) : activeTab === 'login' ? 'Masuk' : activeTab === 'register' ? 'Daftar' : '☁️ Masuk / Daftar'}
             </button>
+
+            {/* Error Message */}
+            {error && (
+              <div
+                className="p-3 rounded-xl text-sm"
+                style={{ backgroundColor: '#3a1f1f', color: '#ff8a8a', border: '1px solid #5a2f2f' }}
+              >
+                ⚠️ {error}
+              </div>
+            )}
+
+            {/* Cloud Info */}
+            {activeTab === 'cloud' && (
+              <div className="text-xs text-[#c8c4d7] text-center">
+                {isSupabaseConfigured
+                  ? '💾 Login = sinkron save. Daftar baru = isi nama dulu.'
+                  : '⚠️ Supabase belum dikonfigurasi — cloud save tidak akan bekerja.'}
+              </div>
+            )}
 
             {/* Divider */}
             <div className="flex items-center gap-4">
