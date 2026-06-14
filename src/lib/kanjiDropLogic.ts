@@ -163,6 +163,32 @@ export function comboMultiplier(combo: number): number {
   return Math.min(1 + combo * COMBO_STEP, COMBO_CAP);
 }
 
+/**
+ * Fast-kill time bonus: reward players for killing a kanji quickly after it spawns.
+ * Encourages aggressive play and breaks up the "wait and see" meta.
+ *
+ * Formula (linear decay from t=0 to t=fastWindowMs):
+ *   bonus = floor(rarityBaseScore * maxBonusFraction * (1 - t / fastWindowMs))
+ *
+ * - t = 0            → max bonus (rarityBaseScore * maxBonusFraction)
+ * - t = fastWindowMs → 0 (boundary, no bonus)
+ * - t > fastWindowMs → 0 (no bonus, regular scoring only)
+ * - t < 0            → 0 (clock-skew guard, treated as "not fast")
+ *
+ * Returns an integer (Math.floor). Unknown rarities fall back to COMMON's base.
+ */
+export function fastKillBonus(
+  rarity: Rarity,
+  timeSinceSpawnMs: number,
+  fastWindowMs: number = 2000,
+  maxBonusFraction: number = 0.5,
+): number {
+  if (timeSinceSpawnMs < 0 || timeSinceSpawnMs >= fastWindowMs) return 0;
+  const base = RARITY_BASE_SCORE[rarity] ?? RARITY_BASE_SCORE.COMMON;
+  const fraction = 1 - timeSinceSpawnMs / fastWindowMs;
+  return Math.floor(base * maxBonusFraction * fraction);
+}
+
 // ============================================================
 // Wave configuration
 // ============================================================

@@ -12,6 +12,7 @@ import {
   generateOptions,
   scoreForKill,
   comboMultiplier,
+  fastKillBonus,
   type ActiveKanji,
   type ChoiceOption,
 } from '@/lib/kanjiDropLogic';
@@ -88,7 +89,7 @@ type Action =
   | { type: 'START'; now: number }
   | { type: 'TICK_FALL' }
   | { type: 'TICK_SPAWN' }
-  | { type: 'COMPLETE'; cardId: string; rarity: string; now: number }
+  | { type: 'COMPLETE'; cardId: string; rarity: string; now: number; timeSinceSpawnMs: number }
   | { type: 'WRONG_ANSWER'; instanceId: string; choice: string; now: number }
   | { type: 'CLEAR_WRONG' }
   | { type: 'MISS' }
@@ -124,9 +125,10 @@ function reducer(state: GameState, action: Action): GameState {
       const newCombo = state.combo + 1;
       const baseScore = scoreForKill(action.rarity as never, newCombo);
       const multiplier = comboMultiplier(newCombo);
+      const fastBonus = fastKillBonus(action.rarity as never, action.timeSinceSpawnMs);
       return {
         ...state,
-        score: state.score + Math.round(baseScore * multiplier),
+        score: state.score + Math.round(baseScore * multiplier) + fastBonus,
         combo: newCombo,
         maxCombo: Math.max(state.maxCombo, newCombo),
         kills: state.kills + 1,
@@ -325,6 +327,9 @@ export default function KanjiDropGame({ onExit }: KanjiDropGameProps) {
         cardId: target.card.id,
         rarity: target.card.rarity,
         now: Date.now(),
+        // spawnedAt is RAF timestamp (ms since page load), so use performance.now()
+        // for a consistent time origin — Date.now() would give a ~1.7T ms offset.
+        timeSinceSpawnMs: performance.now() - target.spawnedAt,
       });
     } else {
       dispatch({

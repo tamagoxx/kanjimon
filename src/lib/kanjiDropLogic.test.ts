@@ -8,6 +8,7 @@ import {
   pickNextKanji,
   pickActiveTarget,
   generateOptions,
+  fastKillBonus,
   type ChoiceOption,
 } from './kanjiDropLogic';
 import type { ActiveKanji } from './kanjiDropLogic';
@@ -257,5 +258,74 @@ describe('pickNextKanji', () => {
       if (next.id === 'rare') pickedRare++;
     }
     expect(pickedRare).toBeGreaterThan(20);
+  });
+});
+
+describe('fastKillBonus', () => {
+  // Default: 2s window, max 50% of rarity base score
+
+  it('returns 0 when timeSinceSpawnMs equals the fast window (boundary)', () => {
+    expect(fastKillBonus('COMMON', 2000)).toBe(0);
+  });
+
+  it('returns 0 when timeSinceSpawnMs exceeds the fast window', () => {
+    expect(fastKillBonus('COMMON', 3000)).toBe(0);
+    expect(fastKillBonus('RARE', 9999)).toBe(0);
+  });
+
+  it('returns 0 for negative time (clock skew guard)', () => {
+    expect(fastKillBonus('COMMON', -100)).toBe(0);
+  });
+
+  it('returns the max bonus when killed instantly (t=0)', () => {
+    // COMMON base=100, 50% = 50
+    expect(fastKillBonus('COMMON', 0)).toBe(50);
+    // RARE base=500, 50% = 250
+    expect(fastKillBonus('RARE', 0)).toBe(250);
+    // ETERNAL base=10000, 50% = 5000
+    expect(fastKillBonus('ETERNAL', 0)).toBe(5000);
+  });
+
+  it('returns half the max bonus at the midpoint of the window', () => {
+    // 1000ms = halfway, COMMON: 100 * 0.5 * 0.5 = 25
+    expect(fastKillBonus('COMMON', 1000)).toBe(25);
+    // RARE halfway: 500 * 0.5 * 0.5 = 125
+    expect(fastKillBonus('RARE', 1000)).toBe(125);
+  });
+
+  it('scales linearly between t=0 and t=window', () => {
+    // 500ms = quarter: COMMON: 100 * 0.5 * 0.75 = 37 (37.5 floored)
+    expect(fastKillBonus('COMMON', 500)).toBe(37);
+    // 1500ms = 3/4: COMMON: 100 * 0.5 * 0.25 = 12 (12.5 floored)
+    expect(fastKillBonus('COMMON', 1500)).toBe(12);
+  });
+
+  it('higher rarities yield strictly larger bonuses at the same elapsed time', () => {
+    const t = 400;
+    const bonus = (r: 'COMMON' | 'RARE' | 'LEGENDARY' | 'ETERNAL') => fastKillBonus(r, t);
+    expect(bonus('COMMON')).toBeLessThan(bonus('RARE'));
+    expect(bonus('RARE')).toBeLessThan(bonus('LEGENDARY'));
+    expect(bonus('LEGENDARY')).toBeLessThan(bonus('ETERNAL'));
+  });
+
+  it('respects custom fast window', () => {
+    // 1s window, t=500ms (halfway) → 25 for COMMON
+    expect(fastKillBonus('COMMON', 500, 1000)).toBe(25);
+    // 1s window, t=1000ms (boundary) → 0
+    expect(fastKillBonus('COMMON', 1000, 1000)).toBe(0);
+  });
+
+  it('respects custom max bonus fraction', () => {
+    // 100% bonus, t=0, COMMON: 100 * 1.0 * 1.0 = 100
+    expect(fastKillBonus('COMMON', 0, 2000, 1.0)).toBe(100);
+    // 25% bonus, t=0, RARE: 500 * 0.25 * 1.0 = 125
+    expect(fastKillBonus('RARE', 0, 2000, 0.25)).toBe(125);
+  });
+
+  it('always returns an integer (floored)', () => {
+    // 700ms, COMMON: 100 * 0.5 * (1 - 0.7/2) = 100 * 0.5 * 0.65 = 32.5 → 32
+    const result = fastKillBonus('COMMON', 700);
+    expect(Number.isInteger(result)).toBe(true);
+    expect(result).toBe(32);
   });
 });
