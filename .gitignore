@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# agent skills (npx skills add) — per-machine install
+/.agents/
+
 # production
 /build
 

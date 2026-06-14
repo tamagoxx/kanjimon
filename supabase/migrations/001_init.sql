@@ -60,7 +60,8 @@ create policy "users read own profile"
 
 create policy "users update own profile"
   on public.profiles for update
-  using (auth.uid() = id);
+  using (auth.uid() = id)
+  with check (auth.uid() = id);
 
 create policy "users read own save"
   on public.player_saves for select
@@ -72,4 +73,5 @@ create policy "users insert own save"
 
 create policy "users update own save"
   on public.player_saves for update
-  using (auth.uid() = user_id);
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
