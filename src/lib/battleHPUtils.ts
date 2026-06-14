@@ -9,6 +9,14 @@
 
 export interface DeckCard {
   hp?: number;
+  attackPower?: number;
+  defenseRating?: number;
+}
+
+export interface PlayerStats {
+  hp: number;
+  attack: number;
+  defense: number;
 }
 
 const BASE_HP = 100;
@@ -52,6 +60,38 @@ export function calculatePlayerMaxHp(
  */
 export function calculateOpponentMaxHp(opponent: { hp: number }): number {
   return opponent.hp;
+}
+
+/**
+ * Player battle stats derived from the 5 cards in the player's active deck.
+ *
+ * Returns summed HP / Attack / Defense across all deck cards. The user as a
+ * whole has these stats — the per-turn "active card" only determines the
+ * attack's element and special ability, not the underlying stats.
+ *
+ * - HP: sum of card.hp + (level-1)*10 (level bonus preserves progression)
+ * - Attack: sum of card.attackPower (no level bonus — cards ARE the source)
+ * - Defense: sum of card.defenseRating (no level bonus)
+ * - Empty deck → hp=BASE_HP, attack=0, defense=0
+ * - Missing fields default to 0 (no penalty for sparse cards)
+ */
+export function calculatePlayerStatsFromDeck(
+  deck: DeckCard[] = [],
+  level: number = 1,
+): PlayerStats {
+  const safeLevel = Math.max(1, level);
+  if (deck.length === 0) {
+    return { hp: BASE_HP, attack: 0, defense: 0 };
+  }
+  const totalHp = deck.reduce((sum, c) => sum + (c.hp ?? 0), 0);
+  const totalAtk = deck.reduce((sum, c) => sum + (c.attackPower ?? 0), 0);
+  const totalDef = deck.reduce((sum, c) => sum + (c.defenseRating ?? 0), 0);
+  const levelBonus = (safeLevel - 1) * LEVEL_BONUS_PER_LEVEL;
+  return {
+    hp: totalHp + levelBonus,
+    attack: totalAtk,
+    defense: totalDef,
+  };
 }
 
 /**
