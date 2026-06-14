@@ -17,17 +17,17 @@
 //     either returns data or the catch block returns [].
 //
 // Trade-offs:
-//   - We can't read the user's auth state on the server (it
-//     lives in zustand/localStorage in the browser). The "your
-//     rank" banner and local-entry merge still happen client-
-//     side. The server just gives us a head start with the
-//     global top-N.
+//   - We CAN read auth cookies server-side via @supabase/ssr, so
+//     the server knows the current user.id. The "your rank" badge
+//     and "highlight your row" feature work without waiting for
+//     the zustand authStore to hydrate.
 //   - We still need the client component for the realtime
-//     subscription, mode/window toggles, and live flash.
+//     subscription, mode/window toggles, local-entry merge, and
+//     the live flash animation.
 // ============================================================
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { fetchTopScoresFromServer } from '@/lib/leaderboardData.server';
+import { fetchTopScoresFromServer, getCurrentUserFromServer } from '@/lib/leaderboardData.server';
 import { readEnv } from '@/lib/env';
 import { LeaderboardClient } from '@/components/leaderboard/LeaderboardClient';
 import type { LeaderboardEntry } from '@/lib/leaderboardLogic';
@@ -45,25 +45,34 @@ export default async function LeaderboardPage() {
   //    server client throws, table missing, network down) → [].
   //    The client island still merges local runs on mount.
   let initialEntries: LeaderboardEntry[] = [];
+  let currentUser: Awaited<ReturnType<typeof getCurrentUserFromServer>> = null;
   if (isSupabaseConfigured) {
     try {
       const supabase = await createServerSupabaseClient();
-      initialEntries = await fetchTopScoresFromServer(supabase, {
-        mode: 'kanji-drop',
-        window: 'ALL_TIME',
-        limit: 50,
-      });
+      // Fetch in parallel — both queries are independent reads.
+      const [entries, user] = await Promise.all([
+        fetchTopScoresFromServer(supabase, {
+          mode: 'kanji-drop',
+          window: 'ALL_TIME',
+          limit: 50,
+        }),
+        getCurrentUserFromServer(supabase),
+      ]);
+      initialEntries = entries;
+      currentUser = user;
     } catch (err) {
       // eslint-disable-next-line no-console
       const message = err instanceof Error ? err.message : String(err);
       console.warn('[leaderboard:rsc] initial fetch failed:', message);
       initialEntries = [];
+      currentUser = null;
     }
   }
 
   return (
     <LeaderboardClient
       initialEntries={initialEntries}
+      initialCurrentUser={currentUser}
       isSupabaseConfigured={isSupabaseConfigured}
       initialMode="kanji-drop"
       initialWindow="ALL_TIME"

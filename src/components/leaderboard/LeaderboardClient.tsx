@@ -74,6 +74,7 @@ function formatRelative(iso: string): string {
 
 export interface LeaderboardClientProps {
   initialEntries: LeaderboardEntry[];
+  initialCurrentUser?: { id: string; username: string } | null;
   isSupabaseConfigured: boolean;
   initialMode?: GameMode;
   initialWindow?: TimeWindow;
@@ -81,11 +82,19 @@ export interface LeaderboardClientProps {
 
 export function LeaderboardClient({
   initialEntries,
+  initialCurrentUser = null,
   isSupabaseConfigured,
   initialMode = 'kanji-drop',
   initialWindow = 'ALL_TIME',
 }: LeaderboardClientProps) {
-  const user = useAuthStore((s) => s.user);
+  // authUser = zustand state (used for local-entry merge — needs
+  //   browser-only localStorage).
+  // currentUser = server-detected (from cookies), with zustand
+  //   fallback. Used for rank/row-highlight personalization.
+  const authUser = useAuthStore((s) => s.user);
+  const currentUser = initialCurrentUser ?? (authUser ? { id: authUser.id, username: authUser.username } : null);
+  // Backward-compat alias — many code paths below use `user`.
+  const user = authUser;
   const [mode, setMode] = useState<GameMode>(initialMode);
   const [timeWindow, setTimeWindow] = useState<TimeWindow>(initialWindow);
   const [entries, setEntries] = useState<LeaderboardEntry[]>(initialEntries);
@@ -161,8 +170,8 @@ export function LeaderboardClient({
   );
 
   const userRank = useMemo(
-    () => (user ? getUserRank(filtered, user.id) : null),
-    [filtered, user],
+    () => (currentUser ? getUserRank(filtered, currentUser.id) : null),
+    [filtered, currentUser],
   );
 
   return (
@@ -203,8 +212,10 @@ export function LeaderboardClient({
           )}
         </AnimatePresence>
 
-        {/* User's own rank — sticky if logged in */}
-        {user && userRank && (
+        {/* User's own rank — sticky if logged in. Uses server-detected
+            currentUser (from cookies) so it shows on first render without
+            waiting for zustand authStore to hydrate. */}
+        {currentUser && userRank && (
           <div
             className="mb-3 p-3 rounded-xl flex items-center justify-between"
             style={{ backgroundColor: `${colors.gold}15`, border: `1px solid ${colors.gold}40` }}
@@ -218,7 +229,7 @@ export function LeaderboardClient({
               </div>
               <div>
                 <div className="text-sm font-medium text-[#d8e4ea]">Peringkatmu</div>
-                <div className="text-xs text-[#c8c4d7]">{user.username}</div>
+                <div className="text-xs text-[#c8c4d7]">{currentUser.username}</div>
               </div>
             </div>
             <div className="text-right">
@@ -290,7 +301,12 @@ export function LeaderboardClient({
         ) : (
           <div className="space-y-2">
             {filtered.map((entry, idx) => {
-              const isMe = user && entry.userId === user.id;
+              // Match by canonical userId (server-detected) first, then
+              // fall back to username match for legacy/local-only entries
+              // that don't have a userId field.
+              const isMe =
+                (currentUser && entry.userId === currentUser.id) ||
+                (user && entry.username === user.username);
               const isTop3 = idx < 3;
               const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null;
               return (
