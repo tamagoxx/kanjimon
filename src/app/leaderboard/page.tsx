@@ -64,7 +64,7 @@ function formatRelative(iso: string): string {
 export default function LeaderboardPage() {
   const user = useAuthStore((s) => s.user);
   const [mode, setMode] = useState<GameMode>('kanji-drop');
-  const [window, setWindow] = useState<TimeWindow>('ALL_TIME');
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>('ALL_TIME');
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [liveFlash, setLiveFlash] = useState<string | null>(null);
@@ -72,16 +72,41 @@ export default function LeaderboardPage() {
   // Stable fetch function
   const load = useCallback(async () => {
     setIsLoading(true);
-    const opts: FetchOptions = { mode, window };
-    const cloud = await fetchTopScores(opts);
-    const local = getLocalEntries(mode, user?.username || 'Tamago');
-    const merged = sortByScore(
-      mergeWithLocal(cloud, local),
-      100,
-    );
-    setEntries(merged);
-    setIsLoading(false);
-  }, [mode, window, user?.username]);
+    const opts: FetchOptions = { mode, window: timeWindow };
+    // Safety net: if the fetch takes >4s, force isLoading=false so the
+    // page is never stuck on "Memuat..." regardless of internal errors.
+    const safetyTimer = setTimeout(() => {
+      // eslint-disable-next-line no-console
+      console.warn('[leaderboard] load() safety timeout 4s — forcing isLoading=false');
+      setIsLoading(false);
+    }, 4000);
+    try {
+      const cloud = await fetchTopScores(opts);
+      const local = getLocalEntries(mode, user?.username || 'Tamago');
+      const merged = sortByScore(
+        mergeWithLocal(cloud, local),
+        100,
+      );
+      setEntries(merged);
+    } catch (err) {
+      // Belt + suspenders: fetchTopScores already catches network
+      // errors internally, but any future regression (e.g. merge or
+      // sort throws) must not leave the page stuck on "Memuat...".
+      // eslint-disable-next-line no-console
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn('[leaderboard] load() error:', message);
+      // Still show whatever local data we can find.
+      try {
+        const local = getLocalEntries(mode, user?.username || 'Tamago');
+        setEntries(local);
+      } catch {
+        setEntries([]);
+      }
+    } finally {
+      clearTimeout(safetyTimer);
+      setIsLoading(false);
+    }
+  }, [mode, timeWindow, user?.username]);
 
   useEffect(() => {
     void load();
@@ -99,8 +124,8 @@ export default function LeaderboardPage() {
   }, [mode]);
 
   const filtered = useMemo(
-    () => filterByTimeWindow(entries, window),
-    [entries, window],
+    () => filterByTimeWindow(entries, timeWindow),
+    [entries, timeWindow],
   );
 
   const userRank = useMemo(
@@ -193,11 +218,11 @@ export default function LeaderboardPage() {
           {WINDOWS.map((w) => (
             <button
               key={w.id}
-              onClick={() => setWindow(w.id)}
+              onClick={() => setTimeWindow(w.id)}
               className="flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-colors"
               style={{
-                backgroundColor: window === w.id ? colors.brand : colors.cardBg,
-                color: window === w.id ? '#fff' : colors.darkText,
+                backgroundColor: timeWindow === w.id ? colors.brand : colors.cardBg,
+                color: timeWindow === w.id ? '#fff' : colors.darkText,
               }}
             >
               {w.label}

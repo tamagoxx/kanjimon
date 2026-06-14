@@ -12,7 +12,7 @@
 //
 // Schema lives in: supabase/migrations/0001_leaderboard_scores.sql
 
-import { supabase, isSupabaseConfigured } from './supabase';
+import { isSupabaseConfigured, getSupabase } from './supabase';
 import { useKanjiDropStore } from '../store/kanjiDropStore';
 import {
   sortByScore,
@@ -142,24 +142,34 @@ export async function fetchTopScores(opts: FetchOptions): Promise<LeaderboardEnt
   if (!isSupabaseConfigured) return [];
   const limit = opts.limit ?? DEFAULT_LIMIT;
 
-  // We fetch more than we need then filter by window client-side.
-  // This keeps the SQL simple and gives us room to switch to a
-  // windowed query later without changing the page contract.
-  const { data, error } = await supabase
-    .from('leaderboard_scores')
-    .select('*')
-    .eq('game_mode', opts.mode)
-    .order('score', { ascending: false })
-    .order('played_at', { ascending: false })
-    .limit(Math.max(limit, 100));
+  try {
+    // We fetch more than we need then filter by window client-side.
+    // This keeps the SQL simple and gives us room to switch to a
+    // windowed query later without changing the page contract.
+    const { data, error } = await getSupabase()
+      .from('leaderboard_scores')
+      .select('*')
+      .eq('game_mode', opts.mode)
+      .order('score', { ascending: false })
+      .order('played_at', { ascending: false })
+      .limit(Math.max(limit, 100));
 
-  if (error) {
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.warn('[leaderboard] fetchTopScores error:', error.message);
+      return [];
+    }
+    const entries = (data as CloudRow[]).map(rowToEntry);
+    return sortByScore(filterByTimeWindow(entries, opts.window), limit);
+  } catch (err) {
+    // Network errors (DNS, CORS, offline) throw TypeError "Failed to fetch"
+    // instead of returning a structured Supabase error. Catch so the page
+    // can fall back to local data instead of hanging on "Memuat...".
     // eslint-disable-next-line no-console
-    console.warn('[leaderboard] fetchTopScores error:', error.message);
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn('[leaderboard] fetchTopScores network error:', message);
     return [];
   }
-  const entries = (data as CloudRow[]).map(rowToEntry);
-  return sortByScore(filterByTimeWindow(entries, opts.window), limit);
 }
 
 export interface SubmitPayload {
@@ -184,7 +194,7 @@ export async function submitScore(
   if (!isSupabaseConfigured) {
     return { ok: false, error: 'Supabase belum dikonfigurasi' };
   }
-  const { error } = await supabase.from('leaderboard_scores').insert({
+  const { error } = await getSupabase().from('leaderboard_scores').insert({
     user_id: payload.userId,
     username: payload.username,
     game_mode: payload.gameMode,
@@ -211,7 +221,7 @@ export function subscribeToNewScores(
   onNew: (entry: LeaderboardEntry) => void,
 ): () => void {
   if (!isSupabaseConfigured) return () => {};
-  const channel = supabase
+  const channel = getSupabase()
     .channel(`leaderboard-${mode}`)
     .on(
       'postgres_changes',
@@ -223,7 +233,7 @@ export function subscribeToNewScores(
     )
     .subscribe();
   return () => {
-    void supabase.removeChannel(channel);
+    void getSupabase().removeChannel(channel);
   };
 }
 

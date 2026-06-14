@@ -1,23 +1,19 @@
 // ============================================================
-// leaderboardData.local.test.ts — TDD for the hydration bug
+// leaderboardData.local.test.ts — TDD for hydration + error bugs
 // ============================================================
 //
-// Bug: the leaderboard page shows "Belum ada skor" even when
-// the player has kanji-drop runs saved in localStorage. Root
-// cause: the page calls `load()` inside useEffect which runs
-// BEFORE Zustand's persist middleware finishes rehydrating
-// from localStorage (the project already uses setTimeout(50ms)
-// in profile/page.tsx to work around this). The page does NOT
-// have such a guard, so `useKanjiDropStore.getState().recentRuns`
-// returns the empty initial state (the server's empty state
-// that the client takes over because the module is shared).
-//
-// Fix: `readLocalKanjiDropRuns()` should read from localStorage
-// directly as a fallback. Zustand's persist serializes to
-// `{ state: {...}, version: 0 }` by default — easy to parse.
+// Two bugs covered here:
+// 1. Hydration race: leaderboard page shows "Belum ada skor" even
+//    when player has runs in localStorage. Root cause: useEffect
+//    runs BEFORE Zustand persist hydrates from localStorage.
+//    Fix: readLocalKanjiDropRuns() reads BOTH Zustand getState()
+//    AND localStorage directly, merges + dedupes.
+// 2. Network error hang: when Supabase URL is unreachable, the
+//    page gets stuck on "Memuat..." forever. Root cause: no
+//    try/catch around the fetch + no fallback in the page.
+//    Fix: fetchTopScores() catches network errors and returns [].
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-
 // Mock the store so it ALWAYS returns the empty initial state
 // (simulates pre-hydration / SSR-taken-over client)
 vi.mock('../store/kanjiDropStore', () => ({
@@ -27,14 +23,11 @@ vi.mock('../store/kanjiDropStore', () => ({
   },
 }));
 
-// Mock the supabase client (so isSupabaseConfigured is false)
-vi.mock('../lib/supabase', () => ({
-  supabase: null,
-  isSupabaseConfigured: false,
-}));
+import * as supabaseMod from '../lib/supabase';
+vi.spyOn(supabaseMod, 'isSupabaseConfigured', 'get').mockReturnValue(false);
 
 import { useKanjiDropStore } from '../store/kanjiDropStore';
-import { getLocalEntries, readLocalKanjiDropRuns } from './leaderboardData';
+import { fetchTopScores, getLocalEntries, readLocalKanjiDropRuns } from './leaderboardData';
 
 describe('readLocalKanjiDropRuns (hydration bug fix)', () => {
   beforeEach(() => {
@@ -83,7 +76,6 @@ describe('readLocalKanjiDropRuns (hydration bug fix)', () => {
   });
 
   it('falls back to localStorage when Zustand store returns empty recentRuns', () => {
-    // Even though our mock Zustand returns empty, we should still get data
     const entries = getLocalEntries('kanji-drop', 'Tamago');
     expect(entries).toHaveLength(1);
     expect(entries[0].score).toBe(5000);
@@ -117,7 +109,6 @@ describe('readLocalKanjiDropRuns (hydration bug fix)', () => {
   });
 
   it('merges localStorage runs with Zustand runs (Zustand may have more recent writes)', () => {
-    // Simulate Zustand having ONE run that wasn't yet persisted
     const zustandRun = {
       score: 9999,
       wave: 7,
@@ -125,15 +116,67 @@ describe('readLocalKanjiDropRuns (hydration bug fix)', () => {
       maxCombo: 20,
       durationSec: 80,
       destroyed: [],
-      playedAt: new Date(Date.now() + 60_000).toISOString(), // newer
+      playedAt: new Date(Date.now() + 60_000).toISOString(),
     };
     (useKanjiDropStore as any).getState = () => ({ recentRuns: [zustandRun] });
 
     const entries = getLocalEntries('kanji-drop', 'Tamago');
-    // Should have BOTH runs (1 from localStorage + 1 from Zustand)
     expect(entries).toHaveLength(2);
-    // Higher score first
     expect(entries[0].score).toBe(9999);
     expect(entries[1].score).toBe(5000);
+  });
+});
+
+describe('fetchTopScores network error handling', () => {
+  it('returns [] immediately when Supabase is not configured', async () => {
+    const entries = await fetchTopScores({ mode: 'kanji-drop', window: 'ALL_TIME' });
+    expect(entries).toEqual([]);
+  });
+
+  it('catches network errors (TypeError "Failed to fetch") and returns []', async () => {
+    const spy = vi.spyOn(supabaseMod, 'isSupabaseConfigured', 'get');
+    spy.mockReturnValueOnce(true);
+
+    const throwingSupabase = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            order: () => ({
+              order: () => ({
+                limit: () => Promise.reject(new TypeError('Failed to fetch')),
+              }),
+            }),
+          }),
+        }),
+      }),
+    };
+    vi.spyOn(supabaseMod, 'getSupabase').mockReturnValueOnce(throwingSupabase as any);
+
+    // Should NOT throw — should resolve to []
+    const entries = await fetchTopScores({ mode: 'kanji-drop', window: 'ALL_TIME' });
+    expect(entries).toEqual([]);
+  });
+
+  it('catches structured Supabase errors (PostgREST errors) and returns []', async () => {
+    const spy = vi.spyOn(supabaseMod, 'isSupabaseConfigured', 'get');
+    spy.mockReturnValueOnce(true);
+
+    const errorSupabase = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            order: () => ({
+              order: () => ({
+                limit: () => Promise.resolve({ data: null, error: { message: 'permission denied' } }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    };
+    vi.spyOn(supabaseMod, 'getSupabase').mockReturnValueOnce(errorSupabase as any);
+
+    const entries = await fetchTopScores({ mode: 'kanji-drop', window: 'ALL_TIME' });
+    expect(entries).toEqual([]);
   });
 });
