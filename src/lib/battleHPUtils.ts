@@ -7,10 +7,10 @@
  * existing per-level scaling.
  */
 
-export interface DeckCard {
-  hp?: number;
-  attackPower?: number;
-  defenseRating?: number;
+export interface DeckStats {
+  hp: number;
+  attack: number;
+  defense: number;
 }
 
 export interface PlayerStats {
@@ -34,7 +34,7 @@ const DECK_BONUS_MULTIPLIER = 0.5; // (avg - baseline) * 0.5 = bonus HP
  * - Avg deck HP < 80 → floored at 0 bonus (no penalty for fresh accounts)
  */
 export function calculatePlayerMaxHp(
-  deck: DeckCard[] = [],
+  deck: DeckStats[] = [],
   level: number = 1,
 ): number {
   const safeLevel = Math.max(1, level);
@@ -65,18 +65,17 @@ export function calculateOpponentMaxHp(opponent: { hp: number }): number {
 /**
  * Player battle stats derived from the 5 cards in the player's active deck.
  *
- * Returns summed HP / Attack / Defense across all deck cards. The user as a
- * whole has these stats — the per-turn "active card" only determines the
- * attack's element and special ability, not the underlying stats.
+ * Accepts a unified `DeckStats` shape ({ hp, attack, defense }). All 3 deck
+ * card types (Japanese, Pokemon, Fused Pokemon) must be normalized to this
+ * shape by the caller (see /app/battle/page.tsx prefix dispatch).
  *
  * - HP: sum of card.hp + (level-1)*10 (level bonus preserves progression)
- * - Attack: sum of card.attackPower (no level bonus — cards ARE the source)
- * - Defense: sum of card.defenseRating (no level bonus)
+ * - Attack: sum of card.attack (no level bonus — cards ARE the source)
+ * - Defense: sum of card.defense (no level bonus)
  * - Empty deck → hp=BASE_HP, attack=0, defense=0
- * - Missing fields default to 0 (no penalty for sparse cards)
  */
 export function calculatePlayerStatsFromDeck(
-  deck: DeckCard[] = [],
+  deck: DeckStats[] = [],
   level: number = 1,
 ): PlayerStats {
   const safeLevel = Math.max(1, level);
@@ -84,8 +83,8 @@ export function calculatePlayerStatsFromDeck(
     return { hp: BASE_HP, attack: 0, defense: 0 };
   }
   const totalHp = deck.reduce((sum, c) => sum + (c.hp ?? 0), 0);
-  const totalAtk = deck.reduce((sum, c) => sum + (c.attackPower ?? 0), 0);
-  const totalDef = deck.reduce((sum, c) => sum + (c.defenseRating ?? 0), 0);
+  const totalAtk = deck.reduce((sum, c) => sum + (c.attack ?? 0), 0);
+  const totalDef = deck.reduce((sum, c) => sum + (c.defense ?? 0), 0);
   const levelBonus = (safeLevel - 1) * LEVEL_BONUS_PER_LEVEL;
   return {
     hp: totalHp + levelBonus,

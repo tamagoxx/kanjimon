@@ -10,7 +10,7 @@ import type { ElementEssence, JapaneseCard } from '@/types';
 import { BOSS_TEMPLATES, type BossTemplate } from '@/data/bosses';
 import { scaleStats } from '@/lib/bossScaling';
 import { calculateRewards } from '@/lib/bossRewards';
-import { calculatePlayerMaxHp, calculatePlayerStatsFromDeck } from '@/lib/battleHPUtils';
+import { calculatePlayerStatsFromDeck, type DeckStats } from '@/lib/battleHPUtils';
 import { calculateDamage } from '@/lib/battleDamage';
 import { getEffectiveDefense } from '@/lib/cardStats';
 import { getNextOpponent, getRandomOpponent, canGoNextChapter, POST_BATTLE_ACTIONS } from '@/lib/postBattleActions';
@@ -2115,9 +2115,12 @@ function BattlePageContent() {
     const level = user?.level || 1;
     // Player stats derived from the 5 cards in the active deck (sum of all 3 stats).
     // Active card (per-turn) only determines element/ability, not the underlying stats.
+    // All 3 deck card types (jp-, poke-, fused-) are normalized to { hp, attack, defense }.
     const activeDeck = useCollectionStore.getState().getActiveDeck();
     const ownedCards = useCollectionStore.getState().ownedCards;
-    const deckStats: { hp: number; attackPower: number; defenseRating: number }[] = [];
+    const ownedPokemon = useCollectionStore.getState().ownedPokemon;
+    const fusedPokemon = useCollectionStore.getState().fusedPokemon;
+    const deckStats: DeckStats[] = [];
     if (activeDeck) {
       for (const cardId of activeDeck.cardIds) {
         if (cardId.startsWith('jp-')) {
@@ -2126,8 +2129,28 @@ function BattlePageContent() {
           if (owned) {
             deckStats.push({
               hp: owned.card.hp,
-              attackPower: owned.card.attackPower,
-              defenseRating: owned.card.defenseRating,
+              attack: owned.card.attackPower,
+              defense: getEffectiveDefense(owned.card),
+            });
+          }
+        } else if (cardId.startsWith('poke-')) {
+          const pokemonId = parseInt(cardId.replace('poke-', ''));
+          const poke = ownedPokemon.find((p) => p.pokemonId === pokemonId);
+          if (poke) {
+            deckStats.push({
+              hp: poke.hp,
+              attack: poke.attack,
+              defense: poke.defense,
+            });
+          }
+        } else if (cardId.startsWith('fused-')) {
+          const fusedId = parseInt(cardId.replace('fused-', ''));
+          const fused = fusedPokemon.find((f) => f.pokemonId === fusedId);
+          if (fused) {
+            deckStats.push({
+              hp: fused.baseHp,
+              attack: fused.baseAttack,
+              defense: fused.baseDefense,
             });
           }
         }
@@ -2178,9 +2201,12 @@ function BattlePageContent() {
     setBossBerserkCount(0);
     const level = user?.level || 1;
     // Player stats derived from 5-card deck (sum). Same formula as startBattle.
+    // All 3 deck card types (jp-, poke-, fused-) are normalized to { hp, attack, defense }.
     const activeDeck = useCollectionStore.getState().getActiveDeck();
     const ownedCards = useCollectionStore.getState().ownedCards;
-    const deckStats: { hp: number; attackPower: number; defenseRating: number }[] = [];
+    const ownedPokemon = useCollectionStore.getState().ownedPokemon;
+    const fusedPokemon = useCollectionStore.getState().fusedPokemon;
+    const deckStats: DeckStats[] = [];
     if (activeDeck) {
       for (const cardId of activeDeck.cardIds) {
         if (cardId.startsWith('jp-')) {
@@ -2189,8 +2215,28 @@ function BattlePageContent() {
           if (owned) {
             deckStats.push({
               hp: owned.card.hp,
-              attackPower: owned.card.attackPower,
-              defenseRating: owned.card.defenseRating,
+              attack: owned.card.attackPower,
+              defense: getEffectiveDefense(owned.card),
+            });
+          }
+        } else if (cardId.startsWith('poke-')) {
+          const pokemonId = parseInt(cardId.replace('poke-', ''));
+          const poke = ownedPokemon.find((p) => p.pokemonId === pokemonId);
+          if (poke) {
+            deckStats.push({
+              hp: poke.hp,
+              attack: poke.attack,
+              defense: poke.defense,
+            });
+          }
+        } else if (cardId.startsWith('fused-')) {
+          const fusedId = parseInt(cardId.replace('fused-', ''));
+          const fused = fusedPokemon.find((f) => f.pokemonId === fusedId);
+          if (fused) {
+            deckStats.push({
+              hp: fused.baseHp,
+              attack: fused.baseAttack,
+              defense: fused.baseDefense,
             });
           }
         }
