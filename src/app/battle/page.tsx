@@ -14,6 +14,7 @@ import { calculatePlayerMaxHp } from '@/lib/battleHPUtils';
 import { calculateDamage } from '@/lib/battleDamage';
 import { getEffectiveDefense } from '@/lib/cardStats';
 import { getNextOpponent, getRandomOpponent, canGoNextChapter, POST_BATTLE_ACTIONS } from '@/lib/postBattleActions';
+import { getBossActions, type BossAction, type PhaseAbility } from '@/lib/bossTurnLogic';
 import { Swords, Shield, ArrowLeft, Zap, Flame, Droplets, Leaf, Eye, Sparkles, CircleDot } from 'lucide-react';
 import JankenGame from '@/components/battle/JankenGame';
 import { fetchMove, MOVE_TYPE_COLORS, MOVE_CATEGORY_ICONS, getMockMovesForTypes } from '@/data/pokemon-moves';
@@ -2345,6 +2346,9 @@ function BattlePageContent() {
   };
 
   // Boss turn execution
+  // Refactored: special abilities now ADD to base attack instead of replacing it.
+  // Boss attacks every turn unless charging. ENRAGE finally has a handler.
+  // Decision logic extracted to src/lib/bossTurnLogic.ts (testable, pure).
   const doBossTurn = () => {
     const s = stateRef.current;
     if (s.phase !== 'boss-battle') return;
@@ -2353,151 +2357,76 @@ function BattlePageContent() {
     setOppEnergy(3);
 
     const currentPhaseData = s.boss!.phases[s.bossPhase]!;
-    const special = currentPhaseData.specialAbility;
 
-    // If charging, release the charged attack
-    if (s.bossCharging) {
+    const actions = getBossActions({
+      isCharging: s.bossCharging,
+      bossBerserkCount: s.bossBerserkCount,
+      baseAtk: s.boss?.baseAtk || 0,
+      playerDef: s.playerActive?.defense || 0,
+      bossAtkMultiplier: s.bossAtkMultiplier,
+      phaseAbility: (currentPhaseData.specialAbility ?? 'NORMAL') as PhaseAbility,
+      phaseName: currentPhaseData.name,
+      bossMaxHp: s.boss?.maxHp || 0,
+      bossHp: s.bossHp,
+    });
+
+    // Execute actions in order — effects first, attack last
+    for (const action of actions) {
+      if (action.type === 'attack') {
+        executeBossAttack(action);
+      } else if (action.type === 'charge') {
+        setBossCharging(true);
+        addLog(`⚡ ${s.boss?.name} charging...`);
+        setTimeout(() => {
+          addLog(`⚡ ${s.boss?.name} releases CHARGED ATTACK next turn!`);
+          setTimeout(() => doEndBossTurn(), 500);
+        }, 500);
+        return; // skip attack this turn
+      } else if (action.type === 'heal') {
+        const newBossHp = Math.min(s.boss?.maxHp || 0, s.bossHp + action.amount);
+        setBossHp(newBossHp);
+        addLog(`💚 ${s.boss?.name} heals +${action.amount} HP!`);
+        checkBossPhaseTransition();
+      } else if (action.type === 'debuff') {
+        addLog(`😈 ${s.boss?.name} debuffs you! ATK -20% for 2 turns`);
+        setPlayerBuffed(true);
+      } else if (action.type === 'burn') {
+        setBurnStacks(action.stacks);
+        addLog(`🔥 ${s.boss?.name} inflicts BURN! 15 dmg/turn for ${action.stacks} turns`);
+      } else if (action.type === 'enrage') {
+        addLog(`💢 ${s.boss?.name} ENRAGE! ATK x${currentPhaseData.attackMultiplier} damage!`);
+      }
+    }
+  };
+
+  // Execute a boss attack action (extracted helper — keeps doBossTurn scannable)
+  const executeBossAttack = (action: Extract<BossAction, { type: 'attack' }>) => {
+    const s = stateRef.current;
+    if (action.isCharged) {
       setBossCharging(false);
-      // Charged attack = 200% damage
-      // Charged attack = 200% damage (uses shared calculateDamage for consistency)
-      const actualDmg = calculateDamage(s.boss?.baseAtk || 0, s.playerActive?.defense || 0, { atkMultiplier: 2 * s.bossAtkMultiplier });
-      setDmgVal(actualDmg);
-      setShowDmg(true);
-      setAttackingCard('opponent');
-      setTimeout(() => { setAttackingCard(null); setHitCard('player'); }, 300);
-      setTimeout(() => {
-        setShowDmg(false);
-        setPlayerHp(current => Math.max(0, current - actualDmg));
-        const newHp = Math.max(0, s.playerHp - actualDmg);
-        addLog(`💥 ${s.boss?.name} CHARGED ATTACK! -${actualDmg} damage!`);
-        setTimeout(() => setHitCard(null), 400);
-        if (newHp <= 0) {
-          addLog(`💀 DEFEAT!`);
-          setResult({ win: false, xp: 0, diamonds: 0 });
-          setPhase('boss-result');
-        } else {
-          setTimeout(() => doEndBossTurn(), 500);
-        }
-      }, 700);
-      return;
     }
-
-    // Berserk: extra attack for next 3 turns
-    if (special === 'BERSERK' && s.bossBerserkCount < 3) {
-      // Do extra attack
-      // Berserk extra attack = 150% damage (uses shared calculateDamage)
-      const actualDmg = calculateDamage(s.boss?.baseAtk || 0, s.playerActive?.defense || 0, { atkMultiplier: 1.5 * s.bossAtkMultiplier });
-      setDmgVal(actualDmg);
-      setShowDmg(true);
-      setAttackingCard('opponent');
-      setTimeout(() => { setAttackingCard(null); setHitCard('player'); }, 300);
-      setTimeout(() => {
-        setShowDmg(false);
-        setPlayerHp(current => Math.max(0, current - actualDmg));
-        const newHp = Math.max(0, s.playerHp - actualDmg);
-        addLog(`🔥 ${s.boss?.name} BERSERK! -${actualDmg} damage!`);
-        setBossBerserkCount(c => c + 1);
-        setTimeout(() => setHitCard(null), 400);
-        if (newHp <= 0) {
-          addLog(`💀 DEFEAT!`);
-          setResult({ win: false, xp: 0, diamonds: 0 });
-          setPhase('boss-result');
-        } else {
-          setTimeout(() => {
-            // AI turn ends, berserk count is maintained
-            setOppActive(null);
-            setIsPlayerTurn(true);
-            addLog(`🎯 Giliran ${stateRef.current.turn + 1} - pilih kartu!`);
-            resetCardTimer();
-          }, 500);
-        }
-      }, 700);
-      return;
+    if (action.incrementsBerserkCount) {
+      setBossBerserkCount(c => c + 1);
     }
-
-    // Execute the special ability for this phase
-    if (special === 'AOE') {
-      const aoeDamage = currentPhaseData.name === 'Avalanche' ? 40 : currentPhaseData.name === 'Collapse' ? 60 : 25;
-      // AoE now respects player defense (was: bypassed — BossSelectModal bug)
-      const actualDmg = calculateDamage(aoeDamage, s.playerActive?.defense || 0, { atkMultiplier: s.bossAtkMultiplier });
-      setDmgVal(actualDmg);
-      setShowDmg(true);
-      setAttackingCard('opponent');
-      setTimeout(() => { setAttackingCard(null); setHitCard('player'); }, 300);
-      setTimeout(() => {
-        setShowDmg(false);
-        setPlayerHp(current => Math.max(0, current - actualDmg));
-        const newHp = Math.max(0, s.playerHp - actualDmg);
-        addLog(`💥 ${s.boss?.name} AoE ATTACK! -${actualDmg} damage!`);
-        setTimeout(() => setHitCard(null), 400);
-        if (newHp <= 0) {
-          addLog(`💀 DEFEAT!`);
-          setResult({ win: false, xp: 0, diamonds: 0 });
-          setPhase('boss-result');
-        } else {
-          setTimeout(() => doEndBossTurn(), 500);
-        }
-      }, 700);
-      return;
-    }
-
-    if (special === 'CHARGE') {
-      setBossCharging(true);
-      addLog(`⚡ ${s.boss?.name} charging...`);
-      setTimeout(() => {
-        addLog(`⚡ ${s.boss?.name} releases CHARGED ATTACK next turn!`);
-        setTimeout(() => doEndBossTurn(), 500);
-      }, 500);
-      return;
-    }
-
-    if (special === 'HEAL') {
-      const healAmount = Math.floor((s.boss?.maxHp || 0) * 0.15);
-      const newBossHp = Math.min(s.boss?.maxHp || 0, s.bossHp + healAmount);
-      setBossHp(newBossHp);
-      addLog(`💚 ${s.boss?.name} heals +${healAmount} HP!`);
-      checkBossPhaseTransition();
-      setTimeout(() => doEndBossTurn(), 600);
-      return;
-    }
-
-    if (special === 'DEBUFF') {
-      // Reduce player defense by 20%
-      addLog(`😈 ${s.boss?.name} debuffs you! ATK -20% for 2 turns`);
-      setPlayerBuffed(true);
-      setTimeout(() => doEndBossTurn(), 500);
-      return;
-    }
-
-    if (special === 'BURN') {
-      // Apply burn stacks
-      setBurnStacks(3);
-      addLog(`🔥 ${s.boss?.name} inflicts BURN! 15 dmg/turn for 3 turns`);
-      setTimeout(() => doEndBossTurn(), 500);
-      return;
-    }
-
-    // Default: normal attack
-    // Default: normal attack (uses shared calculateDamage)
-    const actualDmg = calculateDamage(s.boss?.baseAtk || 50, s.playerActive?.defense || 0, { atkMultiplier: s.bossAtkMultiplier });
+    const actualDmg = calculateDamage(action.atk, action.def, { atkMultiplier: action.atkMult });
     setDmgVal(actualDmg);
     setShowDmg(true);
     setAttackingCard('opponent');
     setTimeout(() => { setAttackingCard(null); setHitCard('player'); }, 300);
-setTimeout(() => {
-        setShowDmg(false);
-        setPlayerHp(current => Math.max(0, current - actualDmg));
-        const newHp = Math.max(0, s.playerHp - actualDmg);
-        addLog(`💥 ${s.boss?.name} attacks! -${actualDmg} damage!`);
-        setTimeout(() => setHitCard(null), 400);
-        if (newHp <= 0) {
-          addLog(`💀 DEFEAT!`);
-          setResult({ win: false, xp: 0, diamonds: 0 });
-          setPhase('boss-result');
-        } else {
-          setTimeout(() => doEndBossTurn(), 500);
-        }
-      }, 700);
+    setTimeout(() => {
+      setShowDmg(false);
+      setPlayerHp(current => Math.max(0, current - actualDmg));
+      const newHp = Math.max(0, s.playerHp - actualDmg);
+      addLog(`💥 ${s.boss?.name} ${action.label} -${actualDmg} damage!`);
+      setTimeout(() => setHitCard(null), 400);
+      if (newHp <= 0) {
+        addLog(`💀 DEFEAT!`);
+        setResult({ win: false, xp: 0, diamonds: 0 });
+        setPhase('boss-result');
+      } else {
+        setTimeout(() => doEndBossTurn(), 500);
+      }
+    }, 700);
   };
 
   // End boss turn
