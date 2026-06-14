@@ -6,7 +6,7 @@
 // Mirrors the browser-only `fetchTopScores` in `./leaderboardData.ts`
 // but takes a Supabase client as a parameter (since `getSupabase()`
 // in `./supabase.ts` builds a browser client via createBrowserClient).
-// The RSC page calls `createServerSupabaseClient()` from
+// The RSC page calls `createClient(cookieStore)` from
 // `@utils/supabase/server` to get a cookie-aware client, then passes
 // it here.
 //

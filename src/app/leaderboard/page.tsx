@@ -26,7 +26,8 @@
 //     the live flash animation.
 // ============================================================
 
-import { createServerSupabaseClient } from '@utils/supabase/server';
+import { createClient } from '@utils/supabase/server';
+import { cookies } from 'next/headers';
 import { fetchTopScoresFromServer, getCurrentUserFromServer } from '@/lib/leaderboardData.server';
 import { readEnv } from '@/lib/env';
 import { LeaderboardClient } from '@/components/leaderboard/LeaderboardClient';
@@ -48,7 +49,8 @@ export default async function LeaderboardPage() {
   let currentUser: Awaited<ReturnType<typeof getCurrentUserFromServer>> = null;
   if (isSupabaseConfigured) {
     try {
-      const supabase = await createServerSupabaseClient();
+      const cookieStore = await cookies();
+      const supabase = createClient(cookieStore);
       // Fetch in parallel — both queries are independent reads.
       const [entries, user] = await Promise.all([
         fetchTopScoresFromServer(supabase, {
