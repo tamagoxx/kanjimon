@@ -50,7 +50,7 @@ for (const table of TABLES) {
 // Real query — pull first 3 rows to confirm we can read actual data
 const { data: sample, error: sampleErr } = await supabase
   .from('leaderboard_scores')
-  .select('game_mode, user_id, score, created_at')
+  .select('game_mode, user_id, score, played_at')
   .order('score', { ascending: false })
   .limit(3);
 
@@ -60,7 +60,7 @@ if (sampleErr) {
 } else {
   console.log(`\nTop 3 leaderboard_scores rows:`);
   for (const r of sample ?? []) {
-    console.log(`  ${r.game_mode}  user=${String(r.user_id).slice(0, 8)}...  score=${r.score}  ${r.created_at}`);
+    console.log(`  ${r.game_mode}  user=${String(r.user_id).slice(0, 8)}...  score=${r.score}  ${r.played_at}`);
   }
   pass++;
 }
