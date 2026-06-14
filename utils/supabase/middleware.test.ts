@@ -31,7 +31,7 @@ vi.mock('@supabase/ssr', () => ({
 
 // Mock the env so it's "configured" by default; individual tests override
 let mockEnvOk = true;
-vi.mock('../env', () => ({
+vi.mock('@/lib/env', () => ({
   readEnv: () =>
     mockEnvOk
       ? { ok: true, config: { url: 'https://abc.supabase.co', anonKey: 'eyJ' + 'a'.repeat(150) }, errors: [] }

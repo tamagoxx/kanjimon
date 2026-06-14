@@ -20,7 +20,7 @@
 
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { readEnv } from '../env';
+import { readEnv } from '@/lib/env';
 
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
   const env = readEnv();
