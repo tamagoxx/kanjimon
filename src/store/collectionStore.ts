@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { OwnedCard, Deck, DailyQuest, JapaneseCard, FusedPokemon, ElementEssence, PokemonMove } from '@/types';
+import { getSellPrice } from '@/lib/cardSellPrice';
 import { useAuthStore } from './authStore';
 
 // Pokemon card type (from PokeAPI)
@@ -665,13 +666,7 @@ export const useCollectionStore = create<CollectionState>()(
         const poke = ownedPokemon.find(p => p.pokemonId === pokemonId);
         if (!poke) return false;
 
-        const DOLLAR_VALUE: Record<string, number> = {
-          COMMON: 5,
-          UNCOMMON: 15,
-          RARE: 50,
-          ULTRA_RARE: 200,
-        };
-        const value = DOLLAR_VALUE[poke.rarity] || 5;
+        const value = getSellPrice(poke.rarity).dollars;
 
         set(state => ({
           dollars: state.dollars + value,
@@ -686,13 +681,7 @@ export const useCollectionStore = create<CollectionState>()(
         const fused = fusedPokemon.find(f => f.id === fusedId);
         if (!fused) return false;
 
-        const DOLLAR_VALUE: Record<string, number> = {
-          COMMON: 5,
-          UNCOMMON: 15,
-          RARE: 50,
-          ULTRA_RARE: 200,
-        };
-        const value = DOLLAR_VALUE[fused.rarity] || 5;
+        const value = getSellPrice(fused.rarity).dollars;
 
         set(state => ({
           dollars: state.dollars + value,

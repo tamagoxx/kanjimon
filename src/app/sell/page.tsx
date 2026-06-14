@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useCollectionStore } from '@/store/collectionStore';
 import { useAuthStore } from '@/store/authStore';
+import { getSellPrice } from '@/lib/cardSellPrice';
 import { Flame, Coins, Zap, ArrowLeft, X, Info, Star, Shield, Sword, Heart } from 'lucide-react';
 
 const colors = {
@@ -26,21 +27,22 @@ const RARITY_COLORS: Record<string, string> = {
   UNCOMMON: '#c0c0c0',
   RARE: '#ffd700',
   ULTRA_RARE: '#ff6b35',
+  LIMITED_EDITION: '#a855f7',
+  LEGENDARY: '#ec4899',
+  MYTHICAL: '#3b82f6',
+  TRANSCENDENT: '#06b6d4',
+  CELESTIAL: '#0ea5e9',
+  DIVINE: '#facc15',
+  ULTIMATE: '#f97316',
+  ETERNAL: '#ef4444',
+  NIHIL: '#7c3aed',
+  PRIMORDIAL: '#d946ef',
+  OMNIPOTENT: '#fbbf24',
 };
 
-const RARITY_DOLLAR: Record<string, number> = {
-  COMMON: 5,
-  UNCOMMON: 15,
-  RARE: 50,
-  ULTRA_RARE: 200,
-};
-
-const RARITY_ENERGY: Record<string, number> = {
-  COMMON: 2,
-  UNCOMMON: 4,
-  RARE: 8,
-  ULTRA_RARE: 20,
-};
+// Sell prices are now sourced from getSellPrice() in src/lib/cardSellPrice.ts
+// to ensure all 15 Rarity tiers (COMMON → OMNIPOTENT) have proper dollar+energy values.
+// See cardSellPrice.ts for the full curve.
 
 type TabType = 'all' | 'japanese' | 'pokemon' | 'fusion';
 
@@ -361,8 +363,8 @@ export default function SellPage() {
         reading: oc.card.reading,
         emoji: oc.card.japanese,
         rarity: oc.card.rarity,
-        dollarValue: RARITY_DOLLAR[oc.card.rarity] || 5,
-        energyValue: RARITY_ENERGY[oc.card.rarity] || 2,
+        dollarValue: getSellPrice(oc.card.rarity).dollars,
+        energyValue: getSellPrice(oc.card.rarity).energy,
         stats: { attack: oc.card.attackPower, defense: oc.card.defenseRating, hp: oc.card.hp },
         element: oc.card.element,
       });
@@ -377,8 +379,8 @@ export default function SellPage() {
         emoji: '⚡',
         image: p.image,
         rarity: p.rarity,
-        dollarValue: RARITY_DOLLAR[p.rarity] || 5,
-        energyValue: RARITY_ENERGY[p.rarity] || 2,
+        dollarValue: getSellPrice(p.rarity).dollars,
+        energyValue: getSellPrice(p.rarity).energy,
         stats: { attack: p.attack, defense: p.defense, hp: p.hp },
         types: p.types,
       });
@@ -393,8 +395,8 @@ export default function SellPage() {
         emoji: '🔀',
         image: f.image,
         rarity: f.rarity,
-        dollarValue: RARITY_DOLLAR[f.rarity] || 5,
-        energyValue: RARITY_ENERGY[f.rarity] || 2,
+        dollarValue: getSellPrice(f.rarity).dollars,
+        energyValue: getSellPrice(f.rarity).energy,
         stats: { attack: f.baseAttack, defense: f.baseDefense, hp: f.baseHp },
         types: f.types,
       });

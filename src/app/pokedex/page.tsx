@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, X, ChevronLeft, ChevronRight, Zap, Droplets, Flame, Leaf, Sparkles, Shield, Swords, Heart, Star } from 'lucide-react';
+import { SELLABLE_RARITIES } from '@/lib/cardSellPrice';
 
 // ============================================================
 // Types
@@ -415,7 +416,7 @@ function FilterModal({ selectedTypes, setSelectedTypes, selectedRarity, setSelec
   onClose: () => void;
 }) {
   const allTypes = ['fire', 'water', 'grass', 'electric', 'psychic', 'normal', 'bug', 'poison', 'ground', 'rock', 'flying', 'fighting', 'ghost', 'ice', 'dragon', 'dark', 'steel', 'fairy'];
-  const rarities = ['COMMON', 'UNCOMMON', 'RARE', 'ULTRA_RARE'];
+  const rarities = [...SELLABLE_RARITIES];
 
   const toggleType = (type: string) => {
     if (selectedTypes.includes(type)) {
