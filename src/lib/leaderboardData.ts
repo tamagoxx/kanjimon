@@ -53,20 +53,67 @@ function rowToEntry(r: CloudRow): LeaderboardEntry {
 }
 
 /**
- * Read the most recent N runs from local kanjiDrop store.
- * Returns [] if SSR or no runs.
+ * Read the most recent runs from local kanjiDrop store.
  *
- * Uses useKanjiDropStore.getState() which works outside React lifecycle.
- * Guarded with typeof window to avoid SSR.
+ * Hydration bug fix: Zustand's persist middleware runs hydration
+ * AFTER the module is first imported. On Next.js the server creates
+ * the store with empty initial state, the client takes over the
+ * same module instance, and `getState()` returns the server's empty
+ * state until hydration completes. The leaderboard page calls
+ * `getState()` inside a useEffect that runs BEFORE hydration, so
+ * we miss the localStorage data.
+ *
+ * Fix: also read directly from localStorage and merge. Zustand
+ * keeps the most recent state in localStorage (sync write on
+ * every `set()`), so the localStorage data is always at least as
+ * fresh as what `getState()` returns. We still prefer Zustand's
+ * in-memory state for the current tick in case a `set()` was made
+ * but not yet flushed (rare but possible).
+ *
+ * Returns [] if SSR, no data, or parse error.
  */
-export function readLocalKanjiDropRuns(): import('./leaderboardLogic').LocalRunInput[] {
+const LS_KEY = 'kanjimon-kanji-drop';
+
+function readLocalStorageRuns(): import('./leaderboardLogic').LocalRunInput[] {
   if (typeof window === 'undefined') return [];
   try {
-    const state = useKanjiDropStore.getState();
-    return state.recentRuns;
+    const raw = window.localStorage.getItem(LS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    // Zustand persist default shape: { state: {...}, version: 0 }
+    const runs = parsed?.state?.recentRuns;
+    return Array.isArray(runs) ? runs : [];
   } catch {
     return [];
   }
+}
+
+export function readLocalKanjiDropRuns(): import('./leaderboardLogic').LocalRunInput[] {
+  if (typeof window === 'undefined') return [];
+  let zustandRuns: import('./leaderboardLogic').LocalRunInput[] = [];
+  try {
+    const state = useKanjiDropStore.getState();
+    zustandRuns = state.recentRuns ?? [];
+  } catch {
+    // ignore
+  }
+  const lsRuns = readLocalStorageRuns();
+
+  // If both sources agree, return Zustand's (it might have a more
+  // recent in-memory write that hasn't flushed yet). Otherwise merge
+  // and dedup by (playedAt + score).
+  if (lsRuns.length === 0) return zustandRuns;
+  if (zustandRuns.length === 0) return lsRuns;
+
+  const seen = new Set<string>();
+  const merged: import('./leaderboardLogic').LocalRunInput[] = [];
+  for (const r of [...zustandRuns, ...lsRuns]) {
+    const key = `${r.playedAt}-${r.score}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(r);
+  }
+  return merged;
 }
 
 /**
