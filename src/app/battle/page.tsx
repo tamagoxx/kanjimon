@@ -10,7 +10,7 @@ import type { ElementEssence, JapaneseCard } from '@/types';
 import { BOSS_TEMPLATES, type BossTemplate } from '@/data/bosses';
 import { scaleStats } from '@/lib/bossScaling';
 import { calculateRewards } from '@/lib/bossRewards';
-import { calculatePlayerMaxHp } from '@/lib/battleHPUtils';
+import { calculatePlayerMaxHp, calculatePlayerStatsFromDeck } from '@/lib/battleHPUtils';
 import { calculateDamage } from '@/lib/battleDamage';
 import { getEffectiveDefense } from '@/lib/cardStats';
 import { getNextOpponent, getRandomOpponent, canGoNextChapter, POST_BATTLE_ACTIONS } from '@/lib/postBattleActions';
@@ -1883,6 +1883,8 @@ function BattlePageContent() {
   // Player state
   const [playerHp, setPlayerHp] = useState(100);
   const [playerMaxHp, setPlayerMaxHp] = useState(100);
+  const [playerAtk, setPlayerAtk] = useState(0);
+  const [playerDef, setPlayerDef] = useState(0);
   const [playerHand, setPlayerHand] = useState<BattleCard[]>([]);
   const [playerActive, setPlayerActive] = useState<BattleCard | null>(null);
   const [playerEnergy, setPlayerEnergy] = useState(3);
@@ -1940,12 +1942,12 @@ function BattlePageContent() {
 
 // Refs for functions that need current values in callbacks
   const stateRef = useRef({
-    phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem,
+    phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerAtk, playerDef, playerEnergy, combo, lastElem,
     processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths,
     bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, autoMove, playerHand,
     exhaustedCardIds,
   });
-  useEffect(() => { stateRef.current = { phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, autoMove, playerHand, exhaustedCardIds }; }, [phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, autoMove, playerHand, exhaustedCardIds]);
+  useEffect(() => { stateRef.current = { phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerAtk, playerDef, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, autoMove, playerHand, exhaustedCardIds }; }, [phase, opponent, turn, isPlayerTurn, oppActive, oppHp, playerActive, playerHp, playerMaxHp, playerAtk, playerDef, playerEnergy, combo, lastElem, processing, boss, bossHp, bossMaxHp, bossAtkMultiplier, bossDefMultiplier, bossPhase, bossDeaths, bossCharging, bossBerserkCount, burnStacks, playerBuffed, autoMode, autoMove, playerHand, exhaustedCardIds]);
 
   // Mark a card as exhausted after using it
   const markCardExhausted = (cardId: string) => {
@@ -2111,23 +2113,31 @@ function BattlePageContent() {
     setOppHp(opp.hp);
     setOppMaxHp(opp.hp);
     const level = user?.level || 1;
-    // Bug fix: HP now scales with deck strength instead of hardcoded 100.
-    // Extracts HP values from jp- prefixed cards in the player's active deck.
+    // Player stats derived from the 5 cards in the active deck (sum of all 3 stats).
+    // Active card (per-turn) only determines element/ability, not the underlying stats.
     const activeDeck = useCollectionStore.getState().getActiveDeck();
     const ownedCards = useCollectionStore.getState().ownedCards;
-    const deckHps: { hp: number }[] = [];
+    const deckStats: { hp: number; attackPower: number; defenseRating: number }[] = [];
     if (activeDeck) {
       for (const cardId of activeDeck.cardIds) {
         if (cardId.startsWith('jp-')) {
           const id = cardId.replace('jp-', '');
           const owned = ownedCards.find((oc) => oc.cardId === id);
-          if (owned) deckHps.push({ hp: owned.card.hp });
+          if (owned) {
+            deckStats.push({
+              hp: owned.card.hp,
+              attackPower: owned.card.attackPower,
+              defenseRating: owned.card.defenseRating,
+            });
+          }
         }
       }
     }
-    const baseHp = calculatePlayerMaxHp(deckHps, level);
-    setPlayerHp(baseHp);
-    setPlayerMaxHp(baseHp);
+    const stats = calculatePlayerStatsFromDeck(deckStats, level);
+    setPlayerHp(stats.hp);
+    setPlayerMaxHp(stats.hp);
+    setPlayerAtk(stats.attack);
+    setPlayerDef(stats.defense);
     setPlayerEnergy(3);
     setOppEnergy(3);
     setTurn(1);
@@ -2142,14 +2152,14 @@ function BattlePageContent() {
     setAutoMode(false);
     setBattleTimeLeft(120);
     setCardSelectTimer(0);
-    
+
     addLog(`⚔️ Battle dimulai vs ${opp.name}!`);
     addLog('🎯 Pilih kartu dari tanganmu');
     setPhase('intro');
-    
+
     // Start card selection timer
     resetCardTimer();
-    
+
     setTimeout(() => setPhase('battle'), 1500);
   };
 
@@ -2167,22 +2177,30 @@ function BattlePageContent() {
     setBossCharging(false);
     setBossBerserkCount(0);
     const level = user?.level || 1;
-    // Bug fix: same deck-based HP formula as startBattle (was hardcoded 100).
+    // Player stats derived from 5-card deck (sum). Same formula as startBattle.
     const activeDeck = useCollectionStore.getState().getActiveDeck();
     const ownedCards = useCollectionStore.getState().ownedCards;
-    const deckHps: { hp: number }[] = [];
+    const deckStats: { hp: number; attackPower: number; defenseRating: number }[] = [];
     if (activeDeck) {
       for (const cardId of activeDeck.cardIds) {
         if (cardId.startsWith('jp-')) {
           const id = cardId.replace('jp-', '');
           const owned = ownedCards.find((oc) => oc.cardId === id);
-          if (owned) deckHps.push({ hp: owned.card.hp });
+          if (owned) {
+            deckStats.push({
+              hp: owned.card.hp,
+              attackPower: owned.card.attackPower,
+              defenseRating: owned.card.defenseRating,
+            });
+          }
         }
       }
     }
-    const baseHp = calculatePlayerMaxHp(deckHps, level);
-    setPlayerHp(baseHp);
-    setPlayerMaxHp(baseHp);
+    const stats = calculatePlayerStatsFromDeck(deckStats, level);
+    setPlayerHp(stats.hp);
+    setPlayerMaxHp(stats.hp);
+    setPlayerAtk(stats.attack);
+    setPlayerDef(stats.defense);
     setPlayerEnergy(3);
     setOppEnergy(3);
     setTurn(1);
@@ -2475,7 +2493,8 @@ function BattlePageContent() {
     if (!s.playerActive || !s.isPlayerTurn || s.processing || s.phase !== 'boss-battle') return;
     setProcessing(true);
 
-    let damage = s.playerActive.attack;
+    // Use pool attack stat (sum of all 5 cards' attackPower), not the active card
+    let damage = s.playerAtk;
 
     // Apply player buff (debuff from boss)
     if (s.playerBuffed) {
@@ -2651,8 +2670,9 @@ function BattlePageContent() {
     else if (eff < 1) damage = Math.floor(damage * eff);
 
     if (s.playerActive) {
-      // Defending status gives 1.5x defense bonus (uses shared calculateDamage)
-      damage = calculateDamage(damage, s.playerActive.defense, { defMultiplier: s.playerActive.status === 'defending' ? 1.5 : 1.0 });
+      // Defending status gives 1.5x defense bonus. Defense value is the
+      // pool (sum of 5 cards' defenseRating); defending flag stays per-card.
+      damage = calculateDamage(damage, s.playerDef, { defMultiplier: s.playerActive.status === 'defending' ? 1.5 : 1.0 });
     }
 
     setDmgVal(damage);
@@ -2759,8 +2779,8 @@ function BattlePageContent() {
     if (!s.playerActive || !s.isPlayerTurn || s.processing) return;
     setProcessing(true);
 
-    // Use card's own attack stat as base power
-    let basePower = s.playerActive.attack;
+    // Use pool attack stat (sum of all 5 cards' attackPower), not the active card
+    let basePower = s.playerAtk;
 
     let damage = basePower;
     let effectiveness: 'super' | 'weak' | 'normal' = 'normal';
