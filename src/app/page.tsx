@@ -451,8 +451,15 @@ export default function HomePage() {
             title="Kanji Drop"
             subtitle="Ketik romaji!"
             color={colors.teal}
-            isNew
             onClick={() => router.push('/kanji-drop')}
+          />
+          <GameModeCard
+            icon="🧠"
+            title="Memory Match"
+            subtitle="Cocokkan kartu!"
+            color={colors.gold}
+            isNew
+            onClick={() => router.push('/memory-match')}
           />
         </motion.div>
 
