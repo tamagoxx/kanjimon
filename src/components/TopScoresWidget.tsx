@@ -70,7 +70,7 @@ export function TopScoresWidget() {
       const supabase = createBrowserSupabaseClient();
       const { data, error } = await supabase
         .from('leaderboard_scores')
-        .select('id, user_id, username, game_mode, score, wave, kills, max_combo, played_at, created_at, duration_sec')
+        .select('id, user_id, username, game_mode, score, wave, kills, max_combo, played_at')
         .order('score', { ascending: false })
         .order('played_at', { ascending: false })
         .limit(5);

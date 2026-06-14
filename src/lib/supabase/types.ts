@@ -18,9 +18,7 @@ export interface LeaderboardScoreRow {
   wave: number;
   kills: number;
   max_combo: number;
-  duration_sec: number | null;
   played_at: string;
-  created_at: string;
 }
 
 export interface PlayerSaveRow {
@@ -44,7 +42,7 @@ export interface Database {
     Tables: {
       leaderboard_scores: {
         Row: LeaderboardScoreRow;
-        Insert: Omit<LeaderboardScoreRow, 'id' | 'created_at'>;
+        Insert: Omit<LeaderboardScoreRow, 'id'>;
         Update: Partial<LeaderboardScoreRow>;
       };
       player_saves: {

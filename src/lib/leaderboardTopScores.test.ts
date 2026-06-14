@@ -17,9 +17,7 @@ const row = (overrides: Partial<LeaderboardScoreRow>): LeaderboardScoreRow => ({
   wave: 0,
   kills: 0,
   max_combo: 0,
-  duration_sec: null,
   played_at: '2026-01-01T00:00:00.000Z',
-  created_at: '2026-01-01T00:00:00.000Z',
   ...overrides,
 });
 
