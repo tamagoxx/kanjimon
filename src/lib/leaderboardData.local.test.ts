@@ -23,8 +23,9 @@ vi.mock('../store/kanjiDropStore', () => ({
   },
 }));
 
-import * as supabaseMod from '../lib/supabase';
-vi.spyOn(supabaseMod, 'isSupabaseConfigured', 'get').mockReturnValue(false);
+vi.mock('@/lib/env', () => ({ isSupabaseConfigured: true }));
+vi.mock('@utils/supabase/client', () => ({ createClient: vi.fn() }));
+import { createClient } from '@utils/supabase/client';
 
 import { useKanjiDropStore } from '../store/kanjiDropStore';
 import { fetchTopScores, getLocalEntries, readLocalKanjiDropRuns } from './leaderboardData';
@@ -134,8 +135,7 @@ describe('fetchTopScores network error handling', () => {
   });
 
   it('catches network errors (TypeError "Failed to fetch") and returns []', async () => {
-    const spy = vi.spyOn(supabaseMod, 'isSupabaseConfigured', 'get');
-    spy.mockReturnValueOnce(true);
+    
 
     const throwingSupabase = {
       from: () => ({
@@ -150,7 +150,7 @@ describe('fetchTopScores network error handling', () => {
         }),
       }),
     };
-    vi.spyOn(supabaseMod, 'getSupabase').mockReturnValueOnce(throwingSupabase as any);
+    vi.mocked(createClient as any).mockReturnValueOnce(throwingSupabase as any);
 
     // Should NOT throw — should resolve to []
     const entries = await fetchTopScores({ mode: 'kanji-drop', window: 'ALL_TIME' });
@@ -158,8 +158,7 @@ describe('fetchTopScores network error handling', () => {
   });
 
   it('catches structured Supabase errors (PostgREST errors) and returns []', async () => {
-    const spy = vi.spyOn(supabaseMod, 'isSupabaseConfigured', 'get');
-    spy.mockReturnValueOnce(true);
+    
 
     const errorSupabase = {
       from: () => ({
@@ -174,7 +173,7 @@ describe('fetchTopScores network error handling', () => {
         }),
       }),
     };
-    vi.spyOn(supabaseMod, 'getSupabase').mockReturnValueOnce(errorSupabase as any);
+    vi.mocked(createClient as any).mockReturnValueOnce(errorSupabase as any);
 
     const entries = await fetchTopScores({ mode: 'kanji-drop', window: 'ALL_TIME' });
     expect(entries).toEqual([]);

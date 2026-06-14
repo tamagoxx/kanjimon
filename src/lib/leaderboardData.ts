@@ -12,7 +12,8 @@
 //
 // Schema lives in: supabase/migrations/0001_leaderboard_scores.sql
 
-import { isSupabaseConfigured, getSupabase } from './supabase';
+import { isSupabaseConfigured } from '@/lib/env';
+import { createClient } from '@utils/supabase/client';
 import { useKanjiDropStore } from '../store/kanjiDropStore';
 import {
   sortByScore,
@@ -146,7 +147,7 @@ export async function fetchTopScores(opts: FetchOptions): Promise<LeaderboardEnt
     // We fetch more than we need then filter by window client-side.
     // This keeps the SQL simple and gives us room to switch to a
     // windowed query later without changing the page contract.
-    const { data, error } = await getSupabase()
+    const { data, error } = await createClient()
       .from('leaderboard_scores')
       .select('*')
       .eq('game_mode', opts.mode)
@@ -194,7 +195,7 @@ export async function submitScore(
   if (!isSupabaseConfigured) {
     return { ok: false, error: 'Supabase belum dikonfigurasi' };
   }
-  const { error } = await getSupabase().from('leaderboard_scores').insert({
+  const { error } = await createClient().from('leaderboard_scores').insert({
     user_id: payload.userId,
     username: payload.username,
     game_mode: payload.gameMode,
@@ -221,7 +222,7 @@ export function subscribeToNewScores(
   onNew: (entry: LeaderboardEntry) => void,
 ): () => void {
   if (!isSupabaseConfigured) return () => {};
-  const channel = getSupabase()
+  const channel = createClient()
     .channel(`leaderboard-${mode}`)
     .on(
       'postgres_changes',
@@ -233,7 +234,7 @@ export function subscribeToNewScores(
     )
     .subscribe();
   return () => {
-    void getSupabase().removeChannel(channel);
+    void createClient().removeChannel(channel);
   };
 }
 

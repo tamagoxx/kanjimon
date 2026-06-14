@@ -1,15 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock the supabase client BEFORE importing the module under test
-vi.mock('./supabase', () => ({
-  supabase: {
-    from: vi.fn(),
-  },
+// Mock the Supabase client factory BEFORE importing the module under test.
+// vi.hoisted ensures the mock refs exist when vi.mock factory runs.
+const { mockFrom, mockSupabase } = vi.hoisted(() => {
+  const mockFrom = vi.fn();
+  return { mockFrom, mockSupabase: { from: mockFrom } };
+});
+
+vi.mock('@utils/supabase/client', () => ({
+  createClient: () => mockSupabase,
 }));
 
 import { debounce, serializeState, deserializeState } from './supabaseSync';
 import { loadPlayerSave, savePlayerSave, deletePlayerSave } from './supabaseSync';
-import { supabase } from './supabase';
 
 describe('supabaseSync utilities', () => {
   describe('serializeState', () => {
@@ -89,7 +92,7 @@ describe('supabaseSync utilities', () => {
       });
       const eq = vi.fn().mockReturnValue({ single });
       const select = vi.fn().mockReturnValue({ eq });
-      (supabase.from as any).mockReturnValue({ select });
+      (mockFrom as any).mockReturnValue({ select });
 
       const result = await loadPlayerSave('user-1');
       expect(result).toBeNull();
@@ -102,7 +105,7 @@ describe('supabaseSync utilities', () => {
       });
       const eq = vi.fn().mockReturnValue({ single });
       const select = vi.fn().mockReturnValue({ eq });
-      (supabase.from as any).mockReturnValue({ select });
+      (mockFrom as any).mockReturnValue({ select });
 
       const result = await loadPlayerSave('user-1');
       expect(result).toEqual({ state: { coins: 100 }, schema_version: 1 });
@@ -115,7 +118,7 @@ describe('supabaseSync utilities', () => {
       });
       const eq = vi.fn().mockReturnValue({ single });
       const select = vi.fn().mockReturnValue({ eq });
-      (supabase.from as any).mockReturnValue({ select });
+      (mockFrom as any).mockReturnValue({ select });
 
       await expect(loadPlayerSave('user-1')).rejects.toThrow();
     });
@@ -124,7 +127,7 @@ describe('supabaseSync utilities', () => {
   describe('savePlayerSave', () => {
     it('upserts save row with user_id, state, schema_version', async () => {
       const upsert = vi.fn().mockResolvedValue({ error: null });
-      (supabase.from as any).mockReturnValue({ upsert });
+      (mockFrom as any).mockReturnValue({ upsert });
 
       await savePlayerSave('user-1', { coins: 50 });
       expect(upsert).toHaveBeenCalledWith({
@@ -136,7 +139,7 @@ describe('supabaseSync utilities', () => {
 
     it('throws on error', async () => {
       const upsert = vi.fn().mockResolvedValue({ error: { message: 'oops' } });
-      (supabase.from as any).mockReturnValue({ upsert });
+      (mockFrom as any).mockReturnValue({ upsert });
 
       await expect(savePlayerSave('user-1', {})).rejects.toThrow();
     });
@@ -146,7 +149,7 @@ describe('supabaseSync utilities', () => {
     it('deletes row by user_id', async () => {
       const eq = vi.fn().mockResolvedValue({ error: null });
       const del = vi.fn().mockReturnValue({ eq });
-      (supabase.from as any).mockReturnValue({ delete: del });
+      (mockFrom as any).mockReturnValue({ delete: del });
 
       await deletePlayerSave('user-1');
       expect(eq).toHaveBeenCalledWith('user_id', 'user-1');

@@ -1,4 +1,20 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// Mock Supabase client + env so authStore (transitive import) doesn't
+// throw "URL and API key required" during these non-supabase tests.
+const { mockAuth, mockSupabase } = vi.hoisted(() => {
+  const mockAuth = {
+    signUp: vi.fn(),
+    signInWithPassword: vi.fn(),
+    signOut: vi.fn(),
+    getSession: vi.fn(),
+  };
+  return { mockAuth, mockSupabase: { auth: mockAuth } };
+});
+vi.mock('@utils/supabase/client', () => ({
+  createClient: () => mockSupabase,
+}));
+vi.mock('@/lib/env', () => ({ isSupabaseConfigured: false }));
 import { useCollectionStore } from '@/store/collectionStore';
 import { useEvolutionStore, FUSION_SACRIFICE_VALUES } from '@/store/evolutionStore';
 import type { FusedPokemon } from '@/types';

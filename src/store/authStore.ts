@@ -1,7 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { UserProfile, UserProgress, Badge } from '../types';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { createClient } from '@utils/supabase/client';
+import { isSupabaseConfigured } from '@/lib/env';
+
+const supabase = createClient();
 
 interface AuthState {
   user: UserProfile | null;

@@ -1,4 +1,6 @@
-import { supabase } from './supabase';
+import { createClient } from '@utils/supabase/client';
+
+const supabase = createClient();
 
 export const CURRENT_SCHEMA_VERSION = 1;
 

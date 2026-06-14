@@ -1,17 +1,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock supabase BEFORE importing the store
-vi.mock('../lib/supabase', () => ({
-  supabase: {
-    auth: {
-      signUp: vi.fn(),
-      signInWithPassword: vi.fn(),
-      signOut: vi.fn(),
-      getSession: vi.fn(),
-    },
-  },
-  isSupabaseConfigured: true,
+// Mock the Supabase client factory BEFORE importing the store.
+// vi.hoisted ensures these mock refs exist when vi.mock factory runs.
+const { mockAuth, mockSupabase } = vi.hoisted(() => {
+  const mockAuth = {
+    signUp: vi.fn(),
+    signInWithPassword: vi.fn(),
+    signOut: vi.fn(),
+    getSession: vi.fn(),
+  };
+  return { mockAuth, mockSupabase: { auth: mockAuth } };
+});
+
+vi.mock('@utils/supabase/client', () => ({
+  createClient: () => mockSupabase,
 }));
+vi.mock('@/lib/env', () => ({ isSupabaseConfigured: true }));
 
 vi.mock('../lib/supabaseSync', () => ({
   loadPlayerSave: vi.fn(),
@@ -20,7 +24,6 @@ vi.mock('../lib/supabaseSync', () => ({
 }));
 
 import { useAuthStore } from './authStore';
-import { supabase } from '../lib/supabase';
 
 describe('authStore Supabase methods', () => {
   beforeEach(() => {
@@ -36,7 +39,7 @@ describe('authStore Supabase methods', () => {
 
   describe('signUp', () => {
     it('creates new user, sets isCloudSynced=true on success', async () => {
-      (supabase.auth.signUp as any).mockResolvedValue({
+      (mockAuth.signUp as any).mockResolvedValue({
         data: {
           user: {
             id: 'supa-1',
@@ -61,7 +64,7 @@ describe('authStore Supabase methods', () => {
     });
 
     it('returns error on failure without changing state', async () => {
-      (supabase.auth.signUp as any).mockResolvedValue({
+      (mockAuth.signUp as any).mockResolvedValue({
         data: { user: null, session: null },
         error: { message: 'Email already registered' },
       });
@@ -77,7 +80,7 @@ describe('authStore Supabase methods', () => {
 
   describe('signIn', () => {
     it('signs in existing user, sets isCloudSynced=true', async () => {
-      (supabase.auth.signInWithPassword as any).mockResolvedValue({
+      (mockAuth.signInWithPassword as any).mockResolvedValue({
         data: {
           user: {
             id: 'supa-2',
@@ -100,7 +103,7 @@ describe('authStore Supabase methods', () => {
     });
 
     it('returns error on invalid credentials', async () => {
-      (supabase.auth.signInWithPassword as any).mockResolvedValue({
+      (mockAuth.signInWithPassword as any).mockResolvedValue({
         data: { user: null, session: null },
         error: { message: 'Invalid login credentials' },
       });
@@ -115,8 +118,8 @@ describe('authStore Supabase methods', () => {
   });
 
   describe('signOutCloud', () => {
-    it('calls supabase.auth.signOut and clears state', async () => {
-      (supabase.auth.signOut as any).mockResolvedValue({ error: null });
+    it('calls mockAuth.signOut and clears state', async () => {
+      (mockAuth.signOut as any).mockResolvedValue({ error: null });
 
       // pre-set state
       useAuthStore.setState({
@@ -135,7 +138,7 @@ describe('authStore Supabase methods', () => {
 
       await useAuthStore.getState().signOutCloud();
 
-      expect(supabase.auth.signOut).toHaveBeenCalled();
+      expect(mockAuth.signOut).toHaveBeenCalled();
       const state = useAuthStore.getState();
       expect(state.user).toBeNull();
       expect(state.isAuthenticated).toBe(false);
