@@ -1,15 +1,76 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useAuthStore } from '../store/authStore';
-import { useCollectionStore } from '../store/collectionStore';
+import { useEffect, useRef } from 'react';
 import {
   loadPlayerSave,
   savePlayerSave,
   serializeState,
   debounce,
+  CURRENT_SCHEMA_VERSION,
   type PlayerSave,
+  type PlayerSaveState,
 } from '../lib/supabaseSync';
+import { useAuthStore } from '../store/authStore';
+import { useCollectionStore } from '../store/collectionStore';
+
+// === Hydration ===
+// Saved state uses a nested shape: { auth, collection }.
+// New fields can be added to PlayerSaveState (in supabaseSync.ts) and the
+// `hydrateFromCloud` function will pick them up automatically.
+// Legacy flat saves (state is the collection directly) are still supported.
+
+const isNestedShape = (state: unknown): state is PlayerSaveState => {
+  if (!state || typeof state !== 'object') return false;
+  const s = state as Record<string, unknown>;
+  return 'auth' in s || 'collection' in s;
+};
+
+function buildSavePayload(): PlayerSaveState {
+  const auth = useAuthStore.getState();
+  const collection = useCollectionStore.getState();
+  return {
+    auth: {
+      level: auth.user?.level ?? 1,
+      xp: auth.user?.xp ?? 0,
+      badges: auth.user?.badges ?? [],
+      totalBattles: auth.totalBattles ?? 0,
+      totalWins: auth.totalWins ?? 0,
+      totalCards: auth.totalCards ?? 0,
+      studySessions: auth.studySessions ?? 0,
+    },
+    collection: serializeState(collection),
+  };
+}
+
+function hydrateFromCloud(loaded: PlayerSave): void {
+  const state = loaded.state;
+  if (!state) return;
+
+  if (isNestedShape(state)) {
+    if (state.collection && typeof state.collection === 'object') {
+      useCollectionStore.setState(state.collection as Partial<ReturnType<typeof useCollectionStore.getState>>);
+    }
+    if (state.auth && typeof state.auth === 'object') {
+      const a = state.auth;
+      const currentUser = useAuthStore.getState().user;
+      useAuthStore.setState({
+        user: currentUser
+          ? { ...currentUser, level: a.level ?? 1, xp: a.xp ?? 0, badges: a.badges ?? [] }
+          : null,
+        totalBattles: a.totalBattles ?? 0,
+        totalWins: a.totalWins ?? 0,
+        totalCards: a.totalCards ?? 0,
+        studySessions: a.studySessions ?? 0,
+      });
+    }
+    return;
+  }
+
+  // Legacy: state IS the collection (flat shape)
+  if (state && typeof state === 'object') {
+    useCollectionStore.setState(state as Partial<ReturnType<typeof useCollectionStore.getState>>);
+  }
+}
 
 export interface SyncController {
   start: () => Promise<void>;
@@ -17,86 +78,112 @@ export interface SyncController {
   stop: () => void;
 }
 
-/**
- * Pure controller — testable without React.
- * On start: load cloud save and hydrate collectionStore. Subscribe to changes for debounced save.
- * On stop: unsubscribe.
- */
 export function createSyncController(): SyncController {
-  let unsubscribe: (() => void) | null = null;
-  let activeUserId: string | null = null;
-  let debouncedSave: (() => void) | null = null;
+  const unsubs: Array<() => void> = [];
+  let currentUserId: string | null = null;
 
   return {
-    start: async () => {
-      const { user, isCloudSynced } = useAuthStore.getState();
-      if (!user || !isCloudSynced) return;
+    async start() {
+      const auth = useAuthStore.getState();
+      const activeUserId = auth.user?.id;
+      if (!activeUserId || !auth.isCloudSynced) return;
+      currentUserId = activeUserId;
 
-      activeUserId = user.id;
-
-      // 1. Debounced auto-save on changes (subscribe FIRST so we capture
-      //    any mutations that happen during the initial load).
-      debouncedSave = debounce(() => {
-        if (!activeUserId) return;
-        const state = useCollectionStore.getState();
-        savePlayerSave(activeUserId, serializeState(state)).catch((err) => {
-          // eslint-disable-next-line no-console
-          console.warn('[SyncProvider] save failed:', err);
-        });
+      // Subscribe FIRST so any mutations during load are captured.
+      const debouncedSave = debounce(async (uid: string) => {
+        await savePlayerSave(uid, buildSavePayload());
       }, 5000);
 
-      unsubscribe = useCollectionStore.subscribe(() => {
-        debouncedSave?.();
-      });
+      const onCollectionChange = () => {
+        if (!currentUserId) return;
+        debouncedSave(currentUserId);
+      };
+      const onAuthChange = () => {
+        if (!currentUserId) return;
+        // Guard: only save if this is a progress change, not a user-identity change
+        const newUser = useAuthStore.getState().user;
+        if (newUser?.id !== currentUserId) return;
+        debouncedSave(currentUserId);
+      };
 
-      // 2. Load remote state → hydrate (after subscribing so we don't miss
-      //    mutations the user triggers during load).
+      unsubs.push(useCollectionStore.subscribe(onCollectionChange));
+      unsubs.push(useAuthStore.subscribe(onAuthChange));
+
+      // Load cloud state
       try {
-        const save: PlayerSave | null = await loadPlayerSave(user.id);
-        if (save?.state) {
-          useCollectionStore.setState(save.state as Partial<ReturnType<typeof useCollectionStore.getState>>);
+        const loaded = await loadPlayerSave(activeUserId);
+        if (loaded) {
+          hydrateFromCloud(loaded);
+        } else {
+          // First signIn: create initial save row so subsequent logins can load it
+          await savePlayerSave(activeUserId, buildSavePayload());
         }
       } catch (err) {
-        // Network / DB error → keep local state, log only
-        // eslint-disable-next-line no-console
-        console.warn('[SyncProvider] load failed, keeping local state:', err);
+        console.warn('[Sync] failed to load player save:', err);
       }
     },
 
-    save: async () => {
-      const { user } = useAuthStore.getState();
-      if (!user) return;
-      const state = useCollectionStore.getState();
-      await savePlayerSave(user.id, serializeState(state));
+    async save() {
+      const uid = useAuthStore.getState().user?.id ?? currentUserId;
+      if (!uid) return;
+      await savePlayerSave(uid, buildSavePayload());
     },
 
-    stop: () => {
-      unsubscribe?.();
-      unsubscribe = null;
-      debouncedSave = null;
-      activeUserId = null;
+    stop() {
+      unsubs.forEach((u) => u());
+      unsubs.length = 0;
+      currentUserId = null;
     },
   };
 }
 
-/**
- * React component: wires the SyncController into the app lifecycle.
- * Mounts when user is cloud-synced, unmounts on logout.
- */
+// === React component (mounts one controller in the app tree) ===
 export function SyncProvider({ children }: { children: React.ReactNode }) {
-  const isCloudSynced = useAuthStore((s) => s.isCloudSynced);
-  const userId = useAuthStore((s) => s.user?.id);
+  const controllerRef = useRef<SyncController | null>(null);
+  const startedForUserId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isCloudSynced || !userId) return;
-    const ctrl = createSyncController();
-    ctrl.start();
-    // Flush save on unmount (logout)
-    return () => {
-      ctrl.save().catch(() => {});
-      ctrl.stop();
-    };
-  }, [isCloudSynced, userId]);
+    const unsub = useAuthStore.subscribe(async (state, prev) => {
+      const userId = state.user?.id ?? null;
+      const prevUserId = prev.user?.id ?? null;
+      const wasCloud = prev.isCloudSynced;
+      const isCloud = state.isCloudSynced;
+
+      // Start sync on first signIn
+      if (userId && isCloud && userId !== startedForUserId.current) {
+        // Stop any previous controller (e.g. user changed)
+        if (controllerRef.current) {
+          await controllerRef.current.save().catch(() => {});
+          controllerRef.current.stop();
+        }
+        const ctrl = createSyncController();
+        controllerRef.current = ctrl;
+        startedForUserId.current = userId;
+        await ctrl.start();
+      }
+
+      // Stop on signOut
+      if ((!userId || !isCloud) && wasCloud && controllerRef.current) {
+        await controllerRef.current.save().catch(() => {});
+        controllerRef.current.stop();
+        controllerRef.current = null;
+        startedForUserId.current = null;
+      }
+
+      // Stop on user change (different user signed in)
+      if (userId && prevUserId && userId !== prevUserId && controllerRef.current) {
+        await controllerRef.current.save().catch(() => {});
+        controllerRef.current.stop();
+        controllerRef.current = null;
+        startedForUserId.current = null;
+        // Will restart on next render's state update
+      }
+    });
+    return unsub;
+  }, []);
 
   return <>{children}</>;
 }
+
+// Re-export for tests
+export { CURRENT_SCHEMA_VERSION };

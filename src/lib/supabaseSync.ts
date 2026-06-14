@@ -5,8 +5,29 @@ const supabase = createClient();
 export const CURRENT_SCHEMA_VERSION = 1;
 
 export interface PlayerSave {
-  state: Record<string, any>;
+  state: PlayerSaveState | Record<string, any>;
   schema_version: number;
+}
+
+/**
+ * Nested save state shape (v1+):
+ *   auth:       user progress (level/xp/badges + stats)
+ *   collection: card collection + coins + gems + ...
+ *
+ * Legacy saves (pre-nested) used a flat shape where the state itself
+ * was the collection. Those are still readable via the loader.
+ */
+export interface PlayerSaveState {
+  auth?: {
+    level: number;
+    xp: number;
+    badges: unknown[];
+    totalBattles: number;
+    totalWins: number;
+    totalCards: number;
+    studySessions: number;
+  };
+  collection?: Record<string, any>;
 }
 
 /**
