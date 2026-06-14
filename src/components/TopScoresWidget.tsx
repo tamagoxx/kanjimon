@@ -20,7 +20,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { getBrowserSupabase } from '@/lib/supabase/client';
+import { getBrowserSupabase } from '@utils/supabase/client';
 import type { LeaderboardScoreRow } from '@/lib/supabase/types';
 import {
   mapTopScores,
