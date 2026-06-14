@@ -7,7 +7,7 @@
 // you add new tables to supabase/migrations/*.sql.
 // ============================================================
 
-export type GameMode = 'kanji-drop' | 'battle';
+export type GameMode = 'kanji-drop' | 'battle' | 'kanji-stack';
 
 export interface LeaderboardScoreRow {
   id: string;
