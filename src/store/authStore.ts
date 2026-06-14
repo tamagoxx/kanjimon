@@ -187,6 +187,16 @@ export const useAuthStore = create<AuthState>()(
         if (error) return { error: error.message };
         if (!data.user) return { error: 'Signup berhasil tapi user tidak dibuat' };
 
+        // Email confirmation ON: user row created but no session.
+        // User must click the link in the email before they can sign in.
+        if (!data.session) {
+          return {
+            error:
+              'Cek email kamu untuk konfirmasi akun, lalu kembali ke halaman ini dan login.',
+            isCloudSynced: false,
+          };
+        }
+
         const newUser: UserProfile = {
           id: data.user.id,
           username,

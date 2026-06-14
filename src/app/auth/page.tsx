@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useCollectionStore } from '@/store/collectionStore';
 import { isSupabaseConfigured } from '@/lib/env';
+import { authSubmit, type AuthTab } from '@/lib/authSubmit';
 
 const colors = {
   background: '#0a1519',
@@ -20,10 +21,8 @@ const colors = {
   darkGray: '#2b363b',
 };
 
-type TabType = 'login' | 'register' | 'cloud';
-
 export default function AuthPage() {
-  const [activeTab, setActiveTab] = useState<TabType>('login');
+  const [activeTab, setActiveTab] = useState<AuthTab>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
@@ -36,52 +35,19 @@ export default function AuthPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setIsLoading(true);
-
-    try {
-      if (activeTab === 'cloud') {
-        // Cloud auth via Supabase
-        if (!isSupabaseConfigured) {
-          setError('Supabase belum dikonfigurasi. Set NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_ANON_KEY di .env.local');
-          setIsLoading(false);
-          return;
-        }
-        // Try signIn first; if fails and username provided, signUp
-        const result = await signIn(email, password);
-        if (result.error) {
-          // Account doesn't exist — try signUp if username provided
-          if (username.trim()) {
-            const signupResult = await signUp(email, password, username.trim());
-            if (signupResult.error) {
-              setError(signupResult.error);
-              setIsLoading(false);
-              return;
-            }
-          } else {
-            setError(result.error + ' — atau daftar dengan mengisi nama');
-            setIsLoading(false);
-            return;
-          }
-        }
-        router.push('/');
-        return;
-      }
-
-      // Local auth (login/register tabs)
-      setTimeout(() => {
-        if (activeTab === 'login') {
-          initNewUser({ username: email.split('@')[0], email }, initNewUserCards);
-        } else {
-          initNewUser({ username: username || email.split('@')[0], email }, initNewUserCards);
-        }
-        setIsLoading(false);
-        router.push('/');
-      }, 1500);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      setIsLoading(false);
-    }
+    await authSubmit(
+      { activeTab, email, password, username },
+      {
+        signIn,
+        signUp,
+        initNewUser,
+        initNewUserCards,
+        setError,
+        setIsLoading,
+        onSuccess: () => router.push('/'),
+        isSupabaseConfigured,
+      },
+    );
   };
 
   const handleGuest = () => {
