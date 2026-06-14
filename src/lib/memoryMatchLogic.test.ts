@@ -88,6 +88,16 @@ describe('MemoryMatchLogic — generateMemoryMatchBoard', () => {
       expect(c.isMatched).toBe(false);
     }
   });
+
+  it('every card has romaji text populated from the pool', () => {
+    const board = generateMemoryMatchBoard(4, POOL);
+    for (const card of board) {
+      const poolEntry = POOL.find(p => p.kanji === card.kanji);
+      expect(poolEntry).toBeDefined();
+      // romaji field should exist and match the pool's romaji for this kanji
+      expect((card as any).romaji).toBe(poolEntry!.romaji);
+    }
+  });
 });
 
 describe('MemoryMatchLogic — flipCard', () => {

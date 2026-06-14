@@ -18,6 +18,7 @@ export type CardSide = 'kanji' | 'romaji';
 export interface MemoryCard {
   id: string;            // unique per card
   kanji: string;         // the shared kanji (the pair key)
+  romaji: string;        // the romaji/reading — shown on the romaji-side card
   side: CardSide;        // which side of the pair this card is
   isFlipped: boolean;
   isMatched: boolean;
@@ -61,6 +62,7 @@ export function generateMemoryMatchBoard(
     cards.push({
       id: `${entry.kanji}-kanji-${cards.length}`,
       kanji: entry.kanji,
+      romaji: entry.romaji,
       side: 'kanji',
       isFlipped: false,
       isMatched: false,
@@ -68,6 +70,7 @@ export function generateMemoryMatchBoard(
     cards.push({
       id: `${entry.kanji}-romaji-${cards.length}`,
       kanji: entry.kanji,
+      romaji: entry.romaji,
       side: 'romaji',
       isFlipped: false,
       isMatched: false,
