@@ -23,6 +23,7 @@ import Link from 'next/link';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import type { LeaderboardScoreRow } from '@/lib/supabase/types';
 import { mapTopScores, gameModeLabel, gameModeIcon } from '@/lib/leaderboardTopScores';
+import { formatRelativeTime } from '@/lib/recentActivityAggregator';
 
 const colors = {
   background: '#0a1519',
@@ -44,6 +45,14 @@ export function TopScoresWidget() {
   const [status, setStatus] = useState<Status>('loading');
   const [rows, setRows] = useState<LeaderboardScoreRow[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // `now` ticks every minute so the "X menit lalu" labels stay fresh
+  // without re-fetching from Supabase.
+  const [now, setNow] = useState<number>(() => Date.now());
+
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(tick);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,13 +118,16 @@ export function TopScoresWidget() {
         <ul className="space-y-2 list-none p-0 m-0">
           {entries?.map((entry) => (
             <TopScoreRow
-              key={`${entry.rank}-${entry.username}-${entry.score}`}
+              key={entry.id}
+              id={entry.id}
               rank={entry.rank}
               username={entry.username}
               score={entry.score}
+              playedAt={entry.playedAt}
               modeLabel={gameModeLabel(entry.gameMode)}
               modeIcon={gameModeIcon(entry.gameMode)}
               medal={entry.medal}
+              now={now}
             />
           ))}
         </ul>
@@ -153,22 +165,29 @@ export function TopScoresWidget() {
 }
 
 function TopScoreRow({
+  id,
   rank,
   username,
   score,
+  playedAt,
   modeLabel,
   modeIcon,
   medal,
+  now,
 }: {
+  id: string;
   rank: number;
   username: string;
   score: number;
+  playedAt: string;
   modeLabel: string;
   modeIcon: string;
   medal: '🥇' | '🥈' | '🥉' | null;
+  now: number;
 }) {
   return (
     <li
+      data-todo-id={id}
       className="flex items-center gap-3 p-2 rounded-xl"
       style={{ backgroundColor: colors.inputBg }}
     >
@@ -194,7 +213,9 @@ function TopScoreRow({
         <div className="text-sm font-bold text-[#d8e4ea]">
           {score.toLocaleString()}
         </div>
-        <div className="text-[10px] text-[#c8c4d7]">pts</div>
+        <div className="text-[10px] text-[#c8c4d7]">
+          {formatRelativeTime(playedAt, now)}
+        </div>
       </div>
     </li>
   );

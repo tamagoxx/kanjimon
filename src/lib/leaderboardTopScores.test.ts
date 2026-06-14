@@ -58,11 +58,35 @@ describe('mapTopScores', () => {
     const out = mapTopScores(rows);
     expect(out).toHaveLength(5);
     expect(out[0]).toEqual<TopScoreEntry>({
+      id: '00000000-0000-0000-0000-000000000000',
       rank: 1,
       username: 'u0',
       score: 100,
       gameMode: 'kanji-drop',
       medal: '🥇',
+      playedAt: '2026-01-01T00:00:00.000Z',
     });
+  });
+
+  it('propagates each row id so React keys stay stable across reorders', () => {
+    const out = mapTopScores([
+      row({ id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', username: 'a' }),
+      row({ id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', username: 'b' }),
+      row({ id: 'cccccccc-cccc-cccc-cccc-cccccccccccc', username: 'c' }),
+    ]);
+    expect(out.map((e) => e.id)).toEqual([
+      'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+      'cccccccc-cccc-cccc-cccc-cccccccccccc',
+    ]);
+  });
+
+  it('propagates each row playedAt for relative time display', () => {
+    const out = mapTopScores([
+      row({ played_at: '2026-06-14T10:00:00.000Z', username: 'a' }),
+      row({ played_at: '2026-06-14T11:30:00.000Z', username: 'b' }),
+    ]);
+    expect(out[0].playedAt).toBe('2026-06-14T10:00:00.000Z');
+    expect(out[1].playedAt).toBe('2026-06-14T11:30:00.000Z');
   });
 });
