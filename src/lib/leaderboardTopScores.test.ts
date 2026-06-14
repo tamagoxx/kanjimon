@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mapTopScores, type TopScoreEntry } from './leaderboardTopScores';
+import { mapTopScores, gameModeLabel, gameModeIcon, type TopScoreEntry } from './leaderboardTopScores';
 import type { LeaderboardScoreRow, GameMode } from '@/lib/supabase/types';
 
 const row = (overrides: Partial<LeaderboardScoreRow>): LeaderboardScoreRow => ({
@@ -89,4 +89,32 @@ describe('mapTopScores', () => {
     expect(out[0].playedAt).toBe('2026-06-14T10:00:00.000Z');
     expect(out[1].playedAt).toBe('2026-06-14T11:30:00.000Z');
   });
+});
+
+describe('gameModeLabel', () => {
+  const cases: Array<[GameMode, string]> = [
+    ['kanji-drop', 'Kanji Drop'],
+    ['kanji-stack', 'Kanji Stack'],
+    ['battle', 'Battle'],
+    ['memory-match', 'Memory Match'],
+  ];
+  for (const [mode, expected] of cases) {
+    it(`labels ${mode} → "${expected}"`, () => {
+      expect(gameModeLabel(mode)).toBe(expected);
+    });
+  }
+});
+
+describe('gameModeIcon', () => {
+  const cases: Array<[GameMode, string]> = [
+    ['kanji-drop', '🌧️'],
+    ['kanji-stack', '🧱'],
+    ['battle', '⚔️'],
+    ['memory-match', '🧠'],
+  ];
+  for (const [mode, expected] of cases) {
+    it(`icon for ${mode} → "${expected}"`, () => {
+      expect(gameModeIcon(mode)).toBe(expected);
+    });
+  }
 });

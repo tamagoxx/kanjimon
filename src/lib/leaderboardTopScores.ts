@@ -52,6 +52,8 @@ export function gameModeLabel(mode: GameMode): string {
       return 'Kanji Stack';
     case 'battle':
       return 'Battle';
+    case 'memory-match':
+      return 'Memory Match';
   }
 }
 
@@ -64,5 +66,7 @@ export function gameModeIcon(mode: GameMode): string {
       return '🧱';
     case 'battle':
       return '⚔️';
+    case 'memory-match':
+      return '🧠';
   }
 }

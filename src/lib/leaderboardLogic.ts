@@ -2,7 +2,7 @@
 // Leaderboard — Pure decision logic (no React, no Supabase)
 // ============================================================
 
-export type GameMode = 'kanji-drop' | 'battle' | 'kanji-stack';
+export type GameMode = 'kanji-drop' | 'battle' | 'kanji-stack' | 'memory-match';
 export type TimeWindow = 'TODAY' | 'THIS_WEEK' | 'ALL_TIME';
 
 export interface LeaderboardEntry {

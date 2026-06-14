@@ -9,6 +9,8 @@ import {
   type MemoryCard,
 } from '@/lib/memoryMatchLogic';
 import { useMemoryMatchStore } from '@/store/memoryMatchStore';
+import { useAuthStore } from '@/store/authStore';
+import { submitScore } from '@/lib/leaderboardData';
 
 // ============================================================
 // Memory Match — Game Component
@@ -65,6 +67,7 @@ export default function MemoryMatchGame() {
   const recordRun = useMemoryMatchStore(s => s.recordRun);
   const recentRuns = useMemoryMatchStore(s => s.recentRuns);
   const highScore = useMemoryMatchStore(s => s.highScore);
+  const user = useAuthStore(s => s.user);
 
   // Timer tick (1Hz) while playing
   useEffect(() => {
@@ -84,16 +87,34 @@ export default function MemoryMatchGame() {
     if (isMatch) {
       // Both stay flipped; check win
       if (isBoardComplete(logic)) {
+        const playedAt = new Date().toISOString();
         const durationSec = Math.floor((Date.now() - startedAtRef.current) / 1000);
         setStatus('WIN');
         recordRun({
           score: logic.score,
-          pairsMatched: logic.combo, // Wait — combo != pairsMatched (combo can be > N)
+          // BUGFIX: was `logic.combo` — but we just confirmed the board
+          // is complete, so pairsMatched is exactly PAIRS_PER_GAME.
+          pairsMatched: PAIRS_PER_GAME,
           totalPairs: PAIRS_PER_GAME,
           maxCombo: logic.combo,
           durationSec,
-          playedAt: new Date().toISOString(),
+          playedAt,
         });
+        // Fire-and-forget cloud submit (mirrors KanjiDropGame).
+        // No-op if Supabase isn't configured or user isn't signed in —
+        // the local recordRun above already covers the local UI.
+        if (user?.id) {
+          void submitScore({
+            userId: user.id,
+            username: user.username,
+            gameMode: 'memory-match',
+            score: logic.score,
+            wave: 0,
+            kills: 0,
+            maxCombo: logic.combo,
+            playedAt,
+          });
+        }
       }
       return;
     }
