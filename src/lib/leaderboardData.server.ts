@@ -97,3 +97,50 @@ export async function fetchTopScoresFromServer(
     return [];
   }
 }
+
+// ============================================================
+// getCurrentUserFromServer
+// ============================================================
+// Reads the auth session from cookies (via @supabase/ssr) and
+// returns the current user as { id, username } or null.
+//
+// Username comes from auth.user_metadata.username (set during
+// signUp), with a fallback to the email local-part for accounts
+// that don't have a metadata username.
+//
+// On any error (no session, invalid token, missing env) we
+// return null. Callers must handle the unauthenticated case
+// gracefully — the leaderboard is public, so unauth users just
+// see the global top scores without personalization.
+// ------------------------------------------------------------
+export interface CurrentUser {
+  id: string;
+  username: string;
+}
+
+function usernameFromEmail(email: string | undefined | null): string {
+  if (!email) return 'Pemain';
+  const at = email.indexOf('@');
+  return at > 0 ? email.slice(0, at) : email;
+}
+
+export async function getCurrentUserFromServer(
+  supabase: SupabaseClient,
+): Promise<CurrentUser | null> {
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data?.user) return null;
+    const u = data.user;
+    const metaUsername = (u.user_metadata?.username as string | undefined) ?? null;
+    const username = metaUsername && metaUsername.length > 0
+      ? metaUsername
+      : usernameFromEmail(u.email);
+    if (!u.id || !username) return null;
+    return { id: u.id, username };
+  } catch (err) {
+    // Invalid token, middleware not refreshing, network error, etc.
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn('[leaderboard:server] getUser failed:', message);
+    return null;
+  }
+}
