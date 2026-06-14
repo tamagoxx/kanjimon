@@ -20,7 +20,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { getBrowserSupabase } from '@utils/supabase/client';
+import { createClient as createBrowserSupabaseClient } from '@utils/supabase/client';
 import type { LeaderboardScoreRow } from '@/lib/supabase/types';
 import {
   mapTopScores,
@@ -67,7 +67,7 @@ export function TopScoresWidget() {
   // Initial fetch — pulls top 5 from Supabase on mount.
   const loadTopScores = useCallback(async () => {
     try {
-      const supabase = getBrowserSupabase();
+      const supabase = createBrowserSupabaseClient();
       const { data, error } = await supabase
         .from('leaderboard_scores')
         .select('id, user_id, username, game_mode, score, wave, kills, max_combo, played_at, created_at, duration_sec')
@@ -111,7 +111,7 @@ export function TopScoresWidget() {
   // merge helper returns the same list (no re-render).
   useEffect(() => {
     if (status !== 'ready') return; // no list to merge into yet
-    const supabase = getBrowserSupabase();
+    const supabase = createBrowserSupabaseClient();
     const channel = supabase
       .channel('top-scores-inserts')
       .on(
