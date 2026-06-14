@@ -1,12 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useCollectionStore } from '@/store/collectionStore';
 import { useAuthStore } from '@/store/authStore';
 import { useLearningProgressStore } from '@/store/learningProgressStore';
+import { useKanjiDropStore } from '@/store/kanjiDropStore';
+import { useMemoryMatchStore } from '@/store/memoryMatchStore';
+import { useKanjiStackStore } from '@/store/kanjiStackStore';
+import {
+  mergeRecentRuns,
+  formatRelativeTime,
+  formatDuration,
+  type UnifiedRun,
+} from '@/lib/recentActivityAggregator';
 import { getEffectiveDefense } from '@/lib/cardStats';
 
 const QUEST_ICONS: Record<string, string> = {
@@ -369,6 +378,95 @@ function useFeaturedCards() {
   return sorted.slice(0, 3).map(c => ({ ...c.data, _type: c.type }));
 }
 
+// ============================================================
+// Recent Activity — real runs from the 3 game stores
+// ============================================================
+
+const RECENT_META: Record<UnifiedRun['source'], { icon: string; label: string; color: string }> = {
+  'kanji-drop': { icon: '⏬', label: 'Kanji Drop', color: colors.teal },
+  'memory-match': { icon: '🧠', label: 'Memory Match', color: colors.gold },
+  'kanji-stack': { icon: '🧱', label: 'Kanji Stack', color: colors.brand },
+};
+
+function RecentActivitySection() {
+  const kd = useKanjiDropStore((s) => s.recentRuns);
+  const mm = useMemoryMatchStore((s) => s.recentRuns);
+  const ks = useKanjiStackStore((s) => s.recentRuns);
+
+  // Compute on the client only to avoid SSR/CSR Date.now() mismatch
+  const [hydrated, setHydrated] = useState(false);
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    setHydrated(true);
+    setNow(Date.now());
+  }, []);
+
+  const runs = mergeRecentRuns({ kanjiDrop: kd, memoryMatch: mm, kanjiStack: ks }, 5);
+
+  if (!hydrated || runs.length === 0) {
+    return (
+      <div className="mb-4">
+        <h2 className="text-sm font-bold text-[#c8c4d7] tracking-wider mb-3">
+          AKTIVITAS TERAKHIR
+        </h2>
+        <p className="text-xs text-[#c8c4d7] text-center py-6">
+          Belum ada aktivitas. Mainkan salah satu game mode!
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-4">
+      <h2 className="text-sm font-bold text-[#c8c4d7] tracking-wider mb-3">
+        AKTIVITAS TERAKHIR
+      </h2>
+      <ul className="space-y-2 list-none p-0 m-0">
+        {runs.map((run, i) => (
+          <RecentRunItem key={`${run.source}-${run.playedAt}-${i}`} run={run} now={now} i={i} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function RecentRunItem({ run, now, i }: { run: UnifiedRun; now: number; i: number }) {
+  const meta = RECENT_META[run.source];
+  const subtitle =
+    run.source === 'kanji-drop'
+      ? `Wave ${run.extra?.wave ?? 1}`
+      : run.source === 'memory-match'
+        ? `${run.extra?.pairsMatched ?? 0}/${run.extra?.totalPairs ?? 6} pairs`
+        : `Level ${run.extra?.level ?? 1} • ${run.extra?.totalLines ?? 0} baris`;
+  return (
+    <motion.li
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: i * 0.1 }}
+      className="flex items-center gap-3 p-3 rounded-xl"
+      style={{ backgroundColor: colors.cardBg }}
+    >
+      <div
+        className="w-10 h-10 rounded-xl flex items-center justify-center text-lg"
+        style={{ backgroundColor: `${meta.color}20` }}
+      >
+        {meta.icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm text-[#d8e4ea] truncate">
+          {meta.label} — {subtitle}
+        </div>
+        <div className="text-xs text-[#c8c4d7]">
+          {run.score.toLocaleString()} pts • Combo {run.maxCombo} • {formatDuration(run.durationSec)}
+        </div>
+      </div>
+      <span className="text-xs text-[#c8c4d7] whitespace-nowrap">
+        {formatRelativeTime(run.playedAt, now)}
+      </span>
+    </motion.li>
+  );
+}
+
 export default function HomePage() {
   const router = useRouter();
   const dailyQuests = useCollectionStore(s => s.dailyQuests);
@@ -528,37 +626,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="mb-4">
-          <h2 className="text-sm font-bold text-[#c8c4d7] tracking-wider mb-3">AKTIVITAS TERAKHIR</h2>
-          <div className="space-y-2">
-            {[
-              { icon: '⚔️', text: 'Battle vs Sensei Bot - Menang', time: '2 jam lalu', color: colors.teal },
-              { icon: '📚', text: 'Belajar Katakana - Dasar', time: '5 jam lalu', color: colors.brand },
-              { icon: '🃏', text: 'Dapat kartu baru: 水 (Mizu)', time: '1 hari lalu', color: colors.lightPurple },
-            ].map((item, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="flex items-center gap-3 p-3 rounded-xl"
-                style={{ backgroundColor: colors.cardBg }}
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-lg"
-                  style={{ backgroundColor: `${item.color}20` }}
-                >
-                  {item.icon}
-                </div>
-                <div className="flex-1">
-                  <span className="text-sm text-[#d8e4ea]">{item.text}</span>
-                </div>
-                <span className="text-xs text-[#c8c4d7]">{item.time}</span>
-              </motion.div>
-            ))}
-          </div>
-        </div>
+        <RecentActivitySection />
       </main>
 
       <BottomNav />
