@@ -22,7 +22,14 @@ export interface EnvValidationResult {
 // project-ref is lowercase alphanumeric + hyphens
 const URL_RE = /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i;
 
-const MIN_KEY_LENGTH = 80; // Supabase anon JWTs are well over 100 chars
+const MIN_JWT_LENGTH = 80; // Legacy anon JWTs are well over 100 chars
+
+// Two valid key formats:
+//   1. Legacy JWT anon key — starts with "eyJ", >= 80 chars total
+//   2. New (2025+) publishable key — starts with "sb_publishable_", >= 25 chars total
+// Either prefix passes; unknown prefixes (incl. "sb_secret_") are rejected
+// because the secret key must NEVER be sent to the browser.
+const KEY_RE = /^(eyJ[A-Za-z0-9_-]{20,}|sb_publishable_[A-Za-z0-9_-]{10,})$/;
 
 /**
  * Pure validator. Pass any env-like record (process.env on server,
@@ -31,7 +38,18 @@ const MIN_KEY_LENGTH = 80; // Supabase anon JWTs are well over 100 chars
 export function validateEnv(env: Record<string, string | undefined>): EnvValidationResult {
   const errors: string[] = [];
   const url = (env.NEXT_PUBLIC_SUPABASE_URL ?? '').trim();
-  const key = (env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '').trim();
+  // New SDK convention (2025+): NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  // Old convention: NEXT_PUBLIC_SUPABASE_ANON_KEY. Prefer the new name
+  // when both are present.
+  const keyRaw = env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+    ?? env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ?? '';
+  const key = keyRaw.trim();
+  const keySource = env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+    ? 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'
+    : env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ? 'NEXT_PUBLIC_SUPABASE_ANON_KEY'
+    : null;
 
   if (!url) {
     errors.push('NEXT_PUBLIC_SUPABASE_URL is not set');
@@ -43,15 +61,19 @@ export function validateEnv(env: Record<string, string | undefined>): EnvValidat
   }
 
   if (!key) {
-    errors.push('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set');
-  } else if (!key.startsWith('eyJ')) {
     errors.push(
-      'NEXT_PUBLIC_SUPABASE_ANON_KEY does not start with "eyJ" (not a JWT). ' +
-      'Make sure you copied the "anon public" key, not the service_role key.',
+      'Neither NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY nor NEXT_PUBLIC_SUPABASE_ANON_KEY is set. ' +
+      'Copy the "publishable" or "anon public" key from your Supabase project → Settings → API.',
     );
-  } else if (key.length < MIN_KEY_LENGTH) {
+  } else if (!KEY_RE.test(key)) {
     errors.push(
-      `NEXT_PUBLIC_SUPABASE_ANON_KEY is too short (${key.length} chars, expected >= ${MIN_KEY_LENGTH}). ` +
+      `Supabase key is not a recognized Supabase key format (got "${key.slice(0, 16)}..."). ` +
+      'Valid prefixes: "eyJ" (legacy JWT anon) or "sb_publishable_" (2025+ publishable). ' +
+      'NEVER use the "sb_secret_" key in the browser.',
+    );
+  } else if (key.startsWith('eyJ') && key.length < MIN_JWT_LENGTH) {
+    errors.push(
+      `Supabase JWT key is too short (${key.length} chars, expected >= ${MIN_JWT_LENGTH}). ` +
       'Did you copy the full key?',
     );
   }
@@ -68,6 +90,7 @@ export function validateEnv(env: Record<string, string | undefined>): EnvValidat
 export function readEnv(): EnvValidationResult {
   return validateEnv({
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   });
 }

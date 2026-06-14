@@ -56,7 +56,7 @@ function loadEnv(path) {
 const env = { ...process.env, ...loadEnv(envPath) };
 
 const url = env.NEXT_PUBLIC_SUPABASE_URL;
-const key = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const key = env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // ---- 3. URL format ----
 const urlLooksValid = !!url && url.startsWith('https://') && url.includes('.supabase.co');
@@ -69,11 +69,14 @@ check(
 );
 
 // ---- 4. Key format ----
-const keyLooksValid = !!key && key.startsWith('eyJ') && key.length > 80;
+// Accept both legacy JWT anon key (eyJ...) and new 2025+ publishable key
+// (sb_publishable_...). Reject service_role / sb_secret_ explicitly.
+const KEY_RE = /^(eyJ[A-Za-z0-9_-]{20,}|sb_publishable_[A-Za-z0-9_-]{10,})$/;
+const keyLooksValid = !!key && KEY_RE.test(key);
 check(
-  'NEXT_PUBLIC_SUPABASE_ANON_KEY set',
+  'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (or _ANON_KEY) set',
   keyLooksValid,
-  key ? `${key.slice(0, 12)}...${key.slice(-6)} (len ${key.length})` : 'set in .env.local — copy "anon public" key, NOT service_role',
+  key ? `${key.slice(0, 12)}...${key.slice(-6)} (len ${key.length})` : 'set in .env.local — copy "publishable" or "anon public" key, NOT service_role',
 );
 
 // ---- 5. SQL migration file present ----
