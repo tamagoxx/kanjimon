@@ -12,6 +12,7 @@ import {
 } from '../lib/supabaseSync';
 import { useAuthStore } from '../store/authStore';
 import { useCollectionStore } from '../store/collectionStore';
+import type { Badge } from '../types';
 
 // === Hydration ===
 // Saved state uses a nested shape: { auth, collection }.
@@ -55,7 +56,7 @@ function hydrateFromCloud(loaded: PlayerSave): void {
       const currentUser = useAuthStore.getState().user;
       useAuthStore.setState({
         user: currentUser
-          ? { ...currentUser, level: a.level ?? 1, xp: a.xp ?? 0, badges: a.badges ?? [] }
+          ? { ...currentUser, level: a.level ?? 1, xp: a.xp ?? 0, badges: (a.badges ?? []) as Badge[] }
           : null,
         totalBattles: a.totalBattles ?? 0,
         totalWins: a.totalWins ?? 0,
