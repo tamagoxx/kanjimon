@@ -1,9 +1,26 @@
 name: Deploy to Vercel
 
+# This workflow deploys to Vercel on push to main.
+# Disabled by default — only runs on manual trigger until the
+# required secrets are set. See README below.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+  # push:
+  #   branches: [main]
+
+# REQUIRED SECRETS (set in GitHub repo Settings → Secrets):
+#   VERCEL_TOKEN          - https://vercel.com/account/tokens
+#   VERCEL_ORG_ID         - Vercel project Settings → General
+#   VERCEL_PROJECT_ID     - Vercel project Settings → General
+#   NEXT_PUBLIC_SUPABASE_URL              - already set
+#   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY  - already set
+#
+# Without VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID the deploy
+# step aborts with: "_ArgError: option requires argument: --token"
+#
+# TO ENABLE: create a Vercel account, link this repo to a Vercel
+# project, get the 3 IDs above, and set them as GitHub Secrets.
+# Then uncomment the `push:` block above.
 
 jobs:
   deploy:
