@@ -4,6 +4,8 @@ import {
   filterByTimeWindow,
   getUserRank,
   aggregateLocalKanjiDropScores,
+  getGameModeConfig,
+  ALL_GAME_MODES,
   type LeaderboardEntry,
   type TimeWindow,
 } from './leaderboardLogic';
@@ -129,5 +131,72 @@ describe('TimeWindow type', () => {
   it('accepts expected values', () => {
     const windows: TimeWindow[] = ['TODAY', 'THIS_WEEK', 'ALL_TIME'];
     expect(windows).toHaveLength(3);
+  });
+});
+
+describe('ALL_GAME_MODES', () => {
+  it('exposes all 4 game modes (kanji-drop, battle, kanji-stack, memory-match)', () => {
+    expect(ALL_GAME_MODES).toHaveLength(4);
+    expect(ALL_GAME_MODES).toEqual(
+      expect.arrayContaining(['kanji-drop', 'battle', 'kanji-stack', 'memory-match']),
+    );
+  });
+});
+
+describe('getGameModeConfig', () => {
+  it('returns label/icon/emptyMessage/ctaPath/ctaLabel for kanji-drop', () => {
+    expect(getGameModeConfig('kanji-drop')).toEqual({
+      id: 'kanji-drop',
+      label: 'Kanji Drop',
+      icon: '⏬',
+      emptyMessage: 'Mainkan Kanji Drop untuk masuk leaderboard!',
+      ctaPath: '/kanji-drop',
+      ctaLabel: 'Main Kanji Drop →',
+    });
+  });
+
+  it('returns label/icon/emptyMessage/ctaPath/ctaLabel for battle', () => {
+    expect(getGameModeConfig('battle')).toEqual({
+      id: 'battle',
+      label: 'Battle',
+      icon: '⚔️',
+      emptyMessage: 'Menangkan battle untuk masuk leaderboard!',
+      ctaPath: '/battle',
+      ctaLabel: 'Mulai Battle →',
+    });
+  });
+
+  it('returns label/icon/emptyMessage/ctaPath/ctaLabel for kanji-stack', () => {
+    expect(getGameModeConfig('kanji-stack')).toEqual({
+      id: 'kanji-stack',
+      label: 'Kanji Stack',
+      icon: '🗂',
+      emptyMessage: 'Susun kartu di Kanji Stack untuk masuk leaderboard!',
+      ctaPath: '/kanji-stack',
+      ctaLabel: 'Main Kanji Stack →',
+    });
+  });
+
+  it('returns label/icon/emptyMessage/ctaPath/ctaLabel for memory-match', () => {
+    expect(getGameModeConfig('memory-match')).toEqual({
+      id: 'memory-match',
+      label: 'Memory Match',
+      icon: '🧠',
+      emptyMessage: 'Mainkan Memory Match untuk masuk leaderboard!',
+      ctaPath: '/memory-match',
+      ctaLabel: 'Main Memory Match →',
+    });
+  });
+
+  it('every GameMode has a config (catches future mode additions)', () => {
+    for (const mode of ALL_GAME_MODES) {
+      const cfg = getGameModeConfig(mode);
+      expect(cfg.id).toBe(mode);
+      expect(cfg.label.length).toBeGreaterThan(0);
+      expect(cfg.icon.length).toBeGreaterThan(0);
+      expect(cfg.emptyMessage.length).toBeGreaterThan(0);
+      expect(cfg.ctaPath.startsWith('/')).toBe(true);
+      expect(cfg.ctaLabel.length).toBeGreaterThan(0);
+    }
   });
 });
