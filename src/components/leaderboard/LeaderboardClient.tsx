@@ -27,6 +27,8 @@ import {
   sortByScore,
   filterByTimeWindow,
   getUserRank,
+  getGameModeConfig,
+  ALL_GAME_MODES,
   type GameMode,
   type TimeWindow,
   type LeaderboardEntry,
@@ -46,16 +48,20 @@ const colors = {
   darkGray: '#2b363b',
 };
 
-const MODES: { id: GameMode; label: string; icon: string; color: string }[] = [
-  { id: 'kanji-drop', label: 'Kanji Drop', icon: '⏬', color: colors.teal },
-  { id: 'battle', label: 'Battle', icon: '⚔️', color: colors.coral },
-];
-
 const WINDOWS: { id: TimeWindow; label: string }[] = [
   { id: 'TODAY', label: 'Hari Ini' },
   { id: 'THIS_WEEK', label: 'Minggu Ini' },
   { id: 'ALL_TIME', label: 'Semua' },
 ];
+
+// Per-mode color. Pulled from the existing palette in `colors` above so
+// adding a 5th mode only needs a one-line change here.
+const MODE_COLOR: Record<GameMode, string> = {
+  'kanji-drop': colors.teal,
+  battle: colors.coral,
+  'kanji-stack': colors.brand,
+  'memory-match': colors.gold,
+};
 
 function formatScore(n: number): string {
   return n.toLocaleString('id-ID');
@@ -238,22 +244,26 @@ export function LeaderboardClient({
           </div>
         )}
 
-        {/* Mode tabs */}
+        {/* Mode tabs — 2x2 grid (4 game modes). */}
         <div className="mb-3 grid grid-cols-2 gap-2 p-1 rounded-xl" style={{ backgroundColor: colors.inputBg }}>
-          {MODES.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => setMode(m.id)}
-              className="py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
-              style={{
-                backgroundColor: mode === m.id ? m.color : 'transparent',
-                color: mode === m.id ? '#0a1519' : colors.darkText,
-              }}
-            >
-              <span>{m.icon}</span>
-              <span>{m.label}</span>
-            </button>
-          ))}
+          {ALL_GAME_MODES.map((modeId) => {
+            const cfg = getGameModeConfig(modeId);
+            const isActive = mode === modeId;
+            return (
+              <button
+                key={modeId}
+                onClick={() => setMode(modeId)}
+                className="py-2 px-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+                style={{
+                  backgroundColor: isActive ? MODE_COLOR[modeId] : 'transparent',
+                  color: isActive ? '#0a1519' : colors.darkText,
+                }}
+              >
+                <span>{cfg.icon}</span>
+                <span>{cfg.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Window selector */}
@@ -281,21 +291,19 @@ export function LeaderboardClient({
             className="text-center py-12 px-4 rounded-2xl"
             style={{ backgroundColor: colors.cardBg }}
           >
-            <div className="text-5xl mb-2">🎮</div>
+            <div className="text-5xl mb-2">{getGameModeConfig(mode).icon}</div>
             <div className="text-sm font-medium text-[#d8e4ea] mb-1">
               Belum ada skor
             </div>
             <div className="text-xs text-[#c8c4d7] mb-4">
-              {mode === 'kanji-drop'
-                ? 'Mainkan Kanji Drop untuk masuk leaderboard!'
-                : 'Menangkan battle untuk masuk leaderboard!'}
+              {getGameModeConfig(mode).emptyMessage}
             </div>
             <Link
-              href={mode === 'kanji-drop' ? '/kanji-drop' : '/battle'}
+              href={getGameModeConfig(mode).ctaPath}
               className="inline-block py-2 px-4 rounded-lg text-sm font-bold"
-              style={{ backgroundColor: colors.teal, color: '#0a1519' }}
+              style={{ backgroundColor: MODE_COLOR[mode], color: '#0a1519' }}
             >
-              Main Sekarang →
+              {getGameModeConfig(mode).ctaLabel}
             </Link>
           </div>
         ) : (
