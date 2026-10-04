@@ -13,486 +13,246 @@ interface Question {
 }
 
 const BISNIS_KARIR_QUESTIONS: Question[] = [
-  {
-    id: 1,
-    question: 'Dalam penjelasan tentang sistem produksi, manakah pernyataan yang paling tidak tepat (salah)?',
-    options: [
-      'A. Make or buy adalah menentukan bagian produk yang akan dialihdayakan',
-      'B. Design review adalah pemeriksaan desain di setiap tahap',
-      'C. Inspeksi adalah penerimaan dan pemeriksaan material',
-      'D. Design-in adalah pemasok terlibat pada tahap produksi massal',
-    ],
-    correctIndex: 3,
-    explanation: 'Design-in berarti pemasok terlibat sejak tahap desain, bukan produksi massal. Design-in adalah proses pemasok berkontribusi sejak tahap desain produk.',
-  },
-  {
-    id: 2,
-    question: 'Dalam aktivitas manajemen kerja, manakah pernyataan yang paling tidak tepat (salah)?',
-    options: [
-      'A. Mencari dan mengejar metode kerja yang rasional dan produktif',
-      'B. Menetapkan secara terpisah metode, material, peralatan, alat, dan lingkungan kerja',
-      'C. Perkiraan waktu kerja oleh pekerja standar',
-      'D. Memberikan instruksi metode kerja yang telah distandarkan',
-    ],
-    correctIndex: 1,
-    explanation: 'Manajemen kerja harus dilakukan secara standar dan terpadu, bukan secara terpisah. Semua elemen metode kerja harus dikelola secara menyeluruh.',
-  },
-  {
-    id: 3,
-    question: '5 pekerja melakukan perakitan presisi menggunakan kaca pembesar dan pinset. Waktu kerja berbeda hingga 1.5 kali. Dengan merekam pekerja tercepat dan terlambat untuk analisis gerakan, hal apa yang tidak dapat dianalisis?',
-    options: [
-      'A. Frekuensi therblig',
-      'B. Elemen gerakan yang diperlukan',
-      'C. Tingkat utilisasi pekerja',
-      'D. Urutan gerakan optimal',
-    ],
-    correctIndex: 2,
-    explanation: 'Motion study hanya menganalisis gerakan (therblig), tidak bisa menilai efisiensi kerja atau tingkat utilisasi pekerja secara keseluruhan.',
-  },
-  {
-    id: 4,
-    question: 'Dalam analisis therblig, manakah yang paling tidak sesuai dalam kelompok gerakan dasar yang diperlukan?',
-    options: [
-      'A. Menahan',
-      'B. Memegang',
-      'C. Melepaskan',
-      'D. Memeriksa',
-    ],
-    correctIndex: 0,
-    explanation: '"Menahan" (holding) adalah kondisi, bukan gerakan dasar utama. Gerakan dasar therblig meliputi: mencapai, memegang, melepas, memeriksa, dll.',
-  },
-  {
-    id: 5,
-    question: 'Dalam analisis kerja gabungan, manakah pernyataan yang paling tepat?',
-    options: [
-      'A. Untuk 1 orang – 1 mesin gunakan analisis operasi',
-      'B. Tidak mencatat aktivitas terpisah',
-      'C. Banyak pekerja bekerja bersama → gunakan analisis gabungan',
-      'D. Tidak mencatat waktu mesin',
-    ],
-    correctIndex: 2,
-    explanation: 'Analisis kerja gabungan digunakan saat banyak pekerja bekerja bersama-sama pada satu proses atau lini produksi.',
-  },
-  {
-    id: 6,
-    question: 'Dalam pencegahan kesalahan (miss), manakah yang paling tidak tepat?',
-    options: [
-      'A. Fool proof (poka-yoke) memiliki prinsip bahwa jika salah langkah dilakukan, akan terjadi gangguan atau tidak bisa dilanjutkan',
-      'B. Untuk melakukan pemeriksaan kondisi, ada metode checksheet yang menggabungkan indera dan alat',
-      'C. Digital picking yang menunjukkan lokasi barang dengan lampu membantu efisiensi saat mengambil barang',
-      'D. Untuk mengetahui tempat kerusakan, menggunakan suku cadang yang sudah datang adalah cara yang tepat',
-    ],
-    correctIndex: 3,
-    explanation: 'Untuk mengetahui tempat kerusakan, digunakan diagnosa/gejala kerusakan, bukan suku cadang yang sudah datang.',
-  },
-  {
-    id: 7,
-    question: 'Dalam definisi 5S, manakah pernyataan yang paling tidak tepat?',
-    options: [
-      'A. Melaksanakan apa yang telah ditentukan (Seiketsu)',
-      'B. Membuang yang tidak diperlukan (Seiri)',
-      'C. Membedakan yang perlu dan tidak perlu (Seiton)',
-      'D. Berbagi aktivitas 5S dengan departemen lain',
-    ],
-    correctIndex: 3,
-    explanation: '5S fokus pada: Seiri (buang), Seiton (rapi), Seiso (bersih), Seiketsu (standar), Shitsuke (disiplin). Berbagi dengan departemen lain bukan bagian dari definisi 5S.',
-  },
-  {
-    id: 8,
-    question: 'Dalam fungsi persediaan dan cadangan (buffer), manakah pernyataan yang paling tidak tepat?',
-    options: [
-      'A. Stok terlalu banyak meningkatkan biaya penyimpanan, terlalu sedikit kehilangan peluang penjualan',
-      'B. Cadangan besar → biaya meningkat',
-      'C. Produksi berdasarkan pesanan (make-to-order) perlu menyimpan stok cadangan',
-      'D. Cadangan bisa dimasukkan dalam perencanaan',
-    ],
-    correctIndex: 2,
-    explanation: 'Produksi berdasarkan pesanan (make-to-order) tidak perlu menyimpan stok cadangan karena produksi dilakukan setelah ada pesanan.',
-  },
-  {
-    id: 9,
-    question: 'Dalam produksi berbagai jenis dengan jumlah kecil (多種類少量生産), manakah yang paling tepat?',
-    options: [
-      'A. Produksi massal dengan jalur produksi',
-      'B. Produksi satu kali per pesanan',
-      'C. Produksi bergantian per jenis',
-      'D. Proses beragam dan alur kerja berbeda-beda',
-    ],
-    correctIndex: 3,
-    explanation: 'Ciri utama produksi berbagai jenis-jumlah kecil: banyak jenis → proses berbeda → alur kerja kompleks.',
-  },
-  {
-    id: 10,
-    question: 'Dalam klasifikasi berdasarkan aliran produksi, manakah yang paling tepat?',
-    options: [
-      'A. Lot kecil → WIP meningkat, waktu produksi memanjang',
-      'B. Produksi satuan untuk proses yang sama',
-      'C. Produksi kontinu adalah produksi satu jenis produk secara terus-menerus',
-      'D. Produksi satuan adalah bentuk tengah antara kontinu dan terputus',
-    ],
-    correctIndex: 2,
-    explanation: 'Produksi kontinu = produksi satu produk secara terus-menerus dalam jumlah besar. Contoh: produksi semen, baja.',
-  },
-  {
-    id: 11,
-    question: 'Dalam metode perencanaan jadwal dan istilah terkait, pilih kombinasi yang paling tepat antara A, B, C dengan ①〜④.\n\nA. Waktu standar (waktu yang diperlukan untuk menyelesaikan pekerjaan sesuai standar)\nB. Diagram rencana (diagram yang menunjukkan isi dan jadwal rencana)\nC. Sisa hari (jumlah hari tersisa sebelum batas waktu selesai)\n\n① Jadwal standar   ② Penjadwalan kerja   ③ Waktu cadangan   ④ Diagram Gantt',
-    options: [
-      'A. A = ④ (Waktu standar = Diagram Gantt)',
-      'B. A = ② (Waktu standar = Penjadwalan kerja)',
-      'C. B = ① (Diagram rencana = Jadwal standar)',
-      'D. C = ③ (Sisa hari = Waktu cadangan)',
-    ],
-    correctIndex: 3,
-    explanation: 'A (標準時間) = Waktu standar. B (計画図) = Diagram rencana. C (余日数) = Sisa hari = 手配余数 = Waktu cadangan.',
-  },
-  {
-    id: 12,
-    question: 'Dalam penjelasan tentang persiapan produksi (製作手配), manakah yang paling tepat?',
-    options: [
-      'A. Pengumpulan instruksi untuk tiap bagian sesuai urutan waktu, membuat dokumen, lalu mendistribusikan agar setiap bagian bisa menyiapkan terlebih dahulu',
-      'B. Material, alat, gambar, dan standar kerja disiapkan sebelumnya di tempat kerja',
-      'C. Menentukan urutan kerja dan membagi pekerjaan kepada operator dan mesin',
-      'D. Kegiatan pengendalian produksi secara keseluruhan oleh manajer lapangan',
-    ],
-    correctIndex: 0,
-    explanation: '製作手配 = menyiapkan dan mendistribusikan instruksi produksi agar setiap bagian dapat menyiapkan pekerjaan terlebih dahulu.',
-  },
-  {
-    id: 13,
-    question: 'Dalam produksi kontinu, metode dan objek analisis apa yang paling tepat untuk menganalisis perbedaan antara input dan output antar proses di lapangan?',
-    options: [
-      'A. 差立盤 = Papan penjadwalan kerja',
-      'B. カムアップシステム = Sistem manajemen cam-up',
-      'C. 流動数曲線 = Kurva jumlah aliran (grafik jumlah masuk dan keluar terhadap waktu)',
-      'D. 製造台帳による進度票 = Kartu progres berdasarkan catatan produksi',
-    ],
-    correctIndex: 2,
-    explanation: '流動数曲線 (Ryuudousuu kyokusen) = Kurva aliran kuantitas, menunjukkan perbandingan input-output terhadap waktu.',
-  },
-  {
-    id: 14,
-    question: 'Dalam manajemen kapasitas sisa (余力), manakah pernyataan yang paling tidak tepat?',
-    options: [
-      'A. Memeriksa rencana dan menyeimbangkan pekerjaan agar pengiriman berjalan lancar',
-      'B. Untuk mencapai target harian, perlu menyesuaikan jumlah pekerjaan dan kapasitas produksi',
-      'C. Perhitungan kapasitas sisa dapat diketahui dengan melihat jumlah pekerjaan dan barang dalam proses',
-      'D. Kapasitas sisa adalah sisa dari jumlah kerja saat ini dikurangi beban kerja',
-    ],
-    correctIndex: 1,
-    explanation: 'Kapasitas sisa (余力) = 能力 − 負荷 (kemampuan − beban). Bukan tentang menyesuaikan untuk target harian.',
-  },
-  {
-    id: 15,
-    question: 'Di sebuah perusahaan, dalam 10 tahun terakhir terjadi 3 kecelakaan besar. Berdasarkan hukum Heinrich, manakah yang paling tepat?',
-    options: [
-      'A. Kecelakaan ringan sekitar 30 kasus',
-      'B. Kecelakaan ringan sekitar 900 kasus',
-      'C. Kecelakaan tanpa cedera sekitar 30 kasus',
-      'D. Kecelakaan tanpa cedera (near-miss) sekitar 900 kasus',
-    ],
-    correctIndex: 3,
-    explanation: 'Hukum Heinrich: 1 : 29 : 300 = Kecelakaan fatal : Cedera ringan : Near-miss. 3 kecelakaan besar × 300 = 900 near-miss.',
-  },
-  {
-    id: 16,
-    question: 'Dalam fungsi manajemen peralatan (設備管理), manakah pernyataan yang paling tidak tepat?',
-    options: [
-      'A. Saat menyusun anggaran peralatan, melakukan manajemen progres dan biaya konstruksi',
-      'B. Saat menyusun anggaran peralatan, melakukan desain berdasarkan rencana peralatan',
-      'C. Saat menyusun rencana pemeliharaan, membuat rencana pemeliharaan',
-      'D. Saat menyusun anggaran pemeliharaan, melakukan pencatatan dan laporan pemeliharaan',
-    ],
-    correctIndex: 3,
-    explanation: 'Pencatatan dan laporan pemeliharaan adalah bagian dari pelaksanaan pemeliharaan, bukan penyusunan anggaran pemeliharaan.',
-  },
-  {
-    id: 17,
-    question: 'Dalam perhitungan efektivitas total peralatan (OEE), manakah yang tidak termasuk?',
-    options: [
-      'A. Availability Rate (Tingkat waktu operasi - apakah mesin berjalan)',
-      'B. Performance Rate (Tingkat performa - kecepatan mesin)',
-      'C. Quality Rate (Tingkat produk baik - kualitas)',
-      'D. Failure Rate (Tingkat frekuensi kerusakan - berapa sering rusak)',
-    ],
-    correctIndex: 3,
-    explanation: 'OEE = Availability × Performance × Quality. Failure Rate bukan komponen OEE.',
-  },
-  {
-    id: 18,
-    question: 'Dalam tindakan pencegahan penurunan kondisi peralatan (設備維持), manakah yang paling tidak tepat?',
-    options: [
-      'A. 清掃 = Pembersihan (membersihkan mesin)',
-      'B. 傾向管理 = Manajemen tren (memantau perubahan kondisi)',
-      'C. 不良品的修理 = Perbaikan produk cacat',
-      'D. 部品の交換 = Penggantian komponen',
-    ],
-    correctIndex: 2,
-    explanation: 'Perbaikan produk cacat tidak terkait langsung dengan perawatan peralatan. Tindakan pencegahan penurunan kondisi meliputi: membersihan, memantau tren, mengganti komponen.',
-  },
-  {
-    id: 19,
-    question: 'Dalam aktivitas pemeriksaan dan inspeksi harian (日常点検), manakah yang paling tidak tepat?',
-    options: [
-      'A. Pemeliharaan peralatan terdiri dari pemeliharaan harian, inspeksi, dan perbaikan',
-      'B. Dalam inspeksi harian, sebaiknya menggunakan checklist',
-      'C. Pembersihan serpihan dan kotoran dilakukan oleh bagian maintenance',
-      'D. Standar inspeksi mencakup inspeksi harian dan berkala',
-    ],
-    correctIndex: 2,
-    explanation: 'Pembersihan serpihan dan kotoran dilakukan oleh operator (bagian produksi), bukan oleh bagian maintenance.',
-  },
-  {
-    id: 20,
-    question: 'Dalam manajemen material, manakah kombinasi yang paling tepat antara "klasifikasi" dan "jenis material"?\n\nA. Klasifikasi berdasarkan manajemen\nB. Klasifikasi berdasarkan tujuan penggunaan\nC. Klasifikasi berdasarkan tingkat proses\nD. Klasifikasi berdasarkan cara memperoleh\n\n① Material biasa / tidak biasa   ② Material langsung / tidak langsung   ③ Barang supply / beli   ④ Bahan, setengah jadi, komponen',
-    options: [
-      'A. A:② B:① C:③ D:④',
-      'B. A:① B:② C:④ D:③',
-      'C. A:④ B:③ C:② D:①',
-      'D. A:① B:④ C:② D:③',
-    ],
-    correctIndex: 1,
-    explanation: '① berdasarkan 管理 = biasa/tidak biasa. ② berdasarkan 用途 = langsung/tidak langsung. ④ berdasarkan 形態 = bahan/setengah jadi/komponen. ③ supply/beli berdasarkan cara memperoleh.',
-  },
-  {
-    id: 21,
-    question: 'Dalam perhitungan kebutuhan komponen (部品表), manakah pernyataan yang paling tidak tepat?',
-    options: [
-      'A. Dalam struktur BOM, nilai komponen paling bawah adalah 0',
-      'B. Kebutuhan bersih = kebutuhan − stok awal',
-      'C. Dalam summary BOM, tidak bisa membedakan komponen dan sub-assembly',
-      'D. Summary BOM digunakan untuk struktur sederhana',
-    ],
-    correctIndex: 0,
-    explanation: 'Komponen paling bawah (leaf component) tetap memiliki kebutuhan > 0 karena merupakan komponen yang sebenarnya dipakai.',
-  },
-  {
-    id: 22,
-    question: 'Dalam kelebihan pembelian terpusat dan terdesentralisasi, manakah yang paling tidak tepat?',
-    options: [
-      'A. Pembelian terpusat dapat menurunkan harga karena pembelian dalam jumlah besar',
-      'B. Pembelian terpusat dapat menyatukan sistem pembelian',
-      'C. Pembelian terdesentralisasi memudahkan standarisasi material',
-      'D. Pembelian terdesentralisasi dapat mendukung industri lokal',
-    ],
-    correctIndex: 2,
-    explanation: 'Pembelian terpusat → murah + standar. Pembelian terdesentralisasi → fleksibel + mendukung industri lokal. Terdesentralisasi justru menyulitkan standarisasi.',
-  },
-  {
-    id: 23,
-    question: 'Dalam klasifikasi biaya logistik berdasarkan fungsi, manakah yang paling tepat?',
-    options: [
-      'A. Biaya logistik variabel, tetap, retur, daur ulang, limbah',
-      'B. Logistik pengadaan, internal, penjualan + biaya kemasan, penyimpanan',
-      'C. Logistik internal, pembayaran, pengolahan informasi, manajemen',
-      'D. Biaya transportasi, penyimpanan, pengemasan, pemrosesan distribusi, pengolahan informasi, manajemen logistik',
-    ],
-    correctIndex: 3,
-    explanation: 'Biaya logistik berdasarkan fungsi = biaya transportasi + penyimpanan + pengemasan + pemrosesan distribusi + pengolahan informasi + manajemen logistik.',
-  },
-  {
-    id: 24,
-    question: 'Dalam klasifikasi fungsi pusat logistik (物流センター), manakah yang paling tidak tepat?',
-    options: [
-      'A. 保管センター = Pusat penyimpanan stok',
-      'B. 通過センター = Pusat transit (cross-docking)',
-      'C. 流通センター = Pusat proses distribusi',
-      'D. 自動化センター = Pusat otomatis bertingkat',
-    ],
-    correctIndex: 3,
-    explanation: 'Fungsi物流センター = simpan / transit / proses distribusi. 自動化 adalah klasifikasi berdasarkan struktur/bangunan, bukan fungsi.',
-  },
-  {
-    id: 25,
-    question: 'Dalam fungsi kemasan produk, manakah yang paling tidak tepat?',
-    options: [
-      'A. Melindungi isi produk',
-      'B. Memberikan informasi produk',
-      'C. Memudahkan penanganan saat distribusi',
-      'D. Mencegah kesalahan pengiriman',
-    ],
-    correctIndex: 3,
-    explanation: 'Fungsi kemasan = proteksi + informasi + kemudahan penanganan. Mencegah kesalahan pengiriman adalah fungsi pelabelan/barcoding, bukan kemasan.',
-  },
-  {
-    id: 26,
-    question: 'Dalam konsep manajemen kualitas, manakah pernyataan yang paling tidak tepat?',
-    options: [
-      'A. Tujuan manajemen kualitas adalah membuat produk/jasa berkualitas dengan biaya rendah berdasarkan pengetahuan produsen',
-      'B. Manajemen kualitas statistik menggunakan metode statistik berdasarkan data objektif',
-      'C. Manajemen kualitas harus mencakup seluruh siklus hidup produk',
-      'D. Manajemen kualitas melibatkan perencanaan dan pengendalian sumber daya seperti manusia, material, uang, dan informasi',
-    ],
-    correctIndex: 0,
-    explanation: 'Tujuan manajemen kualitas adalah memenuhi kebutuhan pelanggan, bukan berdasarkan pengetahuan produsen saja. Fokus harus pada pelanggan (顧客志向).',
-  },
-  {
-    id: 27,
-    question: 'Diberikan data: 2, 8, 5, 4, 6. Berapakah nilai standar deviasi sampel yang paling mendekati?',
-    options: [
-      'A. 2.00',
-      'B. 2.24',
-      'C. 4.00',
-      'D. 4.47',
-    ],
-    correctIndex: 1,
-    explanation: 'Rata-rata = 5. Jumlah kuadrat selisih = (9+9+0+1+1) = 20. Varians = 20/(5-1) = 5. Standar deviasi = √5 ≈ 2.24.',
-  },
-  {
-    id: 28,
-    question: 'Dalam perbaikan kualitas (品質改善), manakah pernyataan yang paling tidak tepat?',
-    options: [
-      'A. Dalam QC Story hanya memahami kondisi dan membuat solusi',
-      'B. Pencegahan kesalahan dengan poka-yoke',
-      'C. Perlu standardisasi untuk mempertahankan hasil',
-      'D. Mencari penyebab dan membuat solusi',
-    ],
-    correctIndex: 0,
-    explanation: 'QC Story memiliki banyak langkah (bukan hanya 2): Plan → Do → Check → Act, termasuk rencana pencegahan kekambuhan.',
-  },
-  {
-    id: 29,
-    question: 'Dalam tanggung jawab produk (製品責任), manakah pernyataan yang paling tidak tepat? (FMEA: Failure Mode and Effect Analysis)',
-    options: [
-      'A. Cacat peringatan terjadi jika tidak memberikan informasi bahaya yang tepat',
-      'B. FMEA desain adalah metode untuk memprediksi kegagalan dan meningkatkan keandalan',
-      'C. Dalam tanggung jawab produk, ganti rugi berdasarkan kesalahan pelaku',
-      'D. Cacat produksi terjadi jika tidak sesuai desain/spesifikasi',
-    ],
-    correctIndex: 2,
-    explanation: 'Produk Liability Act (PL法) = tanggung jawab produk tanpa perlu membuktikan kesalahan. Penggantian rugi berdasarkan kerusakan yang ditimbulkan, bukan kesalahan.',
-  },
-  {
-    id: 30,
-    question: 'Dalam aktivitas kontrol biaya (コストコントロール), manakah yang paling tepat?',
-    options: [
-      'A. Menentukan biaya target',
-      'B. Menentukan biaya standar',
-      'C. Menggunakan analisis selisih untuk mengurangi selisih',
-      'D. Menentukan biaya yang diizinkan',
-    ],
-    correctIndex: 2,
-    explanation: 'Kontrol biaya = analisis selisih (差異分析). Membandingkan biaya standar dengan actual untuk mengidentifikasi dan mengurangi varians.',
-  },
-  {
-    id: 31,
-    question: 'Dalam biaya langsung dan tidak langsung produksi, manakah yang paling tidak tepat?',
-    options: [
-      'A. Klasifikasi biaya langsung dan tidak langsung disebut klasifikasi berdasarkan operasi',
-      'B. Menghitung biaya langsung ke produk disebut direct costing',
-      'C. Mengalokasikan biaya tidak langsung disebut alokasi',
-      'D. Gaji karyawan termasuk biaya tidak langsung',
-    ],
-    correctIndex: 0,
-    explanation: 'Klasifikasi biaya langsung dan tidak langsung disebut klasifikasi berdasarkan hubungan dengan produk (产品との関連), bukan berdasarkan operasi.',
-  },
-  {
-    id: 32,
-    question: 'Dengan metode average costing, tentukan biaya per unit produk jadi.\n\n〔Data〕\nMaterial: 1.200 unit, 12.000.000 yen\nWork in Process: 900 unit (50% selesai)\nBiaya pemrosesan: 8.400.000 yen\n\n〔Pertanyaan〕\nBerapa biaya per unit?',
-    options: [
-      'A. 17.000 yen/unit',
-      'B. 17.500 yen/unit',
-      'C. 18.000 yen/unit',
-      'D. 18.500 yen/unit',
-    ],
-    correctIndex: 2,
-    explanation: 'Material cost = 12.000.000 / 1.200 = 10.000/unit. Processing cost = 8.400.000 × 900 / (900 + 300×0,5) = 8.400.000 × 900 / 1.050 = 7.200.000. Total = 12.000.000 + 7.200.000 = 19.200.000. Per unit = 19.200.000 / 900 = 18.000 yen.',
-  },
-  {
-    id: 33,
-    question: 'Berdasarkan kondisi berikut, jika menetapkan biaya target dengan metode integrasi (統合法), manakah hasil perhitungan yang benar?\n\n〔Kondisi〕\nHarga jual rencana produk A = 30.000 yen\nLaba target = 6.000 yen\nBiaya saat ini (perkiraan) = 27.000 yen\nPenyesuaian dilakukan sebesar setengah dari selisih',
-    options: [
-      'A. 22.500 yen',
-      'B. 24.000 yen',
-      'C. 25.500 yen',
-      'D. 27.000 yen',
-    ],
-    correctIndex: 2,
-    explanation: 'Biaya yang diizinkan = 30.000 − 6.000 = 24.000 yen. Selisih = 27.000 − 24.000 = 3.000 yen. Setengah selisih = 1.500 yen. Biaya target = 27.000 − 1.500 = 25.500 yen.',
-  },
-  {
-    id: 34,
-    question: 'Dalam langkah penanggulangan keterlambatan pengiriman dalam logistik, manakah yang paling tidak tepat?',
-    options: [
-      'A. Memperbaiki metode pengemasan agar tidak rusak saat transportasi',
-      'B. Menstandarisasi pekerjaan pengiriman dengan membuat manual',
-      'C. Menentukan metode kerja berdasarkan keputusan individu pekerja',
-      'D. Mencatat rute tercepat dan kondisi lalu lintas',
-    ],
-    correctIndex: 2,
-    explanation: 'Penentuan metode kerja harus berdasarkan standar tim, bukan keputusan individu pekerja. Logistik membutuhkan prosedur standar.',
-  },
-  {
-    id: 35,
-    question: 'Dalam penyebab dan solusi keterlambatan produksi, pilih kombinasi yang paling tepat.\n\nUntuk mencegah keterlambatan yang disebabkan oleh kesalahan jumlah material, baiknya menggunakan manajemen ___ .\nDalam produksi, lakukan ___ terlebih dahulu, baru kemudian ___ .\nDalam kasus kekurangan material, ___ tidak terpengaruh.\nYang terpengaruh adalah ___ .\n\n① Manajemen pemesanan   ② Produk (stok)   ③ Manajemen instruksi   ④ Biaya pengiriman   ⑤ Waktu pengiriman',
-    options: [
-      'A. A:① B:② C:③ D:④',
-      'B. A:③ B:② C:① D:④',
-      'C. A:③ B:② C:① D:⑤',
-      'D. A:① B:② C:③ D:④',
-    ],
-    correctIndex: 0,
-    explanation: 'Gunakan manajemen pemesanan untuk mencegah kesalahan jumlah. Lakukan manajemen produk (stok) terlebih dahulu. Kasus kekurangan material tidak mempengaruhi biaya pengiriman. Yang terpengaruh adalah biaya lain.',
-  },
-  {
-    id: 36,
-    question: 'Dalam metode pengendalian progres produksi, manakah yang paling tepat?',
-    options: [
-      'A. Kurva aliran: sumbu X = waktu, sumbu Y = jumlah kumulatif',
-      'B. Diagram segitiga produksi: X = hari, Y = stok kumulatif',
-      'C. Gantt chart untuk kapasitas',
-      'D. Papan kontrol untuk instruksi kerja',
-    ],
-    correctIndex: 0,
-    explanation: '流動数曲線 (Kurva aliran) Sumbu X = waktu, Sumbu Y = jumlah kumulatif masuk/keluar. Berguna untuk melihat aliran produksi.',
-  },
-  {
-    id: 37,
-    question: 'Dalam keselamatan kerja terkait mesin khusus (特定機械), manakah yang paling tidak tepat?',
-    options: [
-      'A. Mesin tertentu seperti boiler perlu persetujuan desain',
-      'B. Pemeriksaan termasuk pemeriksaan struktur',
-      'C. Tidak perlu pemeriksaan saat dipasang kembali',
-      'D. Harus diperiksa saat pemasangan',
-    ],
-    correctIndex: 2,
-    explanation: 'Mesin yang dipasang kembali (pemindahan) tetap harus diperiksa. Semua pemasukan/pemasangan mesin khusus memerlukan pemeriksaan.',
-  },
-  {
-    id: 38,
-    question: 'Dalam prinsip dasar keselamatan manusia, manakah yang paling tepat?',
-    options: [
-      'A. Pekerja sudah terlatih tetap harus mengulang semua pelatihan',
-      'B. Untuk pekerjaan berbahaya, wajib pelatihan khusus dan menyimpan data selama 3 tahun',
-      'C. 4S adalah menambahkan disiplin ke 3S',
-      'D. 5S dimulai dari pembersihan (seiri)',
-    ],
-    correctIndex: 1,
-    explanation: 'Pekerjaan berbahaya (keselamatan dan kesehatan kerja) wajib pelatihan khusus dan data disimpan selama 3 tahun.',
-  },
-  {
-    id: 39,
-    question: 'Dalam pernyataan tentang pencegahan pencemaran lingkungan, manakah yang paling tidak tepat?',
-    options: [
-      'A. Pencemaran lingkungan utama termasuk hujan asam',
-      'B. Dalam UU pencegahan pencemaran udara terdapat aturan tentang gas buang kendaraan sebagai sumber pencemaran bergerak',
-      'C. Dalam UU kebisingan terdapat aturan tentang kebisingan dari pabrik dan konstruksi serta batas kebisingan',
-      'D. Dalam UU pencemaran air terdapat aturan tentang pembuangan limbah ke perairan umum dan peresapan ke tanah',
-    ],
-    correctIndex: 0,
-    explanation: 'Hujan asam bukan termasuk pencemaran lingkungan utama. Pencemaran utama = pencemaran udara, air, tanah, kebisingan, getaran, bau.',
-  },
-  {
-    id: 40,
-    question: 'Di antara zat berikut, manakah yang paling tidak sesuai sebagai pencemar udara utama?',
-    options: [
-      'A. Oksida sulfur (硫黄酸化物)',
-      'B. Kadmium (カドミウム)',
-      'C. Asbes (アスベスト)',
-      'D. Hidrogen fluorida (フッ化水素)',
-    ],
-    correctIndex: 2,
-    explanation: 'Asbes termasuk pencemar yang dikategorikan terpisah. Pencemar udara utama dalam konteks ini adalah gas industri: SOx, NOx, dust, fluorine.',
-  },
+  { id: 1, question: `問題１。 せいさん生産しすてむシステムにかん関するきじゅつ記述としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'は、せいひん製品のどのぶぶん部分をがいぶいたく外部委託するかをき決めるかつどう活動である。',
+      'デザインレビューは、でせっけいしんさ設計審査をおこな行うかつどう活動である。',
+      'は、ちょうたつ調達したしざい資材のうけい受入れとけんさ検査をおこな行うかつどう活動である。',
+      'デザインインは、がりょうさんだ量産立ちあ上げのぎょうむ業務からかか関わることである。'
+    ], correctIndex: 3, explanation: `Design-in berarti pemasok terlibat sejak tahap desain, bukan produksi` },
+  { id: 2, question: `問題 ２。 さぎょうかんり作業管理のにかん関するきじゅつ記述としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'もごうりてき合理的でせいさんせい生産性のたか高いさぎょうほうほう作業方法のはっけん発見とついきゅう追求',
+      '、ざいりょう材料、せつび設備、こうぐ工具、さぎょうかんきょう作業環境などのこじんべつせってい個人別設定',
+      'なさぎょうしゃ作業者によるかぎょうすいこうじかん課業遂行時間のみつも見積り',
+      'としてせってい設定されたさぎょうほうほう作業方法の指導'
+    ], correctIndex: 1, explanation: `Manajemen kerja harus dilakukan secara standar dan terpadu, bukan terpisah` },
+  { id: 3, question: `問題３． ５めい名のさぎょうしゃ作業者が、かくだいきょう拡大鏡、ピンセットとう等をしよう使用するせいみつきき精密機器のくみたてさぎょう組立作業をおこな行ったけっか結果、くみたてじかん組立時間にさいだい最大1.5のきがで出た。さいそくしゃ最速者とさいちしゃ最遅者の２にん人のさぎょうないよう作業内容をビデオカメラによりきろく記録し、さいせい再生してどうさけんきゅう動作研究をおこな行うばあい場合、このどうさけんきゅう動作研究でけんとう検討できないこうもく項目は、つぎ次のうちどれか。`, options: [
+      'サーブリッグごとのはっせいひんど発生頻度',
+      'をおこな行うためにひつよう必要などうさようそ動作要素',
+      'のさぎょうしゃべつかどうりつ作業者別稼働率',
+      'などうさ動作のすく少ないくみたてさぎょう組立作業における動作順序'
+    ], correctIndex: 2, explanation: `Motion study hanya menganalisis gerakan, tidak bisa menilai efisiensi kerja secara keseluruhan` },
+  { id: 4, question: `問題４． サーブリッグぶんせき分析におけるきほんどうさようそ基本動作要素のうち、しごと仕事をするうえ上でひつよう必要などうさ動作であるだいいちるい第一類のどうさようそ動作要素としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'おさえる / holding (holding)',
+      'つかむ (memegang)',
+      'す (meletakkan)',
+      'べる (memeriksa)'
+    ], correctIndex: 0, explanation: `“Menahan” adalah kondisi, bukan gerakan utama` },
+  { id: 5, question: `問題５． れんごうさぎょうぶんせき連合作業分析にかん関するきじゅつ記述としてもっと最もてきせつ適切なものは、つぎ次のうちどれか。`, options: [
+      '１のさぎょうしゃ作業者が１だい台のきかい機械をたんとう担当するきょうどうさぎょう協同作業について、そのこうりつ効率をたか高めるためのぶんせき分析をおこな行うには、れんごうさぎょうぶんせき連合作業分析ではなく、かどうぶんせき稼働分析のほう方がてき適している。',
+      'でりよう利用されるマンマシンチャートには、さぎょうしゃ作業者のたんどくさぎょう単独作業やきかい機械のじどううんてん自動運転をきにゅう記入するのではなく、れんごうさぎょう連合作業をきにゅう記入してぶんせき分析する。',
+      'のさぎょうしゃ作業者がどうじへいれつてき同時並列的にきょうどう協同してどういつ同一のたいしょうぶつ対象物にたい対するさぎょう作業のかいぜん改善をおこな行うには、ＰＴＳほう法のぶんせき分析でなく、れんごうさぎょうぶんせき連合作業分析のほう方がてき適している。',
+      '１のさぎょうしゃ作業者がどうじ同時にへいこう並行してたんとう担当できるきかい機械のも持ちだいすう台数をけんとう検討するばあい場合、れんごうさぎょうぶんせき連合作業分析ではきかい機械のゆうきゅうじかん遊休時間をきろく記録するのではなく、さぎょうしゃ作業者によるざいりょう材料のと取りつ付け・と取りはず外し、けんさ検査、うんぱん運搬などのさぎょうしゃ作業者のこうどう行動のじかん時間をきろく記録してぶんせき分析する。'
+    ], correctIndex: 2, explanation: `` },
+  { id: 6, question: `問題６． さぎょう作業ミスにたい対するさぎょうかいぜん作業改善にかん関するきじゅつ記述としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'ポカよけとばれるフールプルーフには、いじょう異常がはっせい発生したときにさぎょうしゃ作業者へおと音やひかり光でじょうほう情報をし知らせるちゅういしき注意式というほうほう方法がある。',
+      'におけるけんさ検査みすミスをぼうし防止するたいさく対策には、げんどみほん限度見本とじっさい実際をて照らしあ合わせてチェックするほうほう方法がある。',
+      'るべきたいしょうぶつ対象物がどこにあるかをランプなどによってしじ指示するデジタルピッキングは、しなもの品物をと取るときのらっか落下をぼうし防止するのにゆうこう有効である。',
+      'のいちぎ位置決めのせいかくせい正確性にかん関するみすミスをぼうし防止するには、つ突きあ当てがいどガイドのじぐ治具がゆうこう有効である。'
+    ], correctIndex: 2, explanation: `` },
+  { id: 7, question: `問題７． ５Ｓのていぎ定義にかん関するきじゅつ記述としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'めたことをかなら必ずまも守ること。',
+      'なものについたいぶつ異物をじょきょ除去すること。',
+      'なものとふひつよう不必要なものをくべつ区別すること。',
+      'のぶもん部門の５Ｓにかん関するかつどうないよう活動内容をみな皆できょうゆう共有すること。'
+    ], correctIndex: 3, explanation: `` },
+  { id: 8, question: `問題８． ざいこ在庫やかんしょう緩衝のきのう機能にかん関するきじゅつ記述としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'がおお多すぎるばあい場合には、ほかんひよう保管費用のぞうだい増大・しきんあっか資金悪化・ざいこ在庫のちんぷか陳腐化をひ引きお起こすことがあり、いっぽう一方、せいひんざいこ製品在庫がすく少なすぎてしなぎ品切れをお起こしたばあい場合にははんばいきかい販売機会をうしな失う。',
+      'においてかんしょう緩衝のきぼ規模がおお大きくなるばあい場合には、それをいじ維持するこすとコストがぞうだい増大する。',
+      'におけるせいひんざいこ製品在庫には、かんしょう緩衝としてあんぜんざいこ安全在庫をかくほ確保することがのぞ望ましい。',
+      'にたい対して、じっせき実績におく遅れがしょう生じたばあい場合には、そのたいさく対策の１つとして、せいさんけいかく生産計画やこうていへんせい工程編成のさい際に、あらかじめよゆう余裕となるかんしょう緩衝を組みこ込むことがある。'
+    ], correctIndex: 2, explanation: `` },
+  { id: 9, question: `問題９． たしゅしょうりょうせいさん多種少量生産にかん関するきじゅつ記述としてもっと最もてきせつ適切なものは、つぎ次のうちどれか。`, options: [
+      'は、ラインせいさん生産にてき適しており、たか高いせいさんせい生産性でてい低こすとコストのせいひん製品の生産をめざ目指している。',
+      'は、ここ個々のちゅうもん注文におう応じて、そのつど都度１かいかぎ回限りのせいさん生産をおこな行うけいたい形態のことである。',
+      'は、ふくすう複数のひんしゅ品種ごとにせいさんりょう生産量をまとめて、それぞれのひんしゅ品種をこうご交互にせいさん生産するけいたい形態のことである。',
+      'は、ざいりょう材料やぶひん部品からせいひん製品をせいさん生産するてじゅん手順がたよう多様であるため、せいさんこうてい生産工程のなが流れがそれぞれせいひん製品についてこと異なり、こうてい工程のなが流れもこうさく交錯する。'
+    ], correctIndex: 3, explanation: `` },
+  { id: 10, question: `問題10. せいひん製品のしかた方によるぶんるい分類にかん関するきじゅつ記述としてもっと最もてきせつ適切なものは、つぎ次のうちどれか。`, options: [
+      'ロットでは、１つのロットにふく含まれるすうりょう数量がちい小さくなるにつれて、こうていかんしかかりひん工程間仕掛品はおお多くなり、せいさんきかん生産期間がなが長くなる。',
+      'は、かくせいひん各製品のかこうじゅんじょ加工順序や、かこうじかん加工時間がるいじ類似したばあい場合にさいよう採用されるせいさんけいたい生産形態である。',
+      'は、どういつ同一のせいひん製品をいっていきかんつづ一定期間続けてせいさん生産するけいたい形態である。',
+      'は、ロットせいさん生産とれんぞくせいさん連続生産のちゅうかんてき中間的なせいさんけいたい生産形態である。'
+    ], correctIndex: 2, explanation: `` },
+  { id: 11, question: `問題11. いか以下にす＜にっていけいかく日程計画のしゅほう手法＞と＜ごく語句＞とのくみあわ組合せとしてもっと最もてきせつ適切なものは、つぎ次のうちどれか。`, options: [
+      'Ａ：④',
+      'Ａ：②',
+      'Ｂ：①',
+      'Ｃ：③'
+    ], correctIndex: 3, explanation: `` },
+  { id: 12, question: `問題12.  せいさくてはい製作手配にするきじゅつ記述としてもっと最もてきせつ適切なものは、つぎ次のうちどれか。`, options: [
+      'は、かくたんとうぶもん各担当部門におこな行わせるぎょうむ業務にたい対しててはい手配すべきひつようじこう必要事項をまとめ、それにたいおう対応したかくしゅでんぴょう各種伝票のだいちょう台帳をつく作り、それぞれのたんとうぶしょ担当部署へがいとう該当するでんぴょう伝票をはっこうおよ発行及びはいふ配布することにより、かくたんとうぶもん各担当部門にじぜんじゅんび事前準備をさせるかつどう活動である。',
+      'では、さぎょう作業にひつよう必要なしざい資材、じこうぐ治工具、せっけいず設計図、さぎょうひょうじゅんしょ作業標準書などを、さぎょうかいしまえ作業開始前にそれぞれのしょくば職場に、じぜん事前にじゅんび準備しておく。',
+      'は、さぎょう作業スケジュールがじつげんかのう実現可能なようにさぎょうゆうせんじゅんじょ作業優先順序をけってい決定して、ここ個々のさぎょうしゃ作業者やきかい機械にしごと仕事をわ割りあ当てるかつどう活動である。',
+      'は、げんじょう現状のせいぞうかつどう製造活動のしんちょくじょうきょう進捗状況をこうりょ考慮したうえ上で、しょうにっていけいかく小日程計画をせいぞうげんば製造現場でじっし実施にうつ移すことができるように、げんばかんりしゃみずか現場管理者自らがたんとう担当しているしょくば職場のかくさぎょうしゃ各作業者やかくきかい各機械にたい対しておこな行うぜんぱんてき全般的なせいさんとうせい生産統制のかつどう活動である。'
+    ], correctIndex: 0, explanation: `` },
+  { id: 13, question: `問題13. におけるのげんぴん現品のインプットとアウトプットのさい差異をぶんせき分析するちょうさほうほうおよ調査方法及びちょうさたいしょう調査対象としてもっと最もてきせつ適切なものは、つぎ次のうちどれか。`, options: [
+      'さだてばん 差立盤 (dispatch board)',
+      'カムアップシステム (cam-up system)',
+      'りゅうどうすうきょくせん流動数曲線 (flow-number curve)',
+      'せいぞうたいちょう 進度票 (progress ticket)'
+    ], correctIndex: 2, explanation: `` },
+  { id: 14, question: `問題14.  にするきじゅつ記述としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'は、こうすうけいかく工数計画でのよそく予測をけんしょう検証しつつ、よそく予測をこ超えたぶぶん部分についてしごと仕事のさいはいぶん再配分をおこな行うよりょく余力をばらんすバランスさせて、のうきかくほ納期確保をはか図ることをもくてき目的としている。',
+      'のもくひょう目標をたっせい達成するために、しごとりょう仕事量とせいさんのうりょく生産能力のりょうしゃ両者のちょうせい調整をはか図る。',
+      'ちしごとりょう仕事量のはあく把握によるよりょく余力のさんしゅつ算出は、たいしょう対象としているこうてい工程のさぎょうひょう作業票やしかかりひん仕掛品をちょうさ調査することでわかる。',
+      'は、こうてい工程におけるげんざい現在のほゆうこうすう保有工数から、げんじょう現状のふかこうすう負荷工数を差しひ引いてのこ残ったぶぶん部分をいう。'
+    ], correctIndex: 1, explanation: `` },
+  { id: 15, question: `問題15. あるにおいて、かこ過去10ねんかん年間で３のじゅうだいさいがい重大災害がはっせい発生した。このばあい場合、ハインリッヒのほうそく法則によりかんが考えられることとしてもっと最もてきせつ適切なものは、つぎ次のうちどれか。`, options: [
+      'のじこ事故は、やく約30けんはっせい件発生しているとえられる。',
+      'のじこ事故は、やく約900けんはっせい件発生しているとえられる。',
+      'は、やく約30件発生していると考えられる。',
+      'は、やく約900けんはっせい件発生しているとえられる。'
+    ], correctIndex: 3, explanation: `` },
+  { id: 16, question: `問題16.  のにかん関するきじゅつ記述としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'をするさい際には、けんせつこうじ建設工事のしんちょく進捗やこすとコストのかんり管理をおこな行う。',
+      'をするさい際には、せつびけいかく設備計画をへ経てせつびせっけい設備設計をおこな行う。',
+      'をするさい際には、ほぜんけいかく保全計画をさくせい作成する。',
+      'をするさい際には、ほぜんきろくほうこく保全記録報告をおこな行う。'
+    ], correctIndex: 3, explanation: `` },
+  { id: 17, question: `問題17.  のにふく含まれないものは、つぎ次のうちどれか。`, options: [
+      '利用可用性稼働率 / Availability rate (Availability)',
+      '性能稼働率 / Performance rate (Performance)',
+      '品質良品率 / Quality rate (Quality)',
+      '故障率 / Failure rate [BUKAN OEE]'
+    ], correctIndex: 3, explanation: `` },
+  { id: 18, question: `問題18.  のにかん関するこうもく項目としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'そうじ 清掃 (cleaning - machines)',
+      'けいこうかんり 傾向管理 (trend monitoring)',
+      '不良品修理 / Repair defective products [TIDAK termasuk!]',
+      'ぶひんこうかん 部品交換 (parts replacement)'
+    ], correctIndex: 2, explanation: `` },
+  { id: 19, question: `問題19.  の・けんさとう検査等のかつどう活動にかん関するきじゅつ記述としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'は、にちじょうほぜん日常保全、けんさ検査としゅうり修理からなる。',
+      'のてんけん点検・けんさかつどう検査活動のじっし実施では、チェックリストをもち用いるとよい。',
+      'のじょきょ除去、よご汚れのせいそう清掃などのしょうせいび小整備は、ほぜんぶもん保全部門がおこな行う。',
+      'には、にちじょうてんけんきじゅんひょう日常点検基準表やていきてんけんきじゅんひょう定期点検基準表がある。'
+    ], correctIndex: 2, explanation: `` },
+  { id: 20, question: `問題20.  における＜＞と＜たいしょうしざい対象資材＞とのくみあわ組合せとしてもっと最もてきせつ適切なものは、つぎ次のうちどれか。`, options: [
+      'Ａ：２  Ｂ：１  Ｃ：３  Ｄ：４',
+      'Ａ：１  Ｂ：２  Ｃ：４  Ｄ：３',
+      'Ａ：４  Ｂ：３  Ｃ：２  Ｄ：１',
+      'Ａ：１  Ｂ：４  Ｃ：２  Ｄ：３'
+    ], correctIndex: 1, explanation: `` },
+  { id: 21, question: `問題21.  のにかん関するきじゅつ記述としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'ストラクチャでは、もっと最もかい下位のぶひん部品レベルのあたい値が０である。',
+      'ストラクチャでのしょうみしょようりょう正味所要量は、しょようりょう所要量－きしゅてもちざいこりょう期首手持在庫量によりもと求める。',
+      'サマリーでは、けいさんたいしょう計算対象のぶひん部品がたんぴん単品かくみたてひん組立品かのくべつ区別ができない。',
+      'サマリーは、ぶひんこうせい部品構成がたんじゅん単純なものモノやけいぞくせい継続性がないものモノにてきよう適用される。'
+    ], correctIndex: 0, explanation: `` },
+  { id: 22, question: `問題22. とのりてん利点にかん関するきじゅつ記述としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'は、しゅうちゅうはっちゅう集中発注によりこうばいかかく購買価格のひ引きさ下げができる。',
+      'は、こうばいじむてつづき購買事務手続をとういつ統一できる。',
+      'は、しざい資材のひょうじゅんか標準化がようい容易となる。',
+      'は、かくこうじょう各工場がりっち立地するちいききぎょう地域企業にこうけん貢献できる。'
+    ], correctIndex: 2, explanation: `しゅうちゅうこうばい集中購買 = murah + standar ぶんさんこうばい分散購買 = fleksibel + lokal` },
+  { id: 23, question: `問題23.  をにぶんるい分類したひもく費目としてもっと最もてきせつ適切なものは、つぎ次のうちどれか。`, options: [
+      '、こていぶつりゅうひ固定物流費、へんぴんぶつりゅうひ返品物流費、かいしゅうぶつりゅうひ回収物流費、はいきぶつりゅうひ廃棄物流費',
+      '、しゃないぶつりゅうひ社内物流費、はんばいぶつりゅうひ販売物流費、ほうそうひ包装費、ほかんひ保管費',
+      '、しはらいぶつりゅうひ支払物流費、じょうほうしょりひ情報処理費、ぶつりゅうかんりひ物流管理費',
+      '、ほかんひ保管費、ほうそうひ包装費、りゅうつうかこうひ流通加工費、じょうほうしょりひ情報処理費、ぶつりゅうかんりひ物流管理費'
+    ], correctIndex: 3, explanation: `` },
+  { id: 24, question: `問題24. （センター）のとしてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'センター',
+      'センター',
+      'センター',
+      'センター'
+    ], correctIndex: 3, explanation: `` },
+  { id: 25, question: `問題25.  なのほうそう包装のきのう機能としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'にたい対するほご保護',
+      'にかん関するじょうほうていきょう情報提供',
+      'におけるとりあつか取扱いのりべんせい利便性',
+      'におけるごはいそうぼうし誤配送防止'
+    ], correctIndex: 3, explanation: `` },
+  { id: 26, question: `問題26. のにかん関するじこう事項としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'のもくてき目的は、かいて買手のたよう多様ながんぼう願望よりもせいさんしゃ生産者のせんもんちしき専門知識をい生かしたひんしつ品質のしなものまた品物又はサービスをけいざいてき経済的につく作りだ出すことにある。',
+      'は、データなどのきゃっかんてきじじつ客観的事実にもと基づいたかんり管理をじつげん実現するために、とうけいてきしゅほう統計的手法をひんしつかんり品質管理にてきよう適用するかつどう活動である。',
+      'をこうかてき効果的にじっし実施するためには、モノやサービスをちょくせつさんしゅつ直接産出しているぶもん部門だけでなく、せいひん製品のライフサイクルぜんたい全体をたいしょう対象とするひつよう必要がある。',
+      'におけるかんり管理では、けいえいもくてき経営目的にそ沿って、ひと人、もの物、かね金、じょうほう情報などさまざま様々なしげん資源をてきせつ適切にけいかく計画し、うんよう運用し、とうせい統制するてつづきおよ手続及びそのかつどう活動をおこな行う。'
+    ], correctIndex: 0, explanation: `` },
+  { id: 27, question: `問題27.  ２、８、５、４、６という５つのデータがある、ひょうほんひょうじゅんへんさ標本標準偏差のけいさんけっか計算結果のあたい値にもっと最もちか近いものは、つぎ次のうちどれか。`, options: [
+      '2.00',
+      '2.24',
+      '4.00',
+      '4.47'
+    ], correctIndex: 1, explanation: `` },
+  { id: 28, question: `問題28.  にするきじゅつ記述としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'のＱＣストーリーでは、せんてい選定したテーマにしたが従ってげんじょうはあく現状把握をおこな行い、かだい課題にかん関するよういん要因のかいせき解析にもと基づいてほうさく方策をりつあん立案する。',
+      'なさいはつぼうしたいさく再発防止対策として、ポカよけというフールプルーフのかんが考えかた方がある。',
+      'のこうか効果をいじ維持させるには、ひょうじゅんか標準化などのはど歯止めていちゃく定着がひつよう必要である。',
+      'には、よりげんりゅう源流にあるげんいん原因をついきゅう追究し、たいさく対策をこう講じるひつよう必要がある。'
+    ], correctIndex: 0, explanation: `` },
+  { id: 29, question: `問題29. にするきじゅつ記述としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。なお、ＦＭＥＡはFailure Mode and Effect Analysisである。`, options: [
+      'しじ指示・けいこくじょう警告上のけっかん欠陥は、せいぞうぶつ製造物からのぞ除くことがふかのう不可能なきけん危険があるばあい場合に、そのきけん危険にかん関するてきせつ適切なじょうほう情報をあた与えなかったばあい場合の欠陥である。',
+      'ＦＭＥＡは、せっけいじ設計時にせんざいてき潜在的なこしょう故障をよそく予測し、そのえいきょうど影響度をかいせき解析しせっけい設計のしんらいせい信頼性をたか高めるしゅほう手法である。',
+      'においてそんがいばいしょうせいきゅう損害賠償請求をおこな行うさい際は、かがいしゃ加害者のかしつせきにん過失責任のげんそく原則がさいよう採用されている。',
+      'のけっかん欠陥は、せいぞうぶつ製造物がせっけい設計やしよう仕様どおりにせいぞう製造されなかったためにあんぜんせい安全性をか欠いたばあい場合のけっかん欠陥である。'
+    ], correctIndex: 2, explanation: `` },
+  { id: 30, question: `問題30. コストコントロールのかつどう活動にかん関するきじゅつ記述としてもっと最もてきせつ適切なものは、つぎ次のうちどれか。`, options: [
+      'もくひょうげんか目標原価をせってい設定するかつどう活動',
+      'ひょうじゅんげんか標準原価をせってい設定するかつどう活動',
+      'さいぶんせき差異分析をもち用いてさい差異をちい小さくするかつどう活動',
+      'きょようげんか許容原価をせってい設定するかつどう活動'
+    ], correctIndex: 2, explanation: `` },
+  { id: 31, question: `問題31. せいぞうちょくせつひおよ製造直接費及びせいぞうかんせつひ製造間接費にかん関するきじゅつ記述としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'せいぞうちょくせつひ製造直接費とせいぞうかんせつひ製造間接費のぶんるい分類は、そうぎょうど操業度によるぶんるい分類とよ呼ばれる。',
+      'せいぞうちょくせつひ製造直接費をせいひん製品ごとにしゅうけい集計することを、ちょっか直課という。',
+      'せいぞうかんせつひ製造間接費をせいひん製品ごとにはいぶん配分することを、はいふ配賦という。',
+      'じゅうぎょういん従業員のしょうよ賞与は、せいぞうかんせつひ製造間接費である。'
+    ], correctIndex: 0, explanation: `` },
+  { id: 32, question: `問題32.  いか以下の＜じょうけん条件＞にもと基づいたばあい場合、たんじゅんそうごうげんかけいさん単純総合原価計算によるかんせいひんたんいげんか完成品単位原価としてただ正しいものは、つぎ次のうちどれか。なお、ちょくせつざいりょう直接材料はこうてい工程のしてん始点でぜんりょうとうにゅう全量投入されるものとし、（ Ａ ）のきんがく金額はとちゅうけいか途中経過としてけいさん計算すること。`, options: [
+      '17,000円／個',
+      '17,500円／個',
+      '18,000円／個',
+      '18,500円／個'
+    ], correctIndex: 2, explanation: `material → total unit process → equivalent unit` },
+  { id: 33, question: `問題33.  いか以下の＜じょうけん条件＞にもと基づき、とうごうほう統合法によるもくひょうげんかせってい目標原価設定をおこな行ったばあい場合のけいさんけっか計算結果としてただ正しいものは、つぎ次のうちどれか。`, options: [
+      '22,500円',
+      '24,000円',
+      '25,500円',
+      '27,000円'
+    ], correctIndex: 2, explanation: `きょようげんか許容原価 = ばいか売価 − りえき利益 もくひょうげんか目標原価 = なりゆきげんか成行原価 − selisih penyesuaian` },
+  { id: 34, question: `問題34.  ぶつりゅう物流におけるのうきちえんたいさく納期遅延対策にかん関するきじゅつ記述としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'せいひん製品のはんそうとちゅう搬送途中などでせいひん製品にはそん破損やきず傷がつかないように、こんぽうほうほう梱包方法をくふう工夫する。',
+      'せいひん製品のはんしゅつ搬出・のうにゅうじ納入時のさぎょう作業をマニュアルか化やひょうじゅんか標準化する。',
+      'こうていかん工程間のはんそう搬送にたい対しては、さぎょうしゃ作業者のこべつ個別のはんだん判断によりさぎょうほうほう作業方法をき決めておこな行う。',
+      'はんそうじかん搬送時間にえいきょう影響するさいたん最短ルートやどうろ道路のこんざつじょうきょう混雑状況をはあく把握・きろく記録する。'
+    ], correctIndex: 2, explanation: `` },
+  { id: 35, question: `問題35.  いか以下のせいぞうぶもん製造部門でののうきおく納期遅れのよういん要因とたいさく対策にかん関するきじゅつ記述において（ Ａ ）～（ Ｄ ）にはい入るようご用語としてもっと最もてきせつ適切なくみあわ組合せは、つぎ次のうちどれか。`, options: [
+      'Ａ：はっちゅうかんり発注管理  Ｂ：せいひん製品  Ｃ：しじかんり指示管理  Ｄ：のうき納期',
+      'Ａ：しじかんり指示管理  Ｂ：ぶひん部品  Ｃ：はっちゅうかんり発注管理  Ｄ：げんか原価',
+      'Ａ：しじかんり指示管理  Ｂ：ぶひん部品  Ｃ：はっちゅうかんり発注管理  Ｄ：のうき納期',
+      'Ａ：はっちゅうかんり発注管理  Ｂ：せいひん製品  Ｃ：しじかんり指示管理  Ｄ：げんか原価'
+    ], correctIndex: 0, explanation: `` },
+  { id: 36, question: `問題36.  せいさんけいかく生産計画・とうせい統制におけるしんちょくかんり進捗管理のしゅほう手法にかん関するきじゅつ記述としてもっと最もてきせつ適切なものは、つぎ次のうちどれか。`, options: [
+      'りゅうどうすうきょくせん流動数曲線は、よこじく横軸にじかん時間、たてじく縦軸にるいせきすうりょう累積数量をとる。',
+      'せいぞうさんかくず製造三角図は、よこじく横軸にじかん時間のめも目盛り、たてじく縦軸にるいせきざいこりょう累積在庫量をとる。',
+      'ガントチャートは、こうすうけいかく工数計画やよりょくかんり余力管理などのためにもち用いられるずひょう図表の１つである。',
+      'かんりばん管理盤は、さぎょうしゃべつまた作業者別又はきかいべつ機械別のさぎょうよてい作業予定のしじ指示、げんぴんかんりおよ現品管理及びさぎょうよりょく作業余力のとうせい統制について、さぎょうでんぴょう作業伝票などをもち用いておこな行うひょうじばん表示盤である。'
+    ], correctIndex: 0, explanation: `` },
+  { id: 37, question: `問題37.  ぶってきあんぜんか物的安全化のきほん基本となる、とくていきかいとう特定機械等のせいぞうきょかおよ製造許可及びけんさ検査にかん関するきじゅつ記述としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'とどうふけんろうどうきょくちょう都道府県労働局長のせいぞうきょか製造許可がひつよう必要なとくていきかい特定機械には、ぼいらボイラーおよ及びだい第１しゅあつりょくようき種圧力容器がふく含まれる。',
+      'とくていきかいとう特定機械等をせいぞう製造するさい際に、とどうふけんろうどうきょくちょう都道府県労働局長がおこな行うけんさ検査には、こうぞうけんさ構造検査がふく含まれる。',
+      'とどうふけんろうどうきょくちょう都道府県労働局長のきょか許可がひつよう必要なとくていきかいとう特定機械等のなか中でいっていきかんせっち一定期間設置されなかったものをせっち設置するばあい場合には、けんさ検査はひつよう必要ない。',
+      'いどうしき移動式をのぞ除くとくていきかいとう特定機械等をせっち設置したもの者は、ろうどうきじゅんかんとくしょちょう労働基準監督署長のけんさ検査をう受けなければならない。'
+    ], correctIndex: 2, explanation: `` },
+  { id: 38, question: `問題38. じんてきあんぜんか人的安全化のきほん基本にかん関するきじゅつ記述としてもっと最もてきせつ適切なものは、つぎ次のうちどれか。`, options: [
+      'しょくぎょうくんれん職業訓練をう受けたものとうじゅうぶん者等十分なちしき知識・ぎのう技能があっても、すべ全てのひつようじこう必要事項についてやといい雇入れじ時のあんぜんえいせい安全衛生のためのきょういく教育をおこな行わなければならない。',
+      'ろうどうあんぜんえいせいきそく労働安全衛生規則でさだ定めるきけん危険またはゆうがい有害なぎょうむ業務にろうどうしゃ労働者をじゅうじ従事させるときは、あんぜんえいせい安全衛生のとくべつきょういく特別教育をおこな行い、じゅこうしゃ受講者・かもくとう科目等のきょういくきろく教育記録をさくせい作成し３ねんかんほぞん年間保存しなければならない。',
+      '４Ｓは、せいり整理、せいとん整頓、せいそう清掃の３Ｓにしつけ躾をくわ加えたものである。',
+      '５Ｓかつどう活動のすす進めかた方としては、まずはじ始めにせいそう清掃からちゃくしゅ着手し、つぎ次にせいり整理、せいとん整頓にすす進むというなが流れがこうりつてき効率的である。'
+    ], correctIndex: 1, explanation: `きけんさぎょう危険作業 → とくべつきょういく特別教育（３3ねんほぞん年保存）→ Kerja berbahaya = wajib training khusus + simpan 3 tahun 5S → せいり整理 → せいとん整頓 → せいそう清掃 → せいけつ清潔 → しつけ躾` },
+  { id: 39, question: `問題39. かんきょうおせんぼうし環境汚染防止にかん関するきじゅつ記述としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'てんけい典型７こうがい公害には、さんせいう酸性雨がふく含まれる。',
+      'たいきおせんぼうしほう大気汚染防止法には、いどうはっせいげん移動発生源であるじどうしゃ自動車のじどうしゃはいしゅつ自動車排出がすガスにたい対するきせい規制がある。',
+      'そうおんきせいほう騒音規制法では、こうじょう工場・じぎょうじょう事業場におけるじぎょうかつどう事業活動やけんせつこうじ建設工事にともな伴ってはっせい発生するそうおん騒音のきせい規制とともにじどうしゃそうおん自動車騒音にかん関するきょようげんど許容限度もさだ定めている。',
+      'すいしつおだくぼうしほう水質汚濁防止法では、こうじょう工場からこうきょうようすいいき公共用水域へのはいすいまた排水又はちか地下へのしんとう浸透をきせい規制している。'
+    ], correctIndex: 0, explanation: `てんけいこうがい典型公害 = pencemaran udara, air, tanah, kebisingan, getaran, bau→ Tidak termasuk hujan asam Setiap hukum mengatur jenis pencemaran yang berbeda` },
+  { id: 40, question: `問題40.  たいきおせんぶっしつ大気汚染物質のばいえん煙としてもっと最もふてきせつ不適切なものは、つぎ次のうちどれか。`, options: [
+      'いおうさんかぶつ硫黄酸化物',
+      'カドミウム',
+      'アスベスト',
+      'フッ化水素'
+    ], correctIndex: 2, explanation: `Pencemar udara utama = gas dan polutan industri Asbes → kategori berbeda` },
 ];
 
 const PASSING_SCORE = 60; // 60%
