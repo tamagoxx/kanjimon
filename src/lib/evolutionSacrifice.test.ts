@@ -297,7 +297,7 @@ describe('evolution chain: rarity actually advances', () => {
       const result = useEvolutionStore.getState().evolveCard('f-1', current, { hp: 100, attack: 50, defense: 30 });
       if (!result.success) throw new Error(`evolve ${current} failed: ${result.error}`);
       const card = useCollectionStore.getState().fusedPokemon.find(p => p.id === 'f-1')!;
-      current = card.rarity as typeof current;
+      current = card.rarity as 'MYTHICAL' | 'TRANSCENDENT' | 'CELESTIAL' | 'DIVINE' | 'ULTIMATE' | 'ETERNAL' | 'NIHIL' | 'PRIMORDIAL' | 'OMNIPOTENT';
     }
     expect(current).toBe('OMNIPOTENT');
   });
@@ -346,7 +346,7 @@ describe('evolution chain: tiers above ETERNAL (NIHIL → OMNIPOTENT)', () => {
     while (current !== 'ETERNAL') {
       const r = useEvolutionStore.getState().evolveCard('p', current, { hp: 100, attack: 50, defense: 30 });
       if (!r.success) throw new Error(`Failed at ${current}: ${r.error}`);
-      current = useCollectionStore.getState().ownedPokemon.find(x => x.id === 'p')!.rarity as typeof current;
+      current = useCollectionStore.getState().ownedPokemon.find(x => x.id === 'p')!.rarity as 'MYTHICAL' | 'TRANSCENDENT' | 'CELESTIAL' | 'DIVINE' | 'ULTIMATE' | 'ETERNAL' | 'NIHIL' | 'PRIMORDIAL' | 'OMNIPOTENT';
     }
     expect(current).toBe('ETERNAL');
     // Now check that ETERNAL can evolve to NIHIL
