@@ -3197,12 +3197,12 @@ function SimulasiContent() {
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [showExplanation, setShowExplanation] = useState(false);
   const [examFinished, setExamFinished] = useState(false);
-  const timerDuration = examType === 'karier' || examType === 'gino2' ? 90 * 60 : 30 * 60;
+  const timerDuration = examType === 'karier' || examType === 'gino2' || examType === 'ssw2' ? 90 * 60 : 30 * 60;
   const [timeLeft, setTimeLeft] = useState(timerDuration);
 
   const filteredQuestions = useMemo(() => {
     if (examType === 'karier') return KARIER_QUESTIONS;
-    if (examType === 'gino2') return GINO2_QUESTIONS;
+    if (examType === 'gino2' || examType === 'ssw2') return GINO2_QUESTIONS;
     return DEMO_QUESTIONS;
   }, [examType]);
 
@@ -3243,7 +3243,7 @@ function SimulasiContent() {
     setCurrentQuestion(0);
     setAnswers({});
     setShowExplanation(false);
-    const startTimerDuration = examType === 'karier' || examType === 'gino2' ? 90 * 60 : 30 * 60;
+    const startTimerDuration = examType === 'karier' || examType === 'gino2' || examType === 'ssw2' ? 90 * 60 : 30 * 60;
     setTimeLeft(startTimerDuration);
   };
 
@@ -3306,7 +3306,7 @@ function SimulasiContent() {
               KanjiMon
             </Link>
             <span className="text-[#636E72]">
-              {examType === 'karier' ? '/ CBT Karier Bisnis' : examType === 'gino2' ? '/ GINO2 令和3年度' : '/ JLPT N5 Simulation'}
+              {examType === 'karier' ? '/ CBT Karier Bisnis' : examType === 'gino2' ? '/ GINO2 令和3年度' : examType === 'ssw2' ? '/ SSW 2 令和3年度' : '/ JLPT N5 Simulation'}
             </span>
           </div>
           <Link href="/" className="text-sm text-[#B2BEC3] hover:text-white">

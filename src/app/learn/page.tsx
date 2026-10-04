@@ -1705,6 +1705,44 @@ export default function LearnPage() {
             </div>
           </section>
         ))}
+
+        {/* Simulasi Ujian Section */}
+        <section className="mt-6 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-sm font-bold text-[#c8c4d7] tracking-wider">SIMULASI UJIAN</h2>
+              <p className="text-xs text-[#c8c4d7]/60">CBT Ujian Manufaktur</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {/* SSW 2 Card */}
+            <a
+              href="/simulasi?type=ssw2"
+              className="block p-4 rounded-2xl transition-all hover:scale-[1.02]"
+              style={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.inputBg}` }}
+            >
+              <div className="text-3xl mb-2">🎯</div>
+              <div className="text-base font-bold text-[#d8e4ea] mb-1">SSW 2</div>
+              <div className="text-xs text-[#c8c4d7] mb-2">40 soal · 90 menit</div>
+              <div className="text-xs font-medium px-2 py-0.5 rounded-full inline-block" style={{ backgroundColor: `${colors.brand}20`, color: colors.brand }}>
+                60% Lulus
+              </div>
+            </a>
+            {/* Bisnis Karir Card */}
+            <a
+              href="/bisnis-karir"
+              className="block p-4 rounded-2xl transition-all hover:scale-[1.02]"
+              style={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.inputBg}` }}
+            >
+              <div className="text-3xl mb-2">💼</div>
+              <div className="text-base font-bold text-[#d8e4ea] mb-1">Bisnis Karir</div>
+              <div className="text-xs text-[#c8c4d7] mb-2">40 soal · 90 menit</div>
+              <div className="text-xs font-medium px-2 py-0.5 rounded-full inline-block" style={{ backgroundColor: `${colors.teal}20`, color: colors.teal }}>
+                Reiwa 7 A
+              </div>
+            </a>
+          </div>
+        </section>
       </main>
 
       <BottomNav />
