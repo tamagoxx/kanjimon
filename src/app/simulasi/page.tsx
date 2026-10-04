@@ -3132,29 +3132,6 @@ const GINO2_QUESTIONS: Question[] = [
 ];
 
 
-const SSW_QUESTIONS: Question[] = [
-  { id: 1, section: 'moji', question: 'SSW(ii) の正式名称は？', options: ['Standard Software Workshop ii', 'Specialized Sheet Worker ii', 'Steel Structure Welding ii', 'Standard Specification Writing ii'], correctIndex: 2, explanation: 'SSW(ii) = Steel Structure Welding (ii級) = Kompetensi las struktur baja tingkat ii' },
-  { id: 2, section: 'moji', question: '「熔接」の読み方は？', options: ['ようせつ', 'ゆうせつ', 'ようせつ', 'ゆせつ'], correctIndex: 0, explanation: '熔接（ようせつ）= welding. 「熔」= mencairkan, 「接」= menyambung' },
-  { id: 3, section: 'moji', question: '「構造用鋼材」の読み方は？', options: ['こうぞうようこうざい', 'こうちくようはがね', 'けんぞうようはまだ', 'こうそうよう钢材'], correctIndex: 0, explanation: '構造用鋼材 = こうぞうようこうざい = structural steel material' },
-  { id: 4, section: 'moji', question: '「板」の読み方は？', options: ['いた', 'ことは', 'かん', 'ぶつ'], correctIndex: 0, explanation: '板 = いた = plate / sheet (baja plat) digunakan dalam manufacturing' },
-  { id: 5, section: 'moji', question: '「開先」の読み方は？', options: ['かいせん', 'ひらきさき', 'かいさき', ' 开始'], correctIndex: 0, explanation: '開先（かいせん）= grooving (groove untuk las). 開先加工 = groove machining' },
-  { id: 6, section: 'moji', question: '「不下」の意味は？', options: ['降らない', '现场不使用', '现场 Super', '不下（ふげ）= tidak turun/material'], correctIndex: 3, explanation: '不下 = ふげ = material yang tidak diturunkan/digunakan (synonym: 不使用材)' },
-  { id: 7, section: 'moji', question: '「仮付け」の読み方は？', options: ['かりつけ', 'かみつけ', 'かりどこ', 'たとえつけ'], correctIndex: 0, explanation: '仮付け（かりつけ）= tack welding = pengelasan sementara untuk holding' },
-  { id: 8, section: 'moji', question: '「通り止め」の読み方は？', options: ['とおりどめ', 'かようどめ', 'つうurd', 'とめない'], correctIndex: 0, explanation: '通り止め = とおりどめ = welding stopper / stop welding at specific point' },
-  { id: 9, section: 'bunpou', question: '「 steel plate ___ 切断 ___ 加工 ___ 行い ___ ます」\n正しい助詞は？', options: ['を / を / を / を', 'が / に / を / に', 'の / で / を / に', 'を / で / を / に'], correctIndex: 3, explanation: '钢板を切断で加工を行う = memotong dan memproses plat baja.「を」object,「で」 alat/purpose,「を」object,「に」direction' },
-  { id: 10, section: 'bunpou', question: '「開先 ___ 加工 ___ 行い ___ ます」\n正しい助詞は？', options: ['を / を / を', 'に / で / に', 'の / の / を', 'を / で / を'], correctIndex: 3, explanation: '開先を加工を行う = melakukan groove machining.「を」(objek),「で」= menggunakan,「を」(objek)' },
-  { id: 11, section: 'bunpou', question: '「この钢材 ___ 使用 ___ 済み ___ です」\n正しいのは？', options: ['は / が / を', 'は / に / だ', 'が / は / だ', 'は / だ / に'], correctIndex: 1, explanation: 'この钢材は使用済みだ = Material ini sudah dipakai. 使用済み = しようずみ = already used' },
-  { id: 12, section: 'bunpou', question: '「仮付け ___ 行い ___ ます ___ 」\n正しい敬語は？', options: ['を / を / ます', 'に / を / します', 'を / を / します', 'は / が / です'], correctIndex: 2, explanation: '仮付けを行う → 仮付け为您做します (keigo). いたします = humble form of します' },
-  { id: 13, section: 'bunpou', question: '「不通」の反対は？', options: ['不通（ふつう）', '痛通（つうつう）', '通了（とおり）', '通線（つうせん）'], correctIndex: 2, explanation: '不通（ふつう）= blocked/not passable. 通了（とおり）= can pass through / 完了した' },
-  { id: 14, section: 'bunpou', question: '「検査 ___ 合格 ___ しました」\n正しい助詞は？', options: ['は / が', 'が / に', 'を / に', 'の / を'], correctIndex: 1, explanation: '検査が合格しました = inspection passed.「が」subject,「に」direction (result)' },
-  { id: 15, section: 'dokkai', question: '「 SSW(ii) 試験では、構造用鋼材に対する熔接技術と安全管理が出題範囲です。実技試験では、板熔接と-tube熔接が表示されます。」\n\n質問：実技試験の内容は？', options: [' только 学科試験', '板熔接と-tube熔接', '安全管理の面接', '材料の切断'], correctIndex: 1, explanation: '板熔接 = plat welding. tube熔接 = pipa welding. 实技 = じつぎ = practical test' },
-  { id: 16, section: 'dokkai', question: '「不开 ERP 系统，你们就无法进行工程管理。」\n\n質問：この文の意図は？', options: ['ERP系统很难使用', '不开ERP就无法管理工程', '他们没有电脑', '需要先买机器'], correctIndex: 1, explanation: '不开 = tidak membuka. 无法 = tidak bisa. 工程管理 = 工程管理 (engineering management). 隐含：必须使用系统才能管理' },
-  { id: 17, section: 'dokkai', question: '「熔接施工 hier werden 检查后，后续加工に進みます。」\n\n質問：熔接施工後の工程は？', options: ['検査してから次工程', 'そのまま終了', 'やり直し', '在庫保管'], correctIndex: 0, explanation: '検査して = after inspection. 后续加工 = こうずいかこう = subsequent processing. 進みます = proceeds to' },
-  { id: 18, section: 'dokkai', question: '「 nosso factory 采用了严格的品质管理系统，所有钢材均经过来料檢驗后才入庫。」\n\n質問：品質管理在哪裡做？', options: ['入库前（来料检验）', '出厂前', '生产中', '随机抽查'], correctIndex: 0, explanation: '来料检验 = らいりけんせき = incoming material inspection. 入庫前 = sebelum storage. 严格的 = ketat' },
-  { id: 19, section: 'dokkai', question: '「安全第一が 우리 工場の 基本方針です。作業员は защитный снаряжение 를 필수로 착용해야 합니다。」\n\n質問：作業員に必要なことは？', options: ['英語能力', ' защитный снаряжение 필수 착용', '資格所持', '中国語堪能'], correctIndex: 1, explanation: '保護具 = ほごぐ = protective equipment. 着用 = ちゃくよう = to wear. 必须 = ひつぜん = wajib/mandatory' },
-  { id: 20, section: 'dokkai', question: '「この钢材は 不通 のため、使用できません。」\n\n質問：钢材的问题是什么？', options: ['型号不对', '已不通（使用済み）', '太贵了', '刚到货'], correctIndex: 1, explanation: '不通 = ふつう = blocked / 不使用. 已经完成焊接且检查不合格的材料不能再次使用' },
-];
-
 // Demo questions - real N5 style
 const DEMO_QUESTIONS: Question[] = [
   { id: 1, section: 'moji', question: 'あの人は 先生です。\n「あの」の意味は？', options: ['this', 'that', 'which', 'who'], correctIndex: 1, explanation: '「あの」は離れている人或いものを指す。= That (over there)' },
@@ -3220,12 +3197,11 @@ function SimulasiContent() {
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [showExplanation, setShowExplanation] = useState(false);
   const [examFinished, setExamFinished] = useState(false);
-  const timerDuration = examType === 'karier' || examType === 'ssw' || examType === 'gino2' ? 90 * 60 : 30 * 60;
+  const timerDuration = examType === 'karier' || examType === 'gino2' ? 90 * 60 : 30 * 60;
   const [timeLeft, setTimeLeft] = useState(timerDuration);
 
   const filteredQuestions = useMemo(() => {
     if (examType === 'karier') return KARIER_QUESTIONS;
-    if (examType === 'ssw') return SSW_QUESTIONS;
     if (examType === 'gino2') return GINO2_QUESTIONS;
     return DEMO_QUESTIONS;
   }, [examType]);
@@ -3267,7 +3243,7 @@ function SimulasiContent() {
     setCurrentQuestion(0);
     setAnswers({});
     setShowExplanation(false);
-    const startTimerDuration = examType === 'karier' || examType === 'ssw' || examType === 'gino2' ? 90 * 60 : 30 * 60;
+    const startTimerDuration = examType === 'karier' || examType === 'gino2' ? 90 * 60 : 30 * 60;
     setTimeLeft(startTimerDuration);
   };
 
@@ -3330,7 +3306,7 @@ function SimulasiContent() {
               KanjiMon
             </Link>
             <span className="text-[#636E72]">
-              {examType === 'karier' ? '/ CBT Karier Bisnis' : examType === 'ssw' ? '/ SSW(ii) Industrial' : examType === 'gino2' ? '/ GINO2 令和3年度' : '/ JLPT N5 Simulation'}
+              {examType === 'karier' ? '/ CBT Karier Bisnis' : examType === 'gino2' ? '/ GINO2 令和3年度' : '/ JLPT N5 Simulation'}
             </span>
           </div>
           <Link href="/" className="text-sm text-[#B2BEC3] hover:text-white">
@@ -3348,10 +3324,10 @@ function SimulasiContent() {
               className="mb-6 text-center"
             >
               <h1 className="text-2xl font-bold text-white mb-2">
-                {examType === 'karier' ? '💼 CBT Karier Bisnis Manufacturing' : examType === 'ssw' ? '📋 CBT SSW(ii) Industrial Product' : examType === 'gino2' ? '🎯 CBT GINO2 令和3年度 後期' : '📝 JLPT N5 Simulation'}
+                {examType === 'karier' ? '💼 CBT Karier Bisnis Manufacturing' : examType === 'gino2' ? '🎯 CBT GINO2 令和3年度 後期' : '📝 JLPT N5 Simulation'}
               </h1>
               <p className="text-[#636E72]">
-                {examType === 'karier' ? 'Simulasi CBT Karier Bisnis Manufaktur — 40 soal, 90 menit' : examType === 'ssw' ? 'Simulasi SSW(ii) Steel Structure Welding — 20 soal, 90 menit' : examType === 'gino2' ? 'Simulasi CBT GINO2 令和3年度 後期 — 40 soal, 90 menit' : 'Simulasi ujian N5 dengan 25 soal'}
+                {examType === 'karier' ? 'Simulasi CBT Karier Bisnis Manufaktur — 40 soal, 90 menit' : examType === 'gino2' ? 'Simulasi CBT GINO2 令和3年度 後期 — 40 soal, 90 menit' : 'Simulasi ujian N5 dengan 25 soal'}
               </p>
             </motion.div>
 
@@ -3402,23 +3378,6 @@ function SimulasiContent() {
                   className="px-8 py-4 bg-gradient-to-r from-[#6C5CE7] to-[#A29BFE] rounded-xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg shadow-[#6C5CE7]/30"
                 >
                   💼 Start CBT Karier Bisnis (40 soal, 90 menit)
-                </button>
-                <p className="text-xs text-[#636E72] mt-3">Waktu: 90 menit • Skor kelulusan: 80%</p>
-              </motion.div>
-            )}
-
-            {examType === 'ssw' && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.1 }}
-                className="text-center"
-              >
-                <button
-                  onClick={() => startExam()}
-                  className="px-8 py-4 bg-gradient-to-r from-[#6C5CE7] to-[#A29BFE] rounded-xl text-lg font-bold hover:opacity-90 transition-opacity shadow-lg shadow-[#6C5CE7]/30"
-                >
-                  📋 Start CBT SSW(ii) (20 soal, 90 menit)
                 </button>
                 <p className="text-xs text-[#636E72] mt-3">Waktu: 90 menit • Skor kelulusan: 80%</p>
               </motion.div>
